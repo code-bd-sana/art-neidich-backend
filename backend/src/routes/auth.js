@@ -35,4 +35,53 @@ router.post(
  */
 router.post("/login", validate(loginSchema, { target: "body" }), login);
 
+/**
+ * Handle forgot password request
+ *
+ * @route POST /api/v1/auth/forgot-password
+ * Public route to initiate forgot password process
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+// router.post(
+//   "/forgot-password",
+//   validate(forgotPasswordSchema, { target: "body" }),
+//   forgotPassword
+// );
+
+/**
+ * Handle reset password request
+ *
+ * @route POST /api/v1/auth/reset-password
+ * Public route to reset user password
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+// router.post(
+//   "/reset-password",
+//   validate(resetPasswordSchema, { target: "body" }),
+//   resetPassword
+// );
+
+/**
+ * Handle change password
+ *
+ * @route POST /api/v1/auth/change-password
+ * Private route to change user password
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+// router.post(
+//   "/change-password",
+//   authenticateUser,
+//   validate(changePasswordSchema, { target: "body" }),
+//   changePassword
+// );
+
 module.exports = router;
