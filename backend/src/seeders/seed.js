@@ -103,8 +103,7 @@ async function seed() {
       "Martin",
     ];
 
-    const DEFAULT_PASSWORD_PLAIN =
-      process.env.SEED_DEFAULT_PASSWORD || "123456";
+    const DEFAULT_PASSWORD_PLAIN = "123456";
     const hashedPassword = await hashPassword(DEFAULT_PASSWORD_PLAIN);
 
     const usersToCreate = [];

@@ -90,7 +90,7 @@ async function loginUser(payload) {
     role: user.role,
   });
 
-  return  token;
+  return token;
 }
 
 module.exports = { registerUser, loginUser };
