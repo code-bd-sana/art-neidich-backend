@@ -40,7 +40,7 @@ async function registerUser(payload) {
  * Authenticate user and return token
  *
  * @param {{email: string, password: string}} payload
- * @returns {Promise<{token: string, user: object}>}
+ * @returns {Promise<string>} JWT token
  */
 async function loginUser(payload) {
   const { email, password } = payload;
@@ -90,7 +90,7 @@ async function loginUser(payload) {
     role: user.role,
   });
 
-  return { token, user };
+  return  token;
 }
 
 module.exports = { registerUser, loginUser };
