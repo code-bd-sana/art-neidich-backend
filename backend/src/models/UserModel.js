@@ -83,3 +83,10 @@ userSchema.methods.toSafeObject = function () {
 
 const UserModel = mongoose.model("User", userSchema);
 module.exports = UserModel;
+
+userSchema.index({
+  firstName: "text",
+  lastName: "text",
+  email: "text",
+  userId: "text",
+});

@@ -58,11 +58,12 @@ async function updateUserProfileController(req, res, next) {
  */
 async function getAllUsersController(req, res, next) {
   try {
-    const users = await getUsers(req.query);
+    const { users, metaData } = await getUsers(req.query);
     res.status(200).json({
       success: true,
       message: "Users fetched successfully",
       data: users,
+      metaData,
     });
   } catch (error) {
     next(error);
