@@ -17,7 +17,11 @@ const { registerSchema } = require("../validators/auth/register");
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-router.post("/register", validate(registerSchema), register);
+router.post(
+  "/register",
+  validate(registerSchema, { target: "body" }),
+  register
+);
 
 /**
  * Handle user login
@@ -29,6 +33,6 @@ router.post("/register", validate(registerSchema), register);
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-router.post("/login", validate(loginSchema), login);
+router.post("/login", validate(loginSchema, { target: "body" }), login);
 
 module.exports = router;

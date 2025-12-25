@@ -50,6 +50,14 @@ const userSchema = new mongoose.Schema(
         },
       ],
     },
+    isSuspended: {
+      type: Boolean,
+      default: false, // User account is active by default
+    },
+    isApproved: {
+      type: Boolean,
+      default: false, // Only root and admin can approve users
+    },
     password: {
       type: String,
       required: true,
@@ -58,8 +66,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["root", "admin", "instructor"],
-      default: "instructor",
+      enum: [0, 1, 2].map(String), // '0' = root, '1' = admin, '2' = inspector
     },
   },
   { timestamps: true, versionKey: false }

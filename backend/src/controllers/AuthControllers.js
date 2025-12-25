@@ -1,4 +1,4 @@
-const { registerUser, loginUser } = require("../services/AuthService");
+const { registerUser, loginUser } = require("../services/AuthServices");
 
 /**
  * Handle user registration
@@ -9,7 +9,7 @@ const { registerUser, loginUser } = require("../services/AuthService");
 async function register(req, res, next) {
   try {
     const payload = req.validated;
-    await registerUser(payload, res);
+    await registerUser(payload);
     return res
       .status(201)
       .json({ success: true, message: "User registered successfully" });
@@ -27,7 +27,7 @@ async function register(req, res, next) {
 async function login(req, res, next) {
   try {
     const payload = req.validated;
-    const token = await loginUser(payload, res);
+    const token = await loginUser(payload);
     return res
       .status(200)
       .json({ success: true, message: "Login successful", token });

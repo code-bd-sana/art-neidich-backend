@@ -4,7 +4,9 @@ const UserModel = require("../models/UserModel");
 
 /**
  * Express middleware to authenticate user via JWT.
+ *
  * Attaches user object to req.user if valid.
+ *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
@@ -37,16 +39,23 @@ async function authenticate(req, res, next) {
 }
 
 /**
- * Middleware to check user role(s).
- * Usage: router.get('/admin', authenticate, authorizeRoles('admin'), ...)
- * @param {...string} roles
+ * Express middleware to authorize user based on roles.
+ *
+ * @param  {...string} allowedRoles - Roles allowed to access the route
+ * @returns {import('express').RequestHandler}
  */
-function authorizeRoles(...roles) {
+function authorizeRoles(...allowedRoles) {
+  const allowed = allowedRoles.map(String);
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res
-        .status(403)
-        .json({ success: false, message: "Forbidden: insufficient role" });
+    if (!req.user) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+    const userRoles = Array.isArray(req.user.role)
+      ? req.user.role.map(String)
+      : [String(req.user.role)];
+    const hasRole = userRoles.some((r) => allowed.includes(r));
+    if (!hasRole) {
+      return res.status(403).json({ success: false, message: "Access denied" });
     }
     next();
   };

@@ -1,0 +1,180 @@
+const {
+  getProfile,
+  updateProfile,
+  getUsers,
+  getUserDetails,
+  approveUser,
+  suspendUser,
+  unSuspendUser,
+  deleteUser,
+} = require("../services/UserServices");
+
+/**
+ * Controller to get logged-in user's profile
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function getUserProfileController(req, res, next) {
+  try {
+    const user = await getProfile(req.user._id);
+    res.status(200).json({
+      success: true,
+      message: "User profile fetched successfully",
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Controller to update logged-in user's profile
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function updateUserProfileController(req, res, next) {
+  try {
+    const updatedUser = await updateProfile(req.user.id, req.body);
+    res.status(200).json({
+      success: true,
+      message: "User profile updated successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Get all users (admin and root only)
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function getAllUsersController(req, res, next) {
+  try {
+    const users = await getUsers(req.query);
+    res.status(200).json({
+      success: true,
+      message: "Users fetched successfully",
+      data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Get user by ID (admin and root only)
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function getUserByIdController(req, res, next) {
+  try {
+    const user = await getUserDetails(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: "User fetched successfully",
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Approve a user (admin and root only)
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function approveUserController(req, res, next) {
+  try {
+    const user = await approveUser(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: "User approved successfully",
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Suspend a user (admin and root only)
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function suspendUserController(req, res, next) {
+  try {
+    const user = await suspendUser(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: "User suspended successfully",
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Un-suspend a user (admin and root only)
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function unSuspendUserController(req, res, next) {
+  try {
+    const user = await unSuspendUser(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: "User un-suspended successfully",
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Delete a user (root only)
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function deleteUserController(req, res, next) {
+  try {
+    await deleteUser(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = {
+  getUserProfileController,
+  updateUserProfileController,
+  getAllUsersController,
+  getUserByIdController,
+  approveUserController,
+  suspendUserController,
+  unSuspendUserController,
+  deleteUserController,
+};
