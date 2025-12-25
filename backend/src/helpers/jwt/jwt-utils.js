@@ -20,13 +20,13 @@ const generateToken = async (userData) => {
 /**
  * Verifies a JWT token and returns the user ID.
  * @param {string} token - The JWT token to be verified.
- * @returns {Promise<string|null>} - A promise that resolves to the user ID if verification is successful, otherwise null.
+ * @returns {Promise<*>} - A promise that resolves to the decoded token payload.
  */
 const verifyToken = async (token) => {
   try {
     const secretKey = process.env.JWT_SECRET_KEY;
     const decoded = await jwt.verify(token, secretKey);
-    return decoded._id;
+    return decoded;
   } catch (error) {
     // Handle any errors during token verification
     console.error(error);

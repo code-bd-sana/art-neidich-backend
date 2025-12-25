@@ -6,34 +6,29 @@ const { ZodError } = require("zod");
 const validate =
   (schema, options = { target: "body" }) =>
   (req, res, next) => {
-    try {
-      const target = options.target || "body";
-      const data = req[target] ?? {};
+    const target = options.target || "body";
+    const data = req[target] ?? {};
 
-      const parsed = schema.parse(data);
+    const result = schema.safeParse(data);
 
-      req.validated = req.validated || {};
-      req.validated[target] = parsed;
+    if (!result.success) {
+      const errors = result.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      }));
 
-      return next();
-    } catch (error) {
-      if (error instanceof ZodError) {
-        // ✅ Zod v4 uses `issues`, not `errors`
-        const errors = (error.issues || []).map((issue) => ({
-          field: issue.path.join("."),
-          message: issue.message,
-        }));
-
-        return res.status(422).json({
-          success: false,
-          message: `Invalid ${options.target} data`,
-          target: options.target,
-          errors,
-        });
-      }
-
-      next(error);
+      return res.status(422).json({
+        success: false,
+        message: `Invalid ${target} data`,
+        target,
+        errors,
+      });
     }
+
+    // ✅ Flat plain object
+    req.validated = { ...result.data };
+
+    return next();
   };
 
 module.exports = { validate };

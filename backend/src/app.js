@@ -15,6 +15,7 @@ const hpp = require("hpp");
 const morgan = require("morgan");
 
 const { pathNotFoundHelper } = require("./helpers/not-found");
+const errorHandler = require("./middleware/error-handler");
 
 // Express app initialization
 const app = express();
@@ -170,6 +171,9 @@ mounted.forEach((m) => {
 
 // Use the "Path not found" handler after all routes
 app.use(pathNotFoundHelper);
+
+// Centralized error handler (must be last middleware)
+app.use(errorHandler);
 
 // Module exports
 module.exports = app;

@@ -2,7 +2,7 @@ const {
   getProfile,
   updateProfile,
   getUsers,
-  getUserDetails,
+  getUserById,
   approveUser,
   suspendUser,
   unSuspendUser,
@@ -78,7 +78,7 @@ async function getAllUsersController(req, res, next) {
  */
 async function getUserByIdController(req, res, next) {
   try {
-    const user = await getUserDetails(req.params.id);
+    const user = await getUserById(req.params.id);
     res.status(200).json({
       success: true,
       message: "User fetched successfully",

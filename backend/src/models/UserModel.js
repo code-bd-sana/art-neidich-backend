@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 const { nanoid } = require("nanoid");
+const { customAlphabet } = require("nanoid");
+
+const nanoidLower = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 10);
 
 /**
  * User schema for authentication and authorization
@@ -17,7 +20,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
       required: true,
-      default: () => nanoid(10),
+      default: () => nanoidLower(),
     },
     firstName: {
       type: String,
@@ -65,20 +68,12 @@ const userSchema = new mongoose.Schema(
       select: false, // Hide password by default
     },
     role: {
-      type: String,
-      enum: [0, 1, 2].map(String), // '0' = root, '1' = admin, '2' = inspector
+      type: Number,
+      enum: [0, 1, 2], // 0 = root, 1 = admin, 2 = inspector
     },
   },
   { timestamps: true, versionKey: false }
 );
-
-// Pre-save hook to ensure userId is set
-userSchema.pre("save", function (next) {
-  if (!this.userId) {
-    this.userId = nanoid(10);
-  }
-  next();
-});
 
 // Instance method to hide sensitive fields
 userSchema.methods.toSafeObject = function () {

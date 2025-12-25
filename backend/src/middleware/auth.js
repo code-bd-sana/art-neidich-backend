@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 
+const { verifyToken } = require("../helpers/jwt/jwt-utils");
 const UserModel = require("../models/UserModel");
 
 /**
@@ -21,7 +22,7 @@ async function authenticate(req, res, next) {
   const token = authHeader.split(" ")[1];
   try {
     const secret = process.env.JWT_SECRET || "change_this_secret";
-    const decoded = jwt.verify(token, secret);
+    const decoded = await verifyToken(token);
     // Optionally fetch user from DB for fresh data
     const user = await UserModel.findById(decoded.id).select("-password");
     if (!user) {
@@ -55,7 +56,10 @@ function authorizeRoles(...allowedRoles) {
       : [String(req.user.role)];
     const hasRole = userRoles.some((r) => allowed.includes(r));
     if (!hasRole) {
-      return res.status(403).json({ success: false, message: "Access denied" });
+      return res.status(403).json({
+        success: false,
+        message: "You do not have the required role to access this resource",
+      });
     }
     next();
   };
