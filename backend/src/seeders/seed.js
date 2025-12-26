@@ -209,7 +209,6 @@ async function seed() {
     const TOTAL_REPORTS = 1200;
     const reportsToCreate = [];
     const labelStrings = createdLabels.map((l) => l.label);
-    const labelIds = createdLabels.map((l) => l._id);
 
     for (let i = 0; i < TOTAL_REPORTS; i++) {
       const job = createdJobs[randInt(0, createdJobs.length - 1)];
@@ -219,9 +218,8 @@ async function seed() {
       const images = [];
       for (let j = 0; j < imagesCount; j++) {
         const idx = randInt(0, labelStrings.length - 1);
-        // sometimes store the label as the ObjectId, sometimes as the label text
-        const useId = Math.random() < 0.4;
-        const label = useId ? labelIds[idx] : labelStrings[idx];
+        // always store the label text (not ObjectId)
+        const label = labelStrings[idx];
         images.push({
           imageLabel: label,
           url: `https://example.com/images/${i}_${j}.jpg`,
