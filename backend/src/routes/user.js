@@ -20,6 +20,9 @@ const {
 } = require("../validators/common/searchAndPagination");
 const { updateUserSchema } = require("../validators/user/updateUser");
 
+// Apply authentication middleware to ALL routes in this router
+router.use(authenticate);
+
 /**
  * Get logged-in user's profile
  *
@@ -30,7 +33,7 @@ const { updateUserSchema } = require("../validators/user/updateUser");
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-router.get("/profile", authenticate, getUserProfileController);
+router.get("/profile", getUserProfileController);
 
 /**
  * Update logged-in user's profile
@@ -44,7 +47,6 @@ router.get("/profile", authenticate, getUserProfileController);
  */
 router.put(
   "/profile",
-  authenticate,
   validate(updateUserSchema, { target: "body" }),
   updateUserProfileController
 );
@@ -61,8 +63,7 @@ router.put(
  */
 router.get(
   "/",
-  authenticate,
-  authorizeRoles(0, 1), // Assuming '0' is root and '1' is admin
+  authorizeRoles(0, 1), // Only root (0) and admin (1) can access
   validate(searchAndPaginationSchema, { target: "query" }),
   getAllUsersController
 );
@@ -79,8 +80,7 @@ router.get(
  */
 router.get(
   "/:id",
-  authenticate,
-  authorizeRoles(0, 1), // Assuming '0' is root and '1' is admin
+  authorizeRoles(0, 1), // Only root (0) and admin (1) can access
   validate(mongoIdSchema, { target: "params" }),
   getUserByIdController
 );
@@ -97,8 +97,7 @@ router.get(
  */
 router.patch(
   "/:id/approve",
-  authenticate,
-  authorizeRoles(0, 1), // Assuming '0' is root and '1' is admin
+  authorizeRoles(0, 1), // Only root (0) and admin (1) can access
   validate(mongoIdSchema, { target: "params" }),
   approveUserController
 );
@@ -115,8 +114,7 @@ router.patch(
  */
 router.patch(
   "/:id/suspend",
-  authenticate,
-  authorizeRoles(0, 1), // Assuming '0' is root and '1' is admin
+  authorizeRoles(0, 1), // Only root (0) and admin (1) can access
   validate(mongoIdSchema, { target: "params" }),
   suspendUserController
 );
@@ -133,8 +131,7 @@ router.patch(
  */
 router.patch(
   "/:id/unsuspend",
-  authenticate,
-  authorizeRoles(0, 1), // Assuming '0' is root and '1' is admin
+  authorizeRoles(0, 1), // Only root (0) and admin (1) can access
   validate(mongoIdSchema, { target: "params" }),
   unSuspendUserController
 );
@@ -151,8 +148,7 @@ router.patch(
  */
 router.delete(
   "/:id",
-  authenticate,
-  authorizeRoles(0), // Assuming '0' is root
+  authorizeRoles(0), // Only root (0) can delete users
   validate(mongoIdSchema, { target: "params" }),
   deleteUserController
 );

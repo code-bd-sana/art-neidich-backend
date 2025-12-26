@@ -130,8 +130,8 @@ async function approveUser(userId) {
   return UserModel.findAndUpdate(
     {
       _id: new mongoose.Types.ObjectId(userId),
-      // can't be role = 0 (root) or 1 (admin)
-      role: { $ne: 0 || 1 },
+      // can't be role = 0 (root)
+      role: { $ne: 0 },
     },
     { isApproved: true },
     { new: true }
@@ -142,36 +142,51 @@ async function approveUser(userId) {
  * Suspend user account
  *
  * @param {string} userId
+ * @param {Object} currentUser
  * @returns {Promise<Object>}
  */
-async function suspendUser(userId) {
-  return UserModel.findAndUpdate(
-    {
-      _id: new mongoose.Types.ObjectId(userId),
-      // can't be role = 0 (root) or 1 (admin)
-      role: { $ne: 0 || 1 },
-    },
-    { isSuspended: true },
-    { new: true }
-  ).select("-password");
+async function suspendUser(userId, currentUser) {
+  const user = await UserModel.findById(userId);
+  if (user.role === 0) {
+    const err = new Error("Cannot suspend a root user");
+    err.status = 400;
+    err.code = "CANNOT_SUSPEND_ROOT";
+    throw err;
+  }
+  if (user.role === currentUser.role) {
+    const err = new Error("Cannot suspend a user with same role as yours");
+    err.status = 400;
+    err.code = "CANNOT_SUSPEND_SAME_ROLE";
+    throw err;
+  }
+  user.isSuspended = true;
+  return user.save();
 }
 
 /**
  * Un-suspend user account
  *
  * @param {string} userId
+ * @param {Object} currentUser
  * @returns {Promise<Object>}
  */
-async function unSuspendUser(userId) {
-  return UserModel.findAndUpdate(
-    {
-      _id: new mongoose.Types.ObjectId(userId),
-      // can't be role = 0 (root) or 1 (admin)
-      role: { $ne: 0 || 1 },
-    },
-    { isSuspended: false },
-    { new: true }
-  ).select("-password");
+async function unSuspendUser(userId, currentUser) {
+  const user = await UserModel.findById(userId);
+  if (user.role === 0) {
+    const err = new Error("Cannot un-suspend a root user");
+    err.status = 400;
+    err.code = "CANNOT_UNSUSPEND_ROOT";
+    throw err;
+  }
+  if (user.role === currentUser.role) {
+    const err = new Error("Cannot un-suspend a user with same role as yours");
+    err.status = 400;
+    err.code = "CANNOT_UNSUSPEND_SAME_ROLE";
+    throw err;
+  }
+
+  user.isSuspended = false;
+  return user.save();
 }
 
 /**
@@ -180,13 +195,21 @@ async function unSuspendUser(userId) {
  * @param {string} userId
  * @returns {Promise<void>}
  */
-async function deleteUser(userId) {
-  await UserModel.findAndDelete({
-    _id: new mongoose.Types.ObjectId(userId),
-    // can't be role = 0 (root)
-    role: { $ne: "0" },
-  });
-  return;
+async function deleteUser(userId, currentUser) {
+  const user = await UserModel.findById(userId);
+  if (user.role === 0) {
+    const err = new Error("Cannot delete a root user");
+    err.status = 400;
+    err.code = "CANNOT_DELETE_ROOT";
+    throw err;
+  }
+  if (user.role === currentUser.role) {
+    const err = new Error("Cannot delete a user with same role as yours");
+    err.status = 400;
+    err.code = "CANNOT_DELETE_SAME_ROLE";
+    throw err;
+  }
+  await UserModel.findByIdAndDelete(userId);
 }
 
 module.exports = {

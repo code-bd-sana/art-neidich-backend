@@ -131,7 +131,7 @@ async function suspendUserController(req, res, next) {
         message: "You cannot suspend yourself",
       });
     }
-    const user = await suspendUser(req.params.id);
+    const user = await suspendUser(req.params.id, req.user);
     res.status(200).json({
       success: true,
       message: "User suspended successfully",
@@ -157,7 +157,7 @@ async function unSuspendUserController(req, res, next) {
         message: "You cannot un-suspend yourself",
       });
     }
-    const user = await unSuspendUser(req.params.id);
+    const user = await unSuspendUser(req.params.id, req.user);
     res.status(200).json({
       success: true,
       message: "User un-suspended successfully",
@@ -183,7 +183,7 @@ async function deleteUserController(req, res, next) {
         message: "You cannot delete yourself",
       });
     }
-    await deleteUser(req.params.id);
+    await deleteUser(req.params.id, req.user);
     res.status(200).json({
       success: true,
       message: "User deleted successfully",
