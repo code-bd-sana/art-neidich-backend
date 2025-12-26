@@ -3,18 +3,22 @@
  * with connection pooling and batching support.
  */
 
+const dotenv = require("dotenv");
 const nodemailer = require("nodemailer");
 
+const { logError } = require("../helpers/logger");
+
+dotenv.config();
 /**
  * Environment configuration
  */
 const {
-  SMTP_HOST = "smtp.example.com",
-  SMTP_PORT = "587",
-  SMTP_USER,
-  SMTP_PASS,
-  FROM_EMAIL,
-  FROM_NAME,
+  MAIL_HOST,
+  MAIL_PORT,
+  MAIL_USER,
+  MAIL_PASS,
+  MAIL_FROM_NAME,
+  MAIL_FROM,
 } = process.env;
 
 /**
@@ -23,13 +27,13 @@ const {
  * @type {import('nodemailer').TransportOptions}
  */
 const transportOptions = {
-  host: SMTP_HOST,
-  port: Number(SMTP_PORT),
-  secure: Number(SMTP_PORT) === 465,
-  auth: SMTP_USER
+  host: MAIL_HOST,
+  port: Number(MAIL_PORT),
+  secure: Number(MAIL_PORT) === 465,
+  auth: MAIL_USER
     ? {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
+        user: MAIL_USER,
+        pass: MAIL_PASS,
       }
     : undefined,
   pool: true,
@@ -42,15 +46,22 @@ const transportOptions = {
  */
 const transporter = nodemailer.createTransport(transportOptions);
 
+// Verify transporter connection on startup and log if it fails
+transporter.verify().catch((err) => {
+  logError(err, { message: "Mail transporter verification failed" });
+});
+
 /**
  * Resolves the "from" address
  * @returns {string}
  */
 function resolveFromAddress() {
-  if (FROM_EMAIL) {
-    return `${FROM_NAME || ""} <${FROM_EMAIL}>`;
+  // Prefer explicit MAIL_FROM, fall back to MAIL_USER
+  const fromEmail = MAIL_FROM || MAIL_USER || "no-reply@localhost";
+  if (MAIL_FROM_NAME) {
+    return `${MAIL_FROM_NAME} <${fromEmail}>`;
   }
-  return SMTP_USER || "";
+  return fromEmail;
 }
 
 /**
@@ -79,7 +90,18 @@ async function sendMail({ to, subject, text, html, attachments } = {}) {
     attachments,
   };
 
-  return transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (err) {
+    // Log detailed error for troubleshooting
+    try {
+      logError(err, { mailOptions });
+    } catch (e) {
+      // swallow logging errors
+    }
+    throw err;
+  }
 }
 
 /**
