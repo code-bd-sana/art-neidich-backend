@@ -1,7 +1,12 @@
-const { registerUser, loginUser } = require("../services/AuthServices");
+const {
+  registerUser,
+  loginUser,
+  initiateForgotPassword,
+} = require("../services/AuthServices");
 
 /**
  * Handle user registration
+ *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
@@ -20,6 +25,7 @@ async function register(req, res, next) {
 
 /**
  * Handle user login
+ *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
@@ -36,4 +42,25 @@ async function login(req, res, next) {
   }
 }
 
-module.exports = { register, login };
+/**
+ * Handle forgot password
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function forgotPassword(req, res, next) {
+  try {
+    const payload = req.validated;
+    await initiateForgotPassword(payload);
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "Password reset link sent if email exists",
+      });
+  } catch (err) {
+    return next(err);
+  }
+}
+module.exports = { register, login, forgotPassword };

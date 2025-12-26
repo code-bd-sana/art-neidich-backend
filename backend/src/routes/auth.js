@@ -2,10 +2,16 @@ const express = require("express");
 
 const router = express.Router();
 
-const { register, login } = require("../controllers/AuthControllers");
+const {
+  register,
+  login,
+  forgotPassword,
+} = require("../controllers/AuthControllers");
 const { validate } = require("../utils/validator");
+const { forgotPasswordSchema } = require("../validators/auth/forgotPassword");
 const { loginSchema } = require("../validators/auth/login");
 const { registerSchema } = require("../validators/auth/register");
+const { resetPasswordSchema } = require("../validators/auth/resetPassword");
 
 /**
  * Handle user registration
@@ -45,11 +51,11 @@ router.post("/login", validate(loginSchema, { target: "body" }), login);
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-// router.post(
-//   "/forgot-password",
-//   validate(forgotPasswordSchema, { target: "body" }),
-//   forgotPassword
-// );
+router.post(
+  "/forgot-password",
+  validate(forgotPasswordSchema, { target: "body" }),
+  forgotPassword
+);
 
 /**
  * Handle reset password request
