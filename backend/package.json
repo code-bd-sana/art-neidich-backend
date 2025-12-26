@@ -7,7 +7,9 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
+    "merge-online-all": "bash -lc \"cur=$(git branch --show-current); for b in $(git for-each-ref --format='%(refname:short)' refs/heads/ | grep -vE '^(main|development)$'); do git checkout \\\"$b\\\" && git merge \\\"$cur\\\"; done && git push --all\"",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "merge-all-local": "bash -lc \"cur=$(git branch --show-current); for b in $(git for-each-ref --format='%(refname:short)' refs/heads/ | grep -vE '^(main|development)$'); do git checkout \\\"$b\\\" && git merge \\\"$cur\\\"; done\"",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "seed": "node src/seeders/seed.js",
