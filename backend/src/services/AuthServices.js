@@ -600,4 +600,77 @@ async function initiateForgotPassword(payload) {
   return;
 }
 
-module.exports = { registerUser, loginUser, initiateForgotPassword };
+/**
+ * Reset user password
+ *
+ * @param {{email: string, token: string, newPassword: string}} payload
+ * @returns {Promise<void>}
+ */
+async function resetUserPassword(payload) {
+  const { email, token, newPassword } = payload;
+  const user = await UserModel.findOne({ email, resetToken: token });
+  // Validate token and expiry
+  if (!user) {
+    const err = new Error("Invalid or expired reset token");
+    err.status = 400;
+    err.code = "INVALID_RESET_TOKEN";
+    throw err;
+  }
+  if (Date.now() > user.resetTokenExpiry) {
+    const err = new Error("Reset token has expired");
+    err.status = 400;
+    err.code = "RESET_TOKEN_EXPIRED";
+    throw err;
+  }
+  const hashed = await hashPassword(newPassword);
+  user.password = hashed;
+  user.resetToken = null;
+  user.resetTokenExpiry = null;
+  await user.save();
+  return;
+}
+
+/**
+ * Change user password
+ *
+ * @param {{userId: string, currentPassword: string, newPassword: string}} payload
+ * @returns {Promise<void>}
+ */
+async function changeUserPassword(payload) {
+  const { userId, currentPassword, newPassword } = payload;
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    err.code = "USER_NOT_FOUND";
+    throw err;
+  }
+  const match = await comparePassword(currentPassword, user.password);
+  if (!match) {
+    const err = new Error("Current password is incorrect");
+    err.status = 400;
+    err.code = "INCORRECT_CURRENT_PASSWORD";
+    throw err;
+  }
+  // Old password cannot be the same as new password
+  if (currentPassword === newPassword) {
+    const err = new Error(
+      "New password must be different from current password"
+    );
+    err.status = 400;
+    err.code = "SAME_PASSWORD";
+    throw err;
+  }
+  const hashed = await hashPassword(newPassword);
+  user.password = hashed;
+  await user.save();
+  return;
+}
+
+module.exports = {
+  registerUser,
+  loginUser,
+  initiateForgotPassword,
+  resetUserPassword,
+  changeUserPassword,
+};
