@@ -36,6 +36,247 @@ async function registerUser(payload) {
     role,
   });
 
+  const roleNames = {
+    1: "Administrator",
+    2: "Inspector",
+  };
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Successful - Property Inspector Pro</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #1a3a5f 0%, #2c5282 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .badge {
+            display: inline-block;
+            background: #48bb78;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .welcome-icon {
+            font-size: 60px;
+            color: #2c5282;
+            margin-bottom: 20px;
+        }
+        .user-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 4px solid #2c5282;
+        }
+        .detail-row {
+            display: flex;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #4a5568;
+            width: 120px;
+            flex-shrink: 0;
+        }
+        .detail-value {
+            color: #2c5282;
+            font-weight: 500;
+        }
+        .status-card {
+            background: #fff5e6;
+            border: 1px solid #fed7aa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .status-card.pending {
+            background: #e6fffa;
+            border-color: #81e6d9;
+        }
+        .next-steps {
+            margin: 30px 0;
+        }
+        .next-steps h3 {
+            color: #2c5282;
+            margin-bottom: 15px;
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        .step-number {
+            background: #2c5282;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 25px 30px;
+            text-align: center;
+            font-size: 14px;
+            color: #718096;
+            border-top: 1px solid #e2e8f0;
+        }
+        .contact-info {
+            background: #e6f2ff;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        @media (max-width: 600px) {
+            .content {
+                padding: 30px 20px;
+            }
+            .detail-row {
+                flex-direction: column;
+            }
+            .detail-label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 Welcome to Property Inspector Pro!</h1>
+            <div class="badge">${roleNames[role]}</div>
+        </div>
+        
+        <div class="content">
+            <div class="welcome-section">
+                <div class="welcome-icon">👋</div>
+                <h2 style="color: #2c5282; margin-bottom: 10px;">
+                    Welcome, ${firstName} ${lastName}!
+                </h2>
+                <p style="color: #718096;">
+                    Thank you for registering with Property Inspector Pro. Your account has been created successfully.
+                </p>
+            </div>
+            
+            <div class="user-details">
+                <h3 style="color: #2c5282; margin-top: 0;">📋 Account Details</h3>
+                <div class="detail-row">
+                    <div class="detail-label">Name:</div>
+                    <div class="detail-value">${firstName} ${lastName}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Email:</div>
+                    <div class="detail-value">${email}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Role:</div>
+                    <div class="detail-value">${roleNames[role]}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Registration Date:</div>
+                    <div class="detail-value">${new Date().toLocaleDateString()}</div>
+                </div>
+            </div>
+            
+            <div class="status-card pending">
+                <h3 style="margin-top: 0; color: #d69e2e;">⏳ Pending Approval</h3>
+                <p>Your account is pending approval from an administrator. You will receive an email once your account is approved.</p>
+                <p style="font-size: 14px; color: #718096; margin-top: 10px;">
+                    <strong>Estimated approval time:</strong> 1-2 business days
+                </p>
+            </div>
+            
+            <div class="next-steps">
+                <h3>📝 What Happens Next?</h3>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div>
+                        <strong>Account Review</strong><br>
+                        Our admin team will review your registration details.
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div>
+                        <strong>Approval Notification</strong><br>
+                        You'll receive an email once your account is approved.
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div>
+                        <strong>Login & Access</strong><br>
+                        After approval, you can login and access the system.
+                    </div>
+                </div>
+            </div>
+            
+            <p style="text-align: center; color: #718096; font-size: 14px; margin-top: 30px;">
+                This is an automated message. Please do not reply to this email.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>© ${new Date().getFullYear()} Property Inspector Pro. All rights reserved.</p>
+            <p>Professional Real Estate Inspection Management System</p>
+        </div>
+    </div>
+</body>
+</html>
+  `;
+
+  await sendMail({
+    to: email,
+    subject: "🏠 Welcome to Property Inspector Pro - Registration Successful",
+    html: emailHtml,
+  });
+
   return;
 }
 
