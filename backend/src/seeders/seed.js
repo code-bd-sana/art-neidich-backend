@@ -199,6 +199,7 @@ async function seed() {
         dueDate: due,
         specialNotesForInspector: "",
         specialNoteForApOrAr: "",
+        createdBy: creatorId,
       });
     }
 

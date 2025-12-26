@@ -70,6 +70,11 @@ const jobSchema = new mongoose.Schema(
       default: "",
       maxLength: 1250,
     },
+    createdBy: {
+      type: mongoose.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true, versionKey: false }
 );
