@@ -3,31 +3,29 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  createImageLabel,
-  getImageLabels,
-  getImageLabel,
-  updateImageLabel,
-  deleteImageLabel,
-} = require("../controllers/ImageLabelControllers");
+  createJobController,
+  getJobsController,
+  getJobByIdController,
+  updateJobController,
+  deleteJobController,
+} = require("../controllers/JobControllers");
 const { authenticate, authorizeRoles } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
 const { mongoIdSchema } = require("../validators/common/mongoId");
 const {
   searchAndPaginationSchema,
 } = require("../validators/common/searchAndPagination");
-const {
-  createImageLabelSchema,
-  updateImageLabelSchema,
-} = require("../validators/image-label/imageLabel");
+const { createJobSchema } = require("../validators/job/createJob");
+const { updateJobSchema } = require("../validators/job/updateJob");
 
-// Apply authentication middleware to ALL routes in this router
+// All job routes require authentication
 router.use(authenticate);
 
 /**
- * Create a new image label
+ * Create a new job
  *
- * @route POST /api/v1/image-label
- * Private route — only root (0) and admin (1) can create image labels
+ * @route POST /api/v1/job
+ * Private route — only root (0) and admin (1) can create jobs
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -36,15 +34,15 @@ router.use(authenticate);
 router.post(
   "/",
   authorizeRoles(0, 1),
-  validate(createImageLabelSchema, { target: "body" }),
-  createImageLabel
+  validate(createJobSchema, { target: "body" }),
+  createJobController
 );
 
 /**
- * Get list of image labels with optional search & pagination
+ * Get list of jobs with optional search & pagination
  *
- * @route GET /api/v1/image-label
- * Private route - only root (0) and admin (1) can access
+ * @route GET /api/v1/job
+ * Private route
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -52,16 +50,15 @@ router.post(
  */
 router.get(
   "/",
-  authorizeRoles(0, 1),
   validate(searchAndPaginationSchema, { target: "query" }),
-  getImageLabels
+  getJobsController
 );
 
 /**
- * Get a single image label by id
+ * Get a single job by id
  *
- * @route GET /api/v1/image-label/:id
- * Private route - only root (0) and admin (1) can access
+ * @route GET /api/v1/job/:id
+ * Private route
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -69,16 +66,15 @@ router.get(
  */
 router.get(
   "/:id",
-  authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
-  getImageLabel
+  getJobByIdController
 );
 
 /**
- * Update an existing image label
+ * Update an existing job
  *
- * @route PUT /api/v1/image-label/:id
- * Private route - only root (0) and admin (1) can access
+ * @route PUT /api/v1/job/:id
+ * Private route - only root (0) and admin (1) can update jobs
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -88,15 +84,15 @@ router.put(
   "/:id",
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
-  validate(updateImageLabelSchema, { target: "body" }),
-  updateImageLabel
+  validate(updateJobSchema, { target: "body" }),
+  updateJobController
 );
 
 /**
- * Delete an image label
+ * Delete a job
  *
- * @route DELETE /api/v1/image-label/:id
- * Private route - only root (0) and admin (1) can access
+ * @route DELETE /api/v1/job/:id
+ * Private route — only root (0) and admin (1) can delete jobs
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -106,7 +102,7 @@ router.delete(
   "/:id",
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
-  deleteImageLabel
+  deleteJobController
 );
 
 module.exports = router;
