@@ -72,6 +72,21 @@ async function loginUser(payload) {
     throw err;
   }
 
+  // New check for suspended users
+  if (user.isSuspended) {
+    const err = new Error("User account is suspended");
+    err.status = 403;
+    err.code = "USER_SUSPENDED";
+    throw err;
+  }
+  // Check for approved users
+  if (!user.isApproved) {
+    const err = new Error("User account is not approved");
+    err.status = 403;
+    err.code = "USER_NOT_APPROVED";
+    throw err;
+  }
+
   const match = await comparePassword(password, user.password);
 
   if (!match) {

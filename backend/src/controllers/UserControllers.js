@@ -99,6 +99,12 @@ async function getUserByIdController(req, res, next) {
  */
 async function approveUserController(req, res, next) {
   try {
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot approve yourself",
+      });
+    }
     const user = await approveUser(req.params.id);
     res.status(200).json({
       success: true,
@@ -119,6 +125,12 @@ async function approveUserController(req, res, next) {
  */
 async function suspendUserController(req, res, next) {
   try {
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot suspend yourself",
+      });
+    }
     const user = await suspendUser(req.params.id);
     res.status(200).json({
       success: true,
@@ -139,6 +151,12 @@ async function suspendUserController(req, res, next) {
  */
 async function unSuspendUserController(req, res, next) {
   try {
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot un-suspend yourself",
+      });
+    }
     const user = await unSuspendUser(req.params.id);
     res.status(200).json({
       success: true,
@@ -159,6 +177,12 @@ async function unSuspendUserController(req, res, next) {
  */
 async function deleteUserController(req, res, next) {
   try {
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot delete yourself",
+      });
+    }
     await deleteUser(req.params.id);
     res.status(200).json({
       success: true,

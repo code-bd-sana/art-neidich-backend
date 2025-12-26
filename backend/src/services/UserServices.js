@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+
 const UserModel = require("../models/UserModel");
 
 /**
@@ -125,8 +127,12 @@ async function getUserById(userId) {
  * @returns {Promise<Object>}
  */
 async function approveUser(userId) {
-  return UserModel.findByIdAndUpdate(
-    userId,
+  return UserModel.findAndUpdate(
+    {
+      _id: new mongoose.Types.ObjectId(userId),
+      // can't be role = 0 (root) or 1 (admin)
+      role: { $ne: 0 || 1 },
+    },
     { isApproved: true },
     { new: true }
   ).select("-password");
@@ -139,8 +145,12 @@ async function approveUser(userId) {
  * @returns {Promise<Object>}
  */
 async function suspendUser(userId) {
-  return UserModel.findByIdAndUpdate(
-    userId,
+  return UserModel.findAndUpdate(
+    {
+      _id: new mongoose.Types.ObjectId(userId),
+      // can't be role = 0 (root) or 1 (admin)
+      role: { $ne: 0 || 1 },
+    },
     { isSuspended: true },
     { new: true }
   ).select("-password");
@@ -153,8 +163,12 @@ async function suspendUser(userId) {
  * @returns {Promise<Object>}
  */
 async function unSuspendUser(userId) {
-  return UserModel.findByIdAndUpdate(
-    userId,
+  return UserModel.findAndUpdate(
+    {
+      _id: new mongoose.Types.ObjectId(userId),
+      // can't be role = 0 (root) or 1 (admin)
+      role: { $ne: 0 || 1 },
+    },
     { isSuspended: false },
     { new: true }
   ).select("-password");
@@ -167,7 +181,11 @@ async function unSuspendUser(userId) {
  * @returns {Promise<void>}
  */
 async function deleteUser(userId) {
-  await UserModel.findByIdAndDelete(userId);
+  await UserModel.findAndDelete({
+    _id: new mongoose.Types.ObjectId(userId),
+    // can't be role = 0 (root)
+    role: { $ne: "0" },
+  });
   return;
 }
 
