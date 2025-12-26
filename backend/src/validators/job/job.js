@@ -30,4 +30,6 @@ const createJobSchema = z
   })
   .strict();
 
-module.exports = { createJobSchema };
+const updateJobSchema = createJobSchema.partial();
+
+module.exports = { createJobSchema, updateJobSchema };

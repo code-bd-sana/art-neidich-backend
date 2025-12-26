@@ -15,8 +15,7 @@ const { mongoIdSchema } = require("../validators/common/mongoId");
 const {
   searchAndPaginationSchema,
 } = require("../validators/common/searchAndPagination");
-const { createJobSchema } = require("../validators/job/createJob");
-const { updateJobSchema } = require("../validators/job/updateJob");
+const { createJobSchema, updateJobSchema } = require("../validators/job/job");
 
 // All job routes require authentication
 router.use(authenticate);
