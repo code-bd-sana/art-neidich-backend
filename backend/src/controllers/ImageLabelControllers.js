@@ -16,7 +16,7 @@ const {
 async function createImageLabelController(req, res, next) {
   try {
     const payload = req.validated;
-    const label = await createImageLabel(payload);
+    const label = await createImageLabel(payload, req.user);
     return res.status(201).json({
       success: true,
       message: "Image label created successfully",

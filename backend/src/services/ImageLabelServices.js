@@ -1,4 +1,7 @@
+const mongoose = require("mongoose");
+
 const ImageLabelModel = require("../models/ImageLabelModel");
+const ReportModel = require("../models/ReportModel");
 
 // Utility function to escape special regex characters in a string (e.g., for search)
 function escapeRegExp(string) {
@@ -9,17 +12,11 @@ function escapeRegExp(string) {
  * Create a new image label if it doesn't already exist (case-insensitive)
  *
  * @param {{label: string}} payload
+ * @param {Object} user - user creating the label
  * @returns {Promise<Object>} created label
  */
-async function createImageLabel(payload) {
-  const label = (payload.label || "").trim();
-
-  if (!label) {
-    const err = new Error("Label is required");
-    err.status = 400;
-    err.code = "LABEL_REQUIRED";
-    throw err;
-  }
+async function createImageLabel(payload, user) {
+  const label = payload.label;
 
   const escaped = escapeRegExp(label);
   const existing = await ImageLabelModel.findOne({
@@ -33,7 +30,11 @@ async function createImageLabel(payload) {
     throw err;
   }
 
-  const created = await ImageLabelModel.create({ label });
+  const created = await ImageLabelModel.create({
+    label,
+    createdBy: new mongoose.Types.ObjectId(user.id),
+    lastUpdatedBy: new mongoose.Types.ObjectId(user.id),
+  });
   return created;
 }
 
@@ -60,6 +61,8 @@ async function getImageLabels(query = {}) {
 
   const [labels, total] = await Promise.all([
     ImageLabelModel.find(filter)
+      .populate("createdBy", "firstName lastName email")
+      .populate("lastUpdatedBy", "firstName lastName email")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 }),
@@ -84,7 +87,9 @@ async function getImageLabels(query = {}) {
  * @returns {Promise<Object>}
  */
 async function getImageLabel(id) {
-  const label = await ImageLabelModel.findById(id);
+  const label = await ImageLabelModel.findById(id)
+    .populate("createdBy", "firstName lastName email")
+    .populate("lastUpdatedBy", "firstName lastName email");
   if (!label) {
     const err = new Error("Image label not found");
     err.status = 404;
@@ -99,10 +104,11 @@ async function getImageLabel(id) {
  *
  * @param {string} id
  * @param {{label?: string}} payload
+ * @param {Object} user - user updating the label
  * @returns {Promise<Object>} updated label
  */
-async function updateImageLabel(id, payload) {
-  const labelValue = payload.label?.trim();
+async function updateImageLabel(id, payload, user) {
+  const labelValue = payload.label;
 
   if (labelValue) {
     const esc = escapeRegExp(labelValue);
@@ -119,9 +125,18 @@ async function updateImageLabel(id, payload) {
     }
   }
 
-  const updated = await ImageLabelModel.findByIdAndUpdate(id, payload, {
-    new: true,
-  });
+  const updated = await ImageLabelModel.findByIdAndUpdate(
+    id,
+    {
+      ...payload,
+      lastUpdatedBy: new mongoose.Types.ObjectId(user.id),
+    },
+    {
+      new: true,
+    }
+  )
+    .populate("createdBy", "firstName lastName email")
+    .populate("lastUpdatedBy", "firstName lastName email");
 
   if (!updated) {
     const err = new Error("Image label not found");

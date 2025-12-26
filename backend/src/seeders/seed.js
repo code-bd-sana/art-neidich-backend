@@ -116,13 +116,21 @@ async function seed() {
         lastNames[i % lastNames.length] +
         (i >= lastNames.length ? `_${Math.floor(i / lastNames.length)}` : "");
       const role = i === 0 ? 0 : i < 6 ? 1 : 2; // 1 root, 5 admins, rest inspectors
+      // determine approval and suspension states
+      // root (role 0) and admins (role 1) default to approved; inspectors (role 2) may be unapproved
+      const isApproved = role === 2 ? Math.random() < 0.7 : true; // ~70% of inspectors approved
+      // don't suspend root; small chance to suspend admins/inspectors
+      const isSuspended =
+        role === 0 ? false : Math.random() < (role === 1 ? 0.05 : 0.08);
+
       usersToCreate.push({
         firstName,
         lastName,
         email: `user${i}@example.com`,
         password: hashedPassword,
         role,
-        isApproved: role !== 2 || true,
+        isApproved,
+        isSuspended,
       });
     }
 
@@ -181,20 +189,25 @@ async function seed() {
     const TOTAL_REPORTS = 1200;
     const reportsToCreate = [];
     const labelStrings = createdLabels.map((l) => l.label);
+    const labelIds = createdLabels.map((l) => l._id);
 
     for (let i = 0; i < TOTAL_REPORTS; i++) {
       const job = createdJobs[randInt(0, createdJobs.length - 1)];
-      const inspector = createdUsers[randInt(0, createdUsers.length - 1)];
+      // pick an inspector id for the report and uploader
+      const inspectorId = inspectors[randInt(0, inspectors.length - 1)];
       const imagesCount = randInt(1, 4);
       const images = [];
       for (let j = 0; j < imagesCount; j++) {
-        const label = labelStrings[randInt(0, labelStrings.length - 1)];
+        const idx = randInt(0, labelStrings.length - 1);
+        // sometimes store the label as the ObjectId, sometimes as the label text
+        const useId = Math.random() < 0.4;
+        const label = useId ? labelIds[idx] : labelStrings[idx];
         images.push({
           imageLabel: label,
           url: `https://example.com/images/${i}_${j}.jpg`,
           fileName: `img_${i}_${j}.jpg`,
-          alt: `${label} photo`,
-          uploadedBy: inspector._id,
+          alt: `${labelStrings[idx]} photo`,
+          uploadedBy: inspectorId,
           mimeType: "image/jpeg",
           size: randInt(10000, 5000000),
           noteForAdmin: "",
@@ -202,7 +215,7 @@ async function seed() {
       }
 
       reportsToCreate.push({
-        inspector: inspector._id,
+        inspector: inspectorId,
         job: job._id,
         images,
       });

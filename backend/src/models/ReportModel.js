@@ -18,8 +18,7 @@ const reportSchema = new mongoose.Schema(
     images: [
       {
         imageLabel: {
-          type: mongoose.Schema.Types.String,
-          ref: "ImageLabel",
+          type: String,
           required: true,
         },
         // Image file stored URL
