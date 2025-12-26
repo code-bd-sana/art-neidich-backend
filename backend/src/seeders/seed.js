@@ -233,10 +233,15 @@ async function seed() {
         });
       }
 
+      // assign varied statuses so not all reports are "in_progress"
+      const r = Math.random();
+      const status = r < 0.6 ? "in_progress" : r < 0.9 ? "success" : "rejected"; // 60/30/10 split
+
       reportsToCreate.push({
         inspector: inspectorId,
         job: job._id,
         images,
+        status,
       });
     }
 
