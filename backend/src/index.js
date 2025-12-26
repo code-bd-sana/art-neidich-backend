@@ -2,12 +2,10 @@
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 
+const app = require("./app");
 const { logError } = require("./helpers/logger");
 
 dotenv.config();
-
-// Internal imports
-const app = require("./app");
 
 const server = app.listen(process.env.PORT, () => {
   // Minimal startup message
@@ -30,13 +28,17 @@ mongoose
 process.on("unhandledRejection", (reason) => {
   try {
     logError(reason, { type: "unhandledRejection" });
-  } catch (e) {}
+  } catch (e) {
+    // ignore
+  }
 });
 
 process.on("uncaughtException", (err) => {
   try {
     logError(err, { type: "uncaughtException" });
-  } catch (e) {}
+  } catch (e) {
+    // ignore
+  }
 });
 
 module.exports = server;
