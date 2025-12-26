@@ -39,43 +39,7 @@ async function seed() {
     );
     await clearCollections();
 
-    // 1) Seed ImageLabels
-    const baseLabels = [
-      "Kitchen",
-      "Bathroom",
-      "Roof",
-      "Foundation",
-      "Electrical",
-      "Plumbing",
-      "Exterior",
-      "Interior",
-      "Bedroom",
-      "Living Room",
-      "Ceiling",
-      "Floor",
-      "Window",
-      "Door",
-      "Garage",
-      "Driveway",
-      "Deck",
-      "Balcony",
-      "Attic",
-      "Basement",
-    ];
-
-    const imageLabelDocs = [];
-    for (let i = 0; i < 100; i++) {
-      imageLabelDocs.push({
-        label: `${baseLabels[i % baseLabels.length]} ${
-          Math.floor(i / baseLabels.length) + 1
-        }`,
-      });
-    }
-
-    const createdLabels = await ImageLabel.insertMany(imageLabelDocs, {
-      ordered: false,
-    });
-    console.log(`Inserted ${createdLabels.length} image labels.`);
+    // Image labels will be seeded after users so we can set `createdBy`
 
     // 2) Seed Users
     const firstNames = [
@@ -138,6 +102,62 @@ async function seed() {
       ordered: false,
     });
     console.log(`Inserted ${createdUsers.length} users.`);
+
+    // 1) Seed ImageLabels (moved here so we can assign createdBy)
+    const baseLabels = [
+      "Kitchen",
+      "Bathroom",
+      "Roof",
+      "Foundation",
+      "Electrical",
+      "Plumbing",
+      "Exterior",
+      "Interior",
+      "Bedroom",
+      "Living Room",
+      "Ceiling",
+      "Floor",
+      "Window",
+      "Door",
+      "Garage",
+      "Driveway",
+      "Deck",
+      "Balcony",
+      "Attic",
+      "Basement",
+    ];
+
+    const imageLabelDocs = [];
+    for (let i = 0; i < 100; i++) {
+      imageLabelDocs.push({
+        label: `${baseLabels[i % baseLabels.length]} ${
+          Math.floor(i / baseLabels.length) + 1
+        }`,
+      });
+    }
+
+    // pick a creator (prefer root or admin)
+    const creator = createdUsers.find((u) => u.role === 0) || createdUsers[0];
+    const creatorId = creator?._id;
+
+    console.log(
+      `Preparing to insert ${imageLabelDocs.length} image label docs (creator: ${creatorId})...`
+    );
+    let createdLabels = [];
+    try {
+      const docsWithCreator = imageLabelDocs.map((d) => ({
+        ...d,
+        createdBy: creatorId,
+      }));
+      createdLabels = await ImageLabel.insertMany(docsWithCreator, {
+        ordered: false,
+      });
+      console.log(`Inserted ${createdLabels.length} image labels.`);
+      console.dir(createdLabels, { depth: 1 });
+    } catch (e) {
+      console.error("Error inserting image labels:", e);
+      // continue so we can still seed jobs/reports
+    }
 
     // collect inspector ids
     const inspectors = createdUsers
