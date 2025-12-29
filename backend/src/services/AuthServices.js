@@ -271,6 +271,7 @@ async function registerUser(payload) {
 </html>
   `;
 
+  // Send the welcome email
   await sendMail({
     to: email,
     subject: "🏠 Welcome to Property Inspector Pro - Registration Successful",
