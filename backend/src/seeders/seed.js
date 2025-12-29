@@ -264,6 +264,7 @@ async function seed() {
       await mongoose.disconnect();
     } catch (e) {
       // ignore
+      console.error("Error disconnecting mongoose after failure:", e);
     }
     process.exit(1);
   }

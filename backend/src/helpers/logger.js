@@ -9,6 +9,7 @@ function ensureLogDir() {
     if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
   } catch (e) {
     // swallow
+    console.error("Error ensuring log directory:", e);
   }
 }
 
@@ -24,6 +25,7 @@ function logError(err, meta) {
     fs.appendFileSync(logFile, JSON.stringify(entry) + "\n");
   } catch (e) {
     // intentionally silent
+    console.error("Error writing to log file:", e);
   }
 }
 
