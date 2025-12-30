@@ -26,6 +26,11 @@ const reportSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
+        // S3 Object Key
+        key: {
+          type: String,
+          required: true,
+        },
         // Image file name
         fileName: {
           type: String,
