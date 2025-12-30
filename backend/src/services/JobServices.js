@@ -13,6 +13,28 @@ async function createJob(payload) {
 }
 
 /**
+ * Get job by id
+ * @param {string} id
+ * @returns {Promise<Object>}
+ */
+async function getJobById(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error("Job not found");
+    err.status = 404;
+    err.code = "JOB_NOT_FOUND";
+    throw err;
+  }
+  const job = await JobModel.findById(id);
+  if (!job) {
+    const err = new Error("Job not found");
+    err.status = 404;
+    err.code = "JOB_NOT_FOUND";
+    throw err;
+  }
+  return job;
+}
+
+/**
  * Get jobs with search and pagination
  * @param {Object} query
  * @returns {Promise<{jobs: Array, metaData: Object}>}
@@ -62,28 +84,6 @@ async function getJobs(query = {}) {
       totalPage: Math.ceil(totalJob / limit),
     },
   };
-}
-
-/**
- * Get job by id
- * @param {string} id
- * @returns {Promise<Object>}
- */
-async function getJobById(id) {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    const err = new Error("Job not found");
-    err.status = 404;
-    err.code = "JOB_NOT_FOUND";
-    throw err;
-  }
-  const job = await JobModel.findById(id);
-  if (!job) {
-    const err = new Error("Job not found");
-    err.status = 404;
-    err.code = "JOB_NOT_FOUND";
-    throw err;
-  }
-  return job;
 }
 
 /**
