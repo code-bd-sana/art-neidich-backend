@@ -21,7 +21,7 @@ async function createJobController(req, res, next) {
     const job = await createJob(payload);
     return res
       .status(201)
-      .json({ success: true, message: "Job created", data: job });
+      .json({ success: true, message: "Job created successfully", data: job });
   } catch (err) {
     return next(err);
   }
@@ -78,13 +78,11 @@ async function updateJobController(req, res, next) {
     const payload = req.validated;
     payload.lastUpdatedBy = req.user?._id;
     const updated = await updateJob(req.params.id, payload);
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Job updated successfully",
-        data: updated,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Job updated successfully",
+      data: updated,
+    });
   } catch (err) {
     return next(err);
   }
