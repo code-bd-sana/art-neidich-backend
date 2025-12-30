@@ -50,6 +50,11 @@ const createJobSchema = z
   })
   .strict();
 
+/**
+ * Validation schema for updating a Job
+ *
+ * @type {import('zod').ZodObject}
+ */
 const updateJobSchema = createJobSchema
   .partial()
   .refine((data) => Object.keys(data).length > 0, {
