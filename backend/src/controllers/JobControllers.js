@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+
 const {
   createJob,
   getJobs,
@@ -17,7 +19,8 @@ async function createJobController(req, res, next) {
   try {
     const payload = req.validated;
     // attach creator
-    payload.createdBy = req.user?._id;
+    payload.createdBy = new mongoose.Types.ObjectId(req.user?._id);
+    payload.lastUpdatedBy = new mongoose.Types.ObjectId(req.user?._id);
     const job = await createJob(payload);
     return res
       .status(201)
@@ -76,7 +79,7 @@ async function getJobByIdController(req, res, next) {
 async function updateJobController(req, res, next) {
   try {
     const payload = req.validated;
-    payload.lastUpdatedBy = req.user?._id;
+    payload.lastUpdatedBy = new mongoose.Types.ObjectId(req.user?._id);
     const updated = await updateJob(req.params.id, payload);
     return res.status(200).json({
       success: true,

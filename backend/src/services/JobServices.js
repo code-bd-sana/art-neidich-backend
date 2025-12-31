@@ -12,13 +12,15 @@ async function createJob(payload) {
   // Create job
   const created = await JobModel.create(payload);
 
-  // Aggregate with createdBy
+  // Aggregate with createdBy and lastUpdatedBy
   const result = await JobModel.aggregate([
+    // Match created job
     {
       $match: {
         _id: new mongoose.Types.ObjectId(created._id),
       },
     },
+    // Lookup createdBy
     {
       $lookup: {
         from: "users",
@@ -27,12 +29,29 @@ async function createJob(payload) {
         as: "createdBy",
       },
     },
+
     {
       $unwind: {
         path: "$createdBy",
         preserveNullAndEmptyArrays: true,
       },
     },
+    // Lookup lastUpdatedBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastUpdatedBy",
+        foreignField: "_id",
+        as: "lastUpdatedBy",
+      },
+    },
+    {
+      $unwind: {
+        path: "$lastUpdatedBy",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    // Convert roles to readable labels
     {
       $addFields: {
         "createdBy.role": {
@@ -45,13 +64,30 @@ async function createJob(payload) {
             default: "Unknown",
           },
         },
+        "lastUpdatedBy.role": {
+          $switch: {
+            branches: [
+              {
+                case: { $eq: ["$lastUpdatedBy.role", 0] },
+                then: "Super Admin",
+              },
+              { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
       },
     },
+    // Project safe fields only
     {
       $project: {
         "createdBy.password": 0,
         "createdBy.resetToken": 0,
         "createdBy.resetTokenExpiry": 0,
+        "lastUpdatedBy.password": 0,
+        "lastUpdatedBy.resetToken": 0,
+        "lastUpdatedBy.resetTokenExpiry": 0,
       },
     },
   ]);
@@ -105,6 +141,22 @@ async function getJobById(id) {
       },
     },
 
+    // Lookup lastUpdatedBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastUpdatedBy",
+        foreignField: "_id",
+        as: "lastUpdatedBy",
+      },
+    },
+    {
+      $unwind: {
+        path: "$lastUpdatedBy",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
     // Convert roles to readable labels
     {
       $addFields: {
@@ -124,6 +176,19 @@ async function getJobById(id) {
               { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
               { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
               { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+        "lastUpdatedBy.role": {
+          $switch: {
+            branches: [
+              {
+                case: { $eq: ["$lastUpdatedBy.role", 0] },
+                then: "Super Admin",
+              },
+              { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
             ],
             default: "Unknown",
           },
@@ -166,6 +231,15 @@ async function getJobById(id) {
           lastName: "$createdBy.lastName",
           email: "$createdBy.email",
           role: "$createdBy.role",
+        },
+
+        lastUpdatedBy: {
+          _id: "$lastUpdatedBy._id",
+          userId: "$lastUpdatedBy.userId",
+          firstName: "$lastUpdatedBy.firstName",
+          lastName: "$lastUpdatedBy.lastName",
+          email: "$lastUpdatedBy.email",
+          role: "$lastUpdatedBy.role",
         },
       },
     },
@@ -231,6 +305,24 @@ async function getJobs(query = {}) {
     }
   );
 
+  // Lookup lastUpdatedBy
+  pipeline.push(
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastUpdatedBy",
+        foreignField: "_id",
+        as: "lastUpdatedBy",
+      },
+    },
+    {
+      $unwind: {
+        path: "$lastUpdatedBy",
+        preserveNullAndEmptyArrays: true,
+      },
+    }
+  );
+
   // Search (job fields + inspector name)
 
   if (search) {
@@ -287,6 +379,16 @@ async function getJobs(query = {}) {
           default: "Unknown",
         },
       },
+      "lastUpdatedBy.role": {
+        $switch: {
+          branches: [
+            { case: { $eq: ["$lastUpdatedBy.role", 0] }, then: "Super Admin" },
+            { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
+            { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
+          ],
+          default: "Unknown",
+        },
+      },
     },
   });
 
@@ -323,6 +425,15 @@ async function getJobs(query = {}) {
         lastName: "$createdBy.lastName",
         email: "$createdBy.email",
         role: "$createdBy.role",
+      },
+
+      lastUpdatedBy: {
+        _id: "$lastUpdatedBy._id",
+        userId: "$lastUpdatedBy.userId",
+        firstName: "$lastUpdatedBy.firstName",
+        lastName: "$lastUpdatedBy.lastName",
+        email: "$lastUpdatedBy.email",
+        role: "$lastUpdatedBy.role",
       },
     },
   });
@@ -392,6 +503,17 @@ async function updateJob(id, payload) {
     },
     { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
 
+    // Lookup lastUpdatedBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastUpdatedBy",
+        foreignField: "_id",
+        as: "lastUpdatedBy",
+      },
+    },
+    { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
+
     // Map roles to labels
     {
       $addFields: {
@@ -411,6 +533,19 @@ async function updateJob(id, payload) {
               { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
               { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
               { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+        "lastUpdatedBy.role": {
+          $switch: {
+            branches: [
+              {
+                case: { $eq: ["$lastUpdatedBy.role", 0] },
+                then: "Super Admin",
+              },
+              { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
             ],
             default: "Unknown",
           },
@@ -453,6 +588,15 @@ async function updateJob(id, payload) {
           lastName: "$createdBy.lastName",
           email: "$createdBy.email",
           role: "$createdBy.role",
+        },
+
+        lastUpdatedBy: {
+          _id: "$lastUpdatedBy._id",
+          userId: "$lastUpdatedBy.userId",
+          firstName: "$lastUpdatedBy.firstName",
+          lastName: "$lastUpdatedBy.lastName",
+          email: "$lastUpdatedBy.email",
+          role: "$lastUpdatedBy.role",
         },
       },
     },

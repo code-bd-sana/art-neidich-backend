@@ -34,7 +34,9 @@ async function createImageLabel(payload, user) {
 
   // Optionally, return with creator info via aggregation
   const result = await ImageLabelModel.aggregate([
+    // Match the created label
     { $match: { _id: created._id } },
+    // Lookup createdBy
     {
       $lookup: {
         from: "users",
@@ -44,6 +46,18 @@ async function createImageLabel(payload, user) {
       },
     },
     { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
+    // Lookup lastUpdatedBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastUpdatedBy",
+        foreignField: "_id",
+        as: "lastUpdatedBy",
+      },
+    },
+
+    { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
+    // Map roles
     {
       $addFields: {
         "createdBy.role": {
@@ -56,8 +70,22 @@ async function createImageLabel(payload, user) {
             default: "Unknown",
           },
         },
+        "lastUpdatedBy.role": {
+          $switch: {
+            branches: [
+              {
+                case: { $eq: ["$lastUpdatedBy.role", 0] },
+                then: "Super Admin",
+              },
+              { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
       },
     },
+    // Project safe fields
     {
       $project: {
         label: 1,
@@ -69,6 +97,13 @@ async function createImageLabel(payload, user) {
           lastName: "$createdBy.lastName",
           email: "$createdBy.email",
           role: "$createdBy.role",
+        },
+        lastUpdatedBy: {
+          _id: "$lastUpdatedBy._id",
+          firstName: "$lastUpdatedBy.firstName",
+          lastName: "$lastUpdatedBy.lastName",
+          email: "$lastUpdatedBy.email",
+          role: "$lastUpdatedBy.role",
         },
       },
     },
@@ -126,10 +161,10 @@ async function getImageLabels(query = {}) {
         from: "users",
         localField: "lastUpdatedBy",
         foreignField: "_id",
-        as: "updatedBy",
+        as: "lastUpdatedBy",
       },
     },
-    { $unwind: { path: "$updatedBy", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
 
     // Map roles
     {
@@ -144,12 +179,15 @@ async function getImageLabels(query = {}) {
             default: "Unknown",
           },
         },
-        "updatedBy.role": {
+        "lastUpdatedBy.role": {
           $switch: {
             branches: [
-              { case: { $eq: ["$updatedBy.role", 0] }, then: "Super Admin" },
-              { case: { $eq: ["$updatedBy.role", 1] }, then: "Admin" },
-              { case: { $eq: ["$updatedBy.role", 2] }, then: "Inspector" },
+              {
+                case: { $eq: ["$lastUpdatedBy.role", 0] },
+                then: "Super Admin",
+              },
+              { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
             ],
             default: "Unknown",
           },
@@ -170,12 +208,12 @@ async function getImageLabels(query = {}) {
           email: "$createdBy.email",
           role: "$createdBy.role",
         },
-        updatedBy: {
-          _id: "$updatedBy._id",
-          firstName: "$updatedBy.firstName",
-          lastName: "$updatedBy.lastName",
-          email: "$updatedBy.email",
-          role: "$updatedBy.role",
+        lastUpdatedBy: {
+          _id: "$lastUpdatedBy._id",
+          firstName: "$lastUpdatedBy.firstName",
+          lastName: "$lastUpdatedBy.lastName",
+          email: "$lastUpdatedBy.email",
+          role: "$lastUpdatedBy.role",
         },
       },
     },
@@ -233,10 +271,10 @@ async function getImageLabel(id) {
         from: "users",
         localField: "lastUpdatedBy",
         foreignField: "_id",
-        as: "updatedBy",
+        as: "lastUpdatedBy",
       },
     },
-    { $unwind: { path: "$updatedBy", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
     // Map roles
     {
       $addFields: {
@@ -250,12 +288,15 @@ async function getImageLabel(id) {
             default: "Unknown",
           },
         },
-        "updatedBy.role": {
+        "lastUpdatedBy.role": {
           $switch: {
             branches: [
-              { case: { $eq: ["$updatedBy.role", 0] }, then: "Super Admin" },
-              { case: { $eq: ["$updatedBy.role", 1] }, then: "Admin" },
-              { case: { $eq: ["$updatedBy.role", 2] }, then: "Inspector" },
+              {
+                case: { $eq: ["$lastUpdatedBy.role", 0] },
+                then: "Super Admin",
+              },
+              { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
             ],
             default: "Unknown",
           },
@@ -275,12 +316,12 @@ async function getImageLabel(id) {
           email: "$createdBy.email",
           role: "$createdBy.role",
         },
-        updatedBy: {
-          _id: "$updatedBy._id",
-          firstName: "$updatedBy.firstName",
-          lastName: "$updatedBy.lastName",
-          email: "$updatedBy.email",
-          role: "$updatedBy.role",
+        lastUpdatedBy: {
+          _id: "$lastUpdatedBy._id",
+          firstName: "$lastUpdatedBy.firstName",
+          lastName: "$lastUpdatedBy.lastName",
+          email: "$lastUpdatedBy.email",
+          role: "$lastUpdatedBy.role",
         },
       },
     },
@@ -343,10 +384,10 @@ async function updateImageLabel(id, payload) {
         from: "users",
         localField: "lastUpdatedBy",
         foreignField: "_id",
-        as: "updatedBy",
+        as: "lastUpdatedBy",
       },
     },
-    { $unwind: { path: "$updatedBy", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
     // Map roles
     {
       $addFields: {
@@ -360,12 +401,15 @@ async function updateImageLabel(id, payload) {
             default: "Unknown",
           },
         },
-        "updatedBy.role": {
+        "lastUpdatedBy.role": {
           $switch: {
             branches: [
-              { case: { $eq: ["$updatedBy.role", 0] }, then: "Super Admin" },
-              { case: { $eq: ["$updatedBy.role", 1] }, then: "Admin" },
-              { case: { $eq: ["$updatedBy.role", 2] }, then: "Inspector" },
+              {
+                case: { $eq: ["$lastUpdatedBy.role", 0] },
+                then: "Super Admin",
+              },
+              { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
             ],
             default: "Unknown",
           },
@@ -385,12 +429,12 @@ async function updateImageLabel(id, payload) {
           email: "$createdBy.email",
           role: "$createdBy.role",
         },
-        updatedBy: {
-          _id: "$updatedBy._id",
-          firstName: "$updatedBy.firstName",
-          lastName: "$updatedBy.lastName",
-          email: "$updatedBy.email",
-          role: "$updatedBy.role",
+        lastUpdatedBy: {
+          _id: "$lastUpdatedBy._id",
+          firstName: "$lastUpdatedBy.firstName",
+          lastName: "$lastUpdatedBy.lastName",
+          email: "$lastUpdatedBy.email",
+          role: "$lastUpdatedBy.role",
         },
       },
     },
