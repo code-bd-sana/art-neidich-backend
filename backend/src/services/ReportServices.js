@@ -108,7 +108,7 @@ async function createReport(payload) {
 }
 
 /**
- * Get a single report by id
+ * Get a single report by job id
  *
  * @param {string} id - Report ID
  * @returns {Promise<Object>} - Report document
