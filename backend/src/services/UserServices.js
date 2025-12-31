@@ -108,7 +108,7 @@ async function updateProfile(userId, updateData) {
  *   }
  * }>}
  */
-async function getUsers(query) {
+async function getUsers(query = {}) {
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;

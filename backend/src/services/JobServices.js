@@ -282,10 +282,226 @@ async function getJobById(id) {
 }
 
 /**
- * Get jobs with search, pagination, and inspector (role = "Inspector")
+ * Get jobs assigned to a specific user (inspector)
  *
  * @param {Object} query
- * @returns {Promise<{jobs: Array, metaData: Object}>}
+ * @param {string} userId
+ * @returns {Promise<{
+ *   jobs: Array<Object>,
+ *   metaData: {
+ *     page: number,
+ *     limit: number,
+ *     totalJob: number,
+ *     totalPage: number
+ *   }
+ * }>}
+ */
+async function getMyJobs(query = {}, userId) {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const search = query.search?.trim();
+
+  const pipeline = [
+    // Match jobs assigned to the user
+    { $match: { inspector: new mongoose.Types.ObjectId(userId) } },
+  ];
+
+  // Lookup inspector (needed for search)
+  pipeline.push(
+    {
+      $lookup: {
+        from: "users",
+        localField: "inspector",
+        foreignField: "_id",
+        as: "inspector",
+      },
+    },
+    {
+      $unwind: {
+        path: "$inspector",
+        preserveNullAndEmptyArrays: true,
+      },
+    }
+  );
+
+  // Lookup createdBy
+  pipeline.push(
+    {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        as: "createdBy",
+      },
+    },
+    {
+      $unwind: {
+        path: "$createdBy",
+        preserveNullAndEmptyArrays: true,
+      },
+    }
+  );
+
+  // Lookup lastUpdatedBy
+  pipeline.push(
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastUpdatedBy",
+        foreignField: "_id",
+        as: "lastUpdatedBy",
+      },
+    },
+    {
+      $unwind: {
+        path: "$lastUpdatedBy",
+        preserveNullAndEmptyArrays: true,
+      },
+    }
+  );
+  // Search (job fields + inspector name)
+
+  if (search) {
+    const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
+    const regex = new RegExp(esc, "i");
+    pipeline.push({
+      $match: {
+        $or: [
+          { streetAddress: regex },
+          { orderId: regex },
+          { fhaCaseDetailsNo: regex },
+          { developmentName: regex },
+          { siteContactName: regex },
+          { "inspector.firstName": regex },
+          { "inspector.lastName": regex },
+          {
+            $expr: {
+              $regexMatch: {
+                input: {
+                  $concat: ["$inspector.firstName", " ", "$inspector.lastName"],
+                },
+                regex: esc,
+                options: "i",
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+  // Convert roles to readable labels
+  pipeline.push({
+    $addFields: {
+      "inspector.role": {
+        $switch: {
+          branches: [
+            { case: { $eq: ["$inspector.role", 0] }, then: "Super Admin" },
+            { case: { $eq: ["$inspector.role", 1] }, then: "Admin" },
+            { case: { $eq: ["$inspector.role", 2] }, then: "Inspector" },
+          ],
+          default: "Unknown",
+        },
+      },
+      "createdBy.role": {
+        $switch: {
+          branches: [
+            { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
+            { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
+            { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
+          ],
+          default: "Unknown",
+        },
+      },
+      "lastUpdatedBy.role": {
+        $switch: {
+          branches: [
+            { case: { $eq: ["$lastUpdatedBy.role", 0] }, then: "Super Admin" },
+            { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
+            { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
+          ],
+          default: "Unknown",
+        },
+      },
+    },
+  });
+  // Project safe fields only
+  pipeline.push({
+    $project: {
+      formType: 1,
+      feeStatus: 1,
+      agreedFee: 1,
+      fhaCaseDetailsNo: 1,
+      orderId: 1,
+      streetAddress: 1,
+      developmentName: 1,
+      siteContactName: 1,
+      siteContactPhone: 1,
+      siteContactEmail: 1,
+      dueDate: 1,
+      createdAt: 1,
+      inspector: {
+        _id: "$inspector._id",
+        userId: "$inspector.userId",
+        firstName: "$inspector.firstName",
+        lastName: "$inspector.lastName",
+        email: "$inspector.email",
+        role: "$inspector.role",
+      },
+      createdBy: {
+        _id: "$createdBy._id",
+        userId: "$createdBy.userId",
+        firstName: "$createdBy.firstName",
+        lastName: "$createdBy.lastName",
+        email: "$createdBy.email",
+        role: "$createdBy.role",
+      },
+      lastUpdatedBy: {
+        _id: "$lastUpdatedBy._id",
+        userId: "$lastUpdatedBy.userId",
+        firstName: "$lastUpdatedBy.firstName",
+        lastName: "$lastUpdatedBy.lastName",
+        email: "$lastUpdatedBy.email",
+        role: "$lastUpdatedBy.role",
+      },
+    },
+  });
+  // Pagination + count
+  pipeline.push(
+    { $sort: { createdAt: -1 } },
+    {
+      $facet: {
+        jobs: [{ $skip: skip }, { $limit: limit }],
+        metaData: [{ $count: "totalJob" }],
+      },
+    }
+  );
+  const result = await JobModel.aggregate(pipeline);
+  const jobs = result[0]?.jobs || [];
+  const totalJob = result[0]?.metaData[0]?.totalJob || 0;
+  return {
+    jobs,
+    metaData: {
+      page,
+      limit,
+      totalJob,
+      totalPage: Math.ceil(totalJob / limit),
+    },
+  };
+}
+
+/**
+ * Get jobs with search and pagination
+ *
+ * @param {Object} query
+ * @returns {Promise<{
+ *  jobs: Array<Object>,
+ *  metaData: {
+ *    page: number,
+ *    limit: number,
+ *    totalJob: number,
+ *    totalPage: number
+ * } }>}
  */
 async function getJobs(query = {}) {
   const page = Number(query.page) || 1;
@@ -658,6 +874,7 @@ async function deleteJob(id) {
 
 module.exports = {
   createJob,
+  getMyJobs,
   getJobs,
   getJobById,
   updateJob,

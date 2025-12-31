@@ -8,6 +8,7 @@ const {
   getJobByIdController,
   updateJobController,
   deleteJobController,
+  getMyJobsController,
 } = require("../controllers/JobControllers");
 const { authenticate, authorizeRoles } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
@@ -41,7 +42,7 @@ router.post(
  * Get list of jobs with optional search & pagination
  *
  * @route GET /api/v1/job
- * Private route
+ * Private route - only root (0) and admin (1) can get all jobs
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -49,15 +50,29 @@ router.post(
  */
 router.get(
   "/",
+  authorizeRoles(0, 1),
   validate(searchAndPaginationSchema, { target: "query" }),
   getJobsController
+);
+
+/**
+ * Get jobs assigned to the logged-in user (my jobs)
+ *
+ * @route GET /api/v1/job/my-jobs
+ * Private route - any authenticated user can see their jobs
+ */
+router.get(
+  "/my-jobs",
+  authorizeRoles(2),
+  validate(searchAndPaginationSchema, { target: "query" }),
+  getMyJobsController
 );
 
 /**
  * Get a single job by id
  *
  * @route GET /api/v1/job/:id
- * Private route
+ * Private route - only root (0) and admin (1) can get job by id
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -65,6 +80,7 @@ router.get(
  */
 router.get(
   "/:id",
+  authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
   getJobByIdController
 );

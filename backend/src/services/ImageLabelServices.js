@@ -120,11 +120,11 @@ async function createImageLabel(payload, user) {
  * @param {number} [query.limit=10]
  * @param {string} [query.search]
  * @returns {Promise<{
- *   users: Array<Object>,
+ *   labels: Array<Object>,
  *   metaData: {
  *     page: number,
  *     limit: number,
- *     totalUser: number,
+ *     totalLabel: number,
  *     totalPage: number
  *   }
  * }>}

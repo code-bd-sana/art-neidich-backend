@@ -5,6 +5,7 @@ const {
   getJobs,
   getJobById,
   updateJob,
+  getMyJobs,
   deleteJob,
 } = require("../services/JobServices");
 
@@ -45,6 +46,28 @@ async function getJobsController(req, res, next) {
       message: "Jobs fetched successfully",
       data: result.jobs,
       metaData: result.metaData,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * Get jobs assigned to the logged-in user (my jobs)
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function getMyJobsController(req, res, next) {
+  try {
+    const userId = req.user?._id;
+    const { jobs, metaData } = await getMyJobs(req.query, userId);
+    return res.status(200).json({
+      success: true,
+      message: "My jobs fetched successfully",
+      data: jobs,
+      metaData: metaData,
     });
   } catch (err) {
     return next(err);
@@ -112,6 +135,7 @@ async function deleteJobController(req, res, next) {
 module.exports = {
   createJobController,
   getJobsController,
+  getMyJobsController,
   getJobByIdController,
   updateJobController,
   deleteJobController,
