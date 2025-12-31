@@ -10,20 +10,75 @@ const { sendMail } = require("../utils/mailer");
  * @returns {Promise<Object>}
  */
 async function getProfile(userId) {
-  return await UserModel.findById(userId).select("-password");
+  const result = await UserModel.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(userId),
+      },
+    },
+    {
+      $project: {
+        password: 0, // remove password
+      },
+    },
+    {
+      $addFields: {
+        role: {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$role", 1] }, then: "Admin" },
+              { case: { $eq: ["$role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+      },
+    },
+  ]);
+
+  return result[0] || null;
 }
 
 /**
- * Update user profile
+ * Update user profile (role is NOT updatable)
  *
  * @param {string} userId
  * @param {Object} updateData
  * @returns {Promise<Object>}
  */
 async function updateProfile(userId, updateData) {
-  return await UserModel.findByIdAndUpdate(userId, updateData, {
-    new: true,
-  }).select("-password");
+  const result = await UserModel.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(userId),
+      },
+    },
+    {
+      $set: updateData,
+    },
+    {
+      $addFields: {
+        role: {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$role", 1] }, then: "Admin" },
+              { case: { $eq: ["$role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        password: 0,
+      },
+    },
+  ]);
+
+  return result[0] || null;
 }
 
 /**
@@ -118,7 +173,36 @@ async function getUsers(query) {
  * @returns {Promise<Object>}
  */
 async function getUserById(userId) {
-  return await UserModel.findById(userId);
+  const result = await UserModel.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(userId),
+      },
+    },
+    {
+      $addFields: {
+        role: {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$role", 1] }, then: "Admin" },
+              { case: { $eq: ["$role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        password: 0,
+        resetToken: 0,
+        resetTokenExpiry: 0,
+      },
+    },
+  ]);
+
+  return result[0] || null;
 }
 
 /**
