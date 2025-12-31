@@ -78,6 +78,13 @@ async function updateProfile(userId, updateData) {
     },
   ]);
 
+  if (result.length === 0) {
+    const err = new Error("User not found");
+    err.status = 404;
+    err.code = "USER_NOT_FOUND";
+    throw err;
+  }
+
   return result[0] || null;
 }
 
@@ -91,7 +98,6 @@ async function updateProfile(userId, updateData) {
  * @param {number} [query.page=1] - Page number for pagination
  * @param {number} [query.limit=10] - Number of users per page
  * @param {string} [query.search] - Search keyword to filter users
- *
  * @returns {Promise<{
  *   users: Array<Object>,
  *   metaData: {
@@ -201,6 +207,13 @@ async function getUserById(userId) {
       },
     },
   ]);
+
+  if (!result || result.length === 0) {
+    const err = new Error("User not found");
+    err.status = 404;
+    err.code = "USER_NOT_FOUND";
+    throw err;
+  }
 
   return result[0] || null;
 }

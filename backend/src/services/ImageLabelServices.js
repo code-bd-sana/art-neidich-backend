@@ -30,12 +30,56 @@ async function createImageLabel(payload, user) {
     throw err;
   }
 
+  // Create new label
   const created = await ImageLabelModel.create({
     label,
-    createdBy: new mongoose.Types.ObjectId(user.id),
-    lastUpdatedBy: new mongoose.Types.ObjectId(user.id),
+    createdBy: new mongoose.Types.ObjectId(user._id),
+    lastUpdatedBy: new mongoose.Types.ObjectId(user._id),
   });
-  return created;
+
+  // Optionally, return with creator info via aggregation
+  const result = await ImageLabelModel.aggregate([
+    { $match: { _id: created._id } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        as: "createdBy",
+      },
+    },
+    { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
+    {
+      $addFields: {
+        "createdBy.role": {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        label: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        createdBy: {
+          _id: "$createdBy._id",
+          firstName: "$createdBy.firstName",
+          lastName: "$createdBy.lastName",
+          email: "$createdBy.email",
+          role: "$createdBy.role",
+        },
+      },
+    },
+  ]);
+
+  return result[0];
 }
 
 /**
@@ -45,7 +89,15 @@ async function createImageLabel(payload, user) {
  * @param {number} [query.page=1]
  * @param {number} [query.limit=10]
  * @param {string} [query.search]
- * @returns {Promise<{labels: Array, metaData: Object}>}
+ * @returns {Promise<{
+ *   users: Array<Object>,
+ *   metaData: {
+ *     page: number,
+ *     limit: number,
+ *     totalUser: number,
+ *     totalPage: number
+ *   }
+ * }>}
  */
 async function getImageLabels(query = {}) {
   const page = Number(query.page) || 1;
@@ -53,29 +105,109 @@ async function getImageLabels(query = {}) {
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
 
-  const filter = {};
+  const matchStage = {};
   if (search) {
     const esc = escapeRegExp(search);
-    filter.label = { $regex: esc, $options: "i" };
+    matchStage.label = { $regex: esc, $options: "i" };
   }
 
-  const [labels, total] = await Promise.all([
-    ImageLabelModel.find(filter)
-      .populate("createdBy", "firstName lastName email")
-      .populate("lastUpdatedBy", "firstName lastName email")
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 }),
-    ImageLabelModel.countDocuments(filter),
-  ]);
+  const pipeline = [
+    { $match: matchStage },
+
+    // Lookup createdBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        as: "createdBy",
+      },
+    },
+    { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
+
+    // Lookup lastUpdatedBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastUpdatedBy",
+        foreignField: "_id",
+        as: "updatedBy",
+      },
+    },
+    { $unwind: { path: "$updatedBy", preserveNullAndEmptyArrays: true } },
+
+    // Map roles
+    {
+      $addFields: {
+        "createdBy.role": {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+        "updatedBy.role": {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$updatedBy.role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$updatedBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$updatedBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+      },
+    },
+
+    // Project safe fields
+    {
+      $project: {
+        label: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        createdBy: {
+          _id: "$createdBy._id",
+          firstName: "$createdBy.firstName",
+          lastName: "$createdBy.lastName",
+          email: "$createdBy.email",
+          role: "$createdBy.role",
+        },
+        updatedBy: {
+          _id: "$updatedBy._id",
+          firstName: "$updatedBy.firstName",
+          lastName: "$updatedBy.lastName",
+          email: "$updatedBy.email",
+          role: "$updatedBy.role",
+        },
+      },
+    },
+
+    // Sort
+    { $sort: { createdAt: -1 } },
+
+    // Facet for pagination
+    {
+      $facet: {
+        labels: [{ $skip: skip }, { $limit: limit }],
+        metaData: [{ $count: "totalLabel" }],
+      },
+    },
+  ];
+
+  const result = await ImageLabelModel.aggregate(pipeline);
+  const labels = result[0]?.labels || [];
+  const totalLabel = result[0]?.metaData[0]?.totalLabel || 0;
 
   return {
     labels,
     metaData: {
       page,
       limit,
-      totalLabel: total,
-      totalPage: Math.ceil(total / limit),
+      totalLabel,
+      totalPage: Math.ceil(totalLabel / limit),
     },
   };
 }
@@ -87,16 +219,84 @@ async function getImageLabels(query = {}) {
  * @returns {Promise<Object>}
  */
 async function getImageLabel(id) {
-  const label = await ImageLabelModel.findById(id)
-    .populate("createdBy", "firstName lastName email")
-    .populate("lastUpdatedBy", "firstName lastName email");
-  if (!label) {
+  const label = await ImageLabelModel.aggregate([
+    // Search by id
+    { $match: { _id: new mongoose.Types.ObjectId(id) } },
+    // Lookup createdBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        as: "createdBy",
+      },
+    },
+    { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
+    // Lookup lastUpdatedBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastUpdatedBy",
+        foreignField: "_id",
+        as: "updatedBy",
+      },
+    },
+    { $unwind: { path: "$updatedBy", preserveNullAndEmptyArrays: true } },
+    // Map roles
+    {
+      $addFields: {
+        "createdBy.role": {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+        "updatedBy.role": {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$updatedBy.role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$updatedBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$updatedBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+      },
+    },
+    // Project safe fields
+    {
+      $project: {
+        label: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        createdBy: {
+          _id: "$createdBy._id",
+          firstName: "$createdBy.firstName",
+          lastName: "$createdBy.lastName",
+          email: "$createdBy.email",
+          role: "$createdBy.role",
+        },
+        updatedBy: {
+          _id: "$updatedBy._id",
+          firstName: "$updatedBy.firstName",
+          lastName: "$updatedBy.lastName",
+          email: "$updatedBy.email",
+          role: "$updatedBy.role",
+        },
+      },
+    },
+  ]);
+  if (!label || !label.length) {
     const err = new Error("Image label not found");
     err.status = 404;
     err.code = "LABEL_NOT_FOUND";
     throw err;
   }
-  return label;
+  return label[0];
 }
 
 /**
@@ -125,27 +325,93 @@ async function updateImageLabel(id, payload, user) {
     }
   }
 
-  const updated = await ImageLabelModel.findByIdAndUpdate(
-    id,
+  const updated = await ImageLabelModel.aggregate([
+    // Update stage
     {
-      ...payload,
-      lastUpdatedBy: new mongoose.Types.ObjectId(user.id),
+      $match: { _id: new mongoose.Types.ObjectId(id) },
     },
     {
-      new: true,
-    }
-  )
-    .populate("createdBy", "firstName lastName email")
-    .populate("lastUpdatedBy", "firstName lastName email");
+      $set: Object.assign({}, payload, {
+        lastUpdatedBy: new mongoose.Types.ObjectId(user._id),
+      }),
+    },
+    // Lookup createdBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        as: "createdBy",
+      },
+    },
+    { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
+    // Lookup lastUpdatedBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastUpdatedBy",
+        foreignField: "_id",
+        as: "updatedBy",
+      },
+    },
+    { $unwind: { path: "$updatedBy", preserveNullAndEmptyArrays: true } },
+    // Map roles
+    {
+      $addFields: {
+        "createdBy.role": {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+        "updatedBy.role": {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$updatedBy.role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$updatedBy.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$updatedBy.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
+      },
+    },
+    // Project safe fields
+    {
+      $project: {
+        label: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        createdBy: {
+          _id: "$createdBy._id",
+          firstName: "$createdBy.firstName",
+          lastName: "$createdBy.lastName",
+          email: "$createdBy.email",
+          role: "$createdBy.role",
+        },
+        updatedBy: {
+          _id: "$updatedBy._id",
+          firstName: "$updatedBy.firstName",
+          lastName: "$updatedBy.lastName",
+          email: "$updatedBy.email",
+          role: "$updatedBy.role",
+        },
+      },
+    },
+  ]);
 
-  if (!updated) {
+  if (!updated || !updated.length) {
     const err = new Error("Image label not found");
     err.status = 404;
     err.code = "LABEL_NOT_FOUND";
     throw err;
   }
 
-  return updated;
+  return updated[0];
 }
 
 /**
