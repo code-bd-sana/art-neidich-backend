@@ -45,8 +45,9 @@ const createJobSchema = z
     dueDate: z.coerce.date().min(new Date(), {
       message: "Due date cannot be in the past",
     }),
-    specialNotesForInspector: z.string().optional(),
-    specialNoteForApOrAr: z.string().optional(),
+    // max 1250 characters
+    specialNotesForInspector: z.string().max(1250).optional(),
+    specialNoteForApOrAr: z.string().max(1250).optional(),
   })
   .strict();
 

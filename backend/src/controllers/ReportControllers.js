@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+
 const {
   createReport,
   updateReport,
@@ -17,7 +19,8 @@ const {
 async function createReportController(req, res, next) {
   try {
     const payload = req.validated;
-    const report = await createReport(payload, req.files, req.user);
+    payload.inspector = new mongoose.Types.ObjectId(req.user?._id);
+    const report = await createReport(payload);
     return res.status(201).json({
       success: true,
       message: "Report created successfully",
@@ -42,27 +45,6 @@ async function getReportByIdController(req, res, next) {
       success: true,
       message: "Report fetched successfully",
       data: report,
-    });
-  } catch (err) {
-    return next(err);
-  }
-}
-
-/**
- * Get list of reports with optional search & pagination
- *
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-async function getReportsController(req, res, next) {
-  try {
-    const result = await getAllReports(req.query);
-    return res.status(200).json({
-      success: true,
-      message: "Reports fetched successfully",
-      data: result.reports,
-      metaData: result.metaData,
     });
   } catch (err) {
     return next(err);
@@ -112,7 +94,6 @@ async function deleteReportController(req, res, next) {
 module.exports = {
   createReportController,
   getReportByIdController,
-  getReportsController,
   deleteReportController,
   updateReportStatusController,
 };

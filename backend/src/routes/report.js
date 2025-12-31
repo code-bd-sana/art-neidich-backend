@@ -43,23 +43,6 @@ router.post(
 );
 
 /**
- * Get list of reports with optional search & pagination
- *
- * @route GET /api/v1/report
- * Private route - Only root (0) and admin (1) can access
- *
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-router.get(
-  "/",
-  authorizeRoles(0, 1),
-  validate(searchAndPaginationSchema, { target: "query" }),
-  getReportsController
-);
-
-/**
  * Get a single report by id
  *
  * @route GET /api/v1/report/:id
