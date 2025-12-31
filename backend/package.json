@@ -1,9 +1,9 @@
 {
   "name": "artneidich",
   "version": "1.0.0",
-  "description": "horse egg",
+  "description": "Backend for Artneidich application",
   "license": "ISC",
-  "author": "banana",
+  "author": "Artur Neidich",
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
