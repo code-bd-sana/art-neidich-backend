@@ -2,7 +2,8 @@ const mongoose = require("mongoose");
 
 const jobSchema = new mongoose.Schema(
   {
-    inspectorId: {
+    // Assigned inspector
+    inspector: {
       type: mongoose.Types.ObjectId,
       ref: "User",
       required: true,

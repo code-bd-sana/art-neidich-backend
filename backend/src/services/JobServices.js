@@ -20,6 +20,21 @@ async function createJob(payload) {
         _id: new mongoose.Types.ObjectId(created._id),
       },
     },
+    // Lookup inspector
+    {
+      $lookup: {
+        from: "users",
+        localField: "inspectorId",
+        foreignField: "_id",
+        as: "inspector",
+      },
+    },
+    {
+      $unwind: {
+        path: "$inspector",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
     // Lookup createdBy
     {
       $lookup: {
@@ -54,6 +69,16 @@ async function createJob(payload) {
     // Convert roles to readable labels
     {
       $addFields: {
+        "inspector.role": {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$inspector.role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$inspector.role", 1] }, then: "Admin" },
+              { case: { $eq: ["$inspector.role", 2] }, then: "Inspector" },
+            ],
+            default: "Unknown",
+          },
+        },
         "createdBy.role": {
           $switch: {
             branches: [
@@ -82,6 +107,9 @@ async function createJob(payload) {
     // Project safe fields only
     {
       $project: {
+        "inspector.password": 0,
+        "inspector.resetToken": 0,
+        "inspector.resetTokenExpiry": 0,
         "createdBy.password": 0,
         "createdBy.resetToken": 0,
         "createdBy.resetTokenExpiry": 0,
@@ -113,7 +141,7 @@ async function getJobById(id) {
     {
       $lookup: {
         from: "users",
-        localField: "inspectorId",
+        localField: "inspector",
         foreignField: "_id",
         as: "inspector",
       },
@@ -274,7 +302,7 @@ async function getJobs(query = {}) {
     {
       $lookup: {
         from: "users",
-        localField: "inspectorId",
+        localField: "inspector",
         foreignField: "_id",
         as: "inspector",
       },
@@ -485,7 +513,7 @@ async function updateJob(id, payload) {
     {
       $lookup: {
         from: "users",
-        localField: "inspectorId",
+        localField: "inspector",
         foreignField: "_id",
         as: "inspector",
       },
