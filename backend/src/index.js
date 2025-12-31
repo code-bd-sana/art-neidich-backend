@@ -31,6 +31,7 @@ process.on("unhandledRejection", (reason) => {
     logError(reason, { type: "unhandledRejection" });
   } catch (e) {
     // ignore
+    console.error("Error logging unhandled rejection:", e);
   }
 });
 
@@ -39,6 +40,7 @@ process.on("uncaughtException", (err) => {
     logError(err, { type: "uncaughtException" });
   } catch (e) {
     // ignore
+    console.error("Error logging uncaught exception:", e);
   }
 });
 

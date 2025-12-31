@@ -6,6 +6,7 @@ module.exports = function errorHandler(err, req, res, next) {
     logError(err, { path: req && req.originalUrl });
   } catch (e) {
     // swallow
+    console.error("Error logging in errorHandler middleware:", e);
   }
 
   const status = (err && err.status && Number(err.status)) || 500;

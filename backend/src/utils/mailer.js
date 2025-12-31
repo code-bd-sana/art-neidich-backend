@@ -99,6 +99,7 @@ async function sendMail({ to, subject, text, html, attachments } = {}) {
       logError(err, { mailOptions });
     } catch (e) {
       // swallow logging errors
+      console.error("Error logging mail send failure:", e);
     }
     throw err;
   }

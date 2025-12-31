@@ -7,7 +7,7 @@ const { z } = require("zod");
  */
 const forgotPasswordSchema = z
   .object({
-    email: z.string().email("Invalid email address"),
+    email: z.string().email("Invalid email address").trim(),
   })
   .strict();
 

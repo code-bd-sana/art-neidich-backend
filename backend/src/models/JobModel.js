@@ -2,7 +2,8 @@ const mongoose = require("mongoose");
 
 const jobSchema = new mongoose.Schema(
   {
-    inspectorId: {
+    // Assigned inspector
+    inspector: {
       type: mongoose.Types.ObjectId,
       ref: "User",
       required: true,
@@ -69,6 +70,15 @@ const jobSchema = new mongoose.Schema(
       type: String,
       default: "",
       maxLength: 1250,
+    },
+    createdBy: {
+      type: mongoose.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    lastUpdatedBy: {
+      type: mongoose.Types.ObjectId,
+      ref: "User",
     },
   },
   { timestamps: true, versionKey: false }
