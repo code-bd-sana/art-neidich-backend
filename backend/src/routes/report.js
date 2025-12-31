@@ -29,7 +29,7 @@ router.use(authenticate);
  * Create a new report
  *
  * @route POST /api/v1/report
- * Private route — only root (0) and admin (1) can create reports
+ * Private route — only inspector (2) can create reports
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -37,7 +37,7 @@ router.use(authenticate);
  */
 router.post(
   "/",
-  authorizeRoles(0, 1),
+  authorizeRoles(2),
   validate(createReportSchema, { target: "body" }),
   createReportController
 );
@@ -46,7 +46,7 @@ router.post(
  * Get list of reports with optional search & pagination
  *
  * @route GET /api/v1/report
- * Private route
+ * Private route - Only root (0) and admin (1) can access
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -54,6 +54,7 @@ router.post(
  */
 router.get(
   "/",
+  authorizeRoles(0, 1),
   validate(searchAndPaginationSchema, { target: "query" }),
   getReportsController
 );
@@ -72,24 +73,6 @@ router.get(
   "/:id",
   validate(mongoIdSchema, { target: "params" }),
   getReportByIdController
-);
-
-/**
- * Update an existing report
- *
- * @route PUT /api/v1/report/:id
- * Private route - only root (0) and admin (1) can update reports
- *
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-router.put(
-  "/:id",
-  authorizeRoles(0, 1),
-  validate(mongoIdSchema, { target: "params" }),
-  validate(updateReportSchema, { target: "body" }),
-  updateReportController
 );
 
 /**

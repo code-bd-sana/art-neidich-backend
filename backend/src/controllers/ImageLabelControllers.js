@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+
 const {
   createImageLabel,
   getImageLabels,
@@ -16,7 +18,9 @@ const {
 async function createImageLabelController(req, res, next) {
   try {
     const payload = req.validated;
-    const label = await createImageLabel(payload, req.user);
+    payload.createdBy = new mongoose.Types.ObjectId(req.user?._id);
+    payload.lastUpdatedBy = new mongoose.Types.ObjectId(req.user?._id);
+    const label = await createImageLabel(payload);
     return res.status(201).json({
       success: true,
       message: "Image label created successfully",
@@ -79,7 +83,8 @@ async function getImageLabelController(req, res, next) {
 async function updateImageLabelController(req, res, next) {
   try {
     const payload = req.validated;
-    const updated = await updateImageLabel(req.params.id, payload, req.user);
+    payload.lastUpdatedBy = new mongoose.Types.ObjectId(req.user?._id);
+    const updated = await updateImageLabel(req.params.id, payload);
     return res.status(200).json({
       success: true,
       message: "Image label updated successfully",

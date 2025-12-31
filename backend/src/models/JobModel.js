@@ -75,6 +75,10 @@ const jobSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    lastUpdatedBy: {
+      type: mongoose.Types.ObjectId,
+      ref: "User",
+    },
   },
   { timestamps: true, versionKey: false }
 );

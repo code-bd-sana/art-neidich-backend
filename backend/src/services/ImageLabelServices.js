@@ -12,7 +12,6 @@ function escapeRegExp(string) {
  * Create a new image label if it doesn't already exist (case-insensitive)
  *
  * @param {{label: string}} payload
- * @param {Object} user - user creating the label
  * @returns {Promise<Object>} created label
  */
 async function createImageLabel(payload, user) {
@@ -31,11 +30,7 @@ async function createImageLabel(payload, user) {
   }
 
   // Create new label
-  const created = await ImageLabelModel.create({
-    label,
-    createdBy: new mongoose.Types.ObjectId(user._id),
-    lastUpdatedBy: new mongoose.Types.ObjectId(user._id),
-  });
+  const created = await ImageLabelModel.create(payload);
 
   // Optionally, return with creator info via aggregation
   const result = await ImageLabelModel.aggregate([
@@ -304,10 +299,9 @@ async function getImageLabel(id) {
  *
  * @param {string} id
  * @param {{label?: string}} payload
- * @param {Object} user - user updating the label
  * @returns {Promise<Object>} updated label
  */
-async function updateImageLabel(id, payload, user) {
+async function updateImageLabel(id, payload) {
   const labelValue = payload.label;
 
   if (labelValue) {
@@ -331,9 +325,7 @@ async function updateImageLabel(id, payload, user) {
       $match: { _id: new mongoose.Types.ObjectId(id) },
     },
     {
-      $set: Object.assign({}, payload, {
-        lastUpdatedBy: new mongoose.Types.ObjectId(user._id),
-      }),
+      $set: Object.assign({}, payload),
     },
     // Lookup createdBy
     {
