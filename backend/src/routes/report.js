@@ -1,4 +1,5 @@
 const express = require("express");
+const multer = require("multer");
 
 const router = express.Router();
 
@@ -22,8 +23,25 @@ const {
   updateReportStatusSchema,
 } = require("../validators/report/report");
 
+// Multer setup for in-memory upload
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 // All report routes require authentication
 router.use(authenticate);
+
+// Merge multer files into req.body.images before validation
+const mergeFilesWithBody = (req, res, next) => {
+  if (req.files) {
+    req.body.images = req.files.map((file) => ({
+      fileName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      buffer: file.buffer,
+    }));
+  }
+  next();
+};
 
 /**
  * Create a new report
@@ -38,6 +56,8 @@ router.use(authenticate);
 router.post(
   "/",
   authorizeRoles(2),
+  upload.array("images"), // no limit on number of images
+  mergeFilesWithBody,
   validate(createReportSchema, { target: "body" }),
   createReportController
 );

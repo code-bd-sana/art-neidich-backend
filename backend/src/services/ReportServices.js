@@ -18,7 +18,6 @@ const { uploadMultiple, deleteMultiple } = require("../utils/s3");
  */
 async function createReport(payload) {
   const images = Array.isArray(payload.images) ? payload.images : [];
-
   // Minimum 1, Maximum 2 images
   if (images.length < 1 || images.length > 2) {
     const err = new Error("You must provide at least 1 and maximum 2 images.");
@@ -32,69 +31,50 @@ async function createReport(payload) {
 
   // Separate images needing upload vs already uploaded
   for (const img of images) {
-    if (img && (img.stream || img.buffer)) {
-      toUpload.push(img);
-    } else {
-      existing.push(img);
-    }
+    if (img && (img.stream || img.buffer)) toUpload.push(img);
+    else existing.push(img);
   }
 
   let uploadResults = [];
-
   try {
     // 1. Upload new images to AWS
     if (toUpload.length > 0) {
-      const params = toUpload.map((i) => {
-        const body = i.stream
-          ? i.stream
-          : i.buffer
-          ? Readable.from(i.buffer)
-          : null;
-        return {
-          stream: body,
-          filename: i.fileName || i.filename || "file",
-          contentType: i.mimeType || i.contentType,
-        };
-      });
+      const params = toUpload.map((i) => ({
+        stream: i.stream || (i.buffer ? Readable.from(i.buffer) : null),
+        filename: i.fileName || i.filename || "file",
+        contentType: i.mimeType || "application/octet-stream",
+      }));
 
       uploadResults = await uploadMultiple(params);
     }
 
-    // 2. Collect all imageLabel IDs (from both uploaded and existing images)
+    // Collect all imageLabel IDs (from both uploaded and existing images)
     const labelIds = [
       ...toUpload.map((i) => i.imageLabel),
       ...existing.map((i) => i.imageLabel),
     ]
       .filter(Boolean)
       .map((id) => new mongoose.Types.ObjectId(id));
-
-    // 3. Fetch all labels in a single query
+    //  Fetch all labels in a single query
     const labelsMap = {};
-    if (labelIds.length > 0) {
+    if (labelIds.length) {
       const labels = await ImageLabelModel.find({
         _id: { $in: labelIds },
       }).select("label");
-      for (const lbl of labels) {
-        labelsMap[lbl._id.toString()] = lbl.label;
-      }
+      for (const lbl of labels) labelsMap[lbl._id.toString()] = lbl.label;
     }
 
-    // 4. Build final images array
+    // Build final images array
     const finalImages = [];
-
     // Uploaded images
     for (let idx = 0; idx < toUpload.length; idx++) {
       const orig = toUpload[idx];
       const res = uploadResults[idx];
-      const labelText = orig.imageLabel
-        ? labelsMap[orig.imageLabel.toString()] || ""
-        : "";
-
       finalImages.push({
-        imageLabel: labelText,
+        imageLabel: labelsMap[orig.imageLabel?.toString()] || "",
         url: res.Location,
         key: res.Key,
-        fileName: orig.fileName || orig.filename || res.Key,
+        fileName: orig.fileName || res.Key,
         alt: orig.alt || "",
         uploadedBy: payload.inspector,
         mimeType: orig.mimeType || "application/octet-stream",
@@ -102,36 +82,27 @@ async function createReport(payload) {
         noteForAdmin: orig.noteForAdmin || "",
       });
     }
-
     // Existing images
     for (const e of existing) {
-      const labelText = e.imageLabel
-        ? labelsMap[e.imageLabel.toString()] || ""
-        : "";
-      finalImages.push({ ...e, imageLabel: labelText });
+      finalImages.push({
+        ...e,
+        imageLabel: labelsMap[e.imageLabel?.toString()] || "",
+      });
     }
-
     // 5. Create report
-    const reportPayload = {
-      ...payload,
-      images: finalImages,
-      inspector: payload.inspector,
-    };
+    const reportPayload = { ...payload, images: finalImages };
     const report = new ReportModel(reportPayload);
     await report.save();
-
     return report;
   } catch (err) {
-    // Cleanup uploaded files on AWS if something fails
     try {
-      if (uploadResults.length > 0) {
+      if (uploadResults.length) {
         const keys = uploadResults.map((u) => u.Key).filter(Boolean);
         if (keys.length) await deleteMultiple(keys);
       }
     } catch (cleanupErr) {
       console.error("Error cleaning up AWS uploads:", cleanupErr);
     }
-
     throw err;
   }
 }
@@ -341,17 +312,207 @@ async function getReportById(id) {
  */
 async function updateReportStatus(id, updateData) {
   const { status } = updateData;
-  const report = await ReportModel.findById(id);
-  if (!report) {
+  const report = await ReportModel.aggregate([
+    { $match: { _id: new mongoose.Types.ObjectId(id) } },
+    {
+      $set: {
+        status,
+        lastUpdatedBy: updateData.lastUpdatedBy,
+        updatedAt: new Date(),
+      },
+    },
+    // Lookup inspector
+    {
+      $lookup: {
+        from: "users",
+        localField: "inspector",
+        foreignField: "_id",
+        as: "inspector",
+      },
+    },
+    { $unwind: "$inspector" },
+
+    // Lookup job
+    {
+      $lookup: {
+        from: "jobs",
+        localField: "job",
+        foreignField: "_id",
+        as: "job",
+      },
+    },
+    { $unwind: "$job" },
+
+    // Lookup job createdBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "job.createdBy",
+        foreignField: "_id",
+        as: "job.createdBy",
+      },
+    },
+    { $unwind: { path: "$job.createdBy", preserveNullAndEmptyArrays: true } },
+
+    // Lookup job lastUpdatedBy
+    {
+      $lookup: {
+        from: "users",
+        localField: "job.lastUpdatedBy",
+        foreignField: "_id",
+        as: "job.lastUpdatedBy",
+      },
+    },
+    {
+      $unwind: {
+        path: "$job.lastUpdatedBy",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    // Lookup labels for images
+    {
+      $lookup: {
+        from: "imagelabels",
+        localField: "images.imageLabel",
+        foreignField: "_id",
+        as: "imageLabels",
+      },
+    },
+
+    // Map images with label name
+    {
+      $addFields: {
+        images: {
+          $map: {
+            input: "$images",
+            as: "img",
+            in: {
+              label: {
+                $arrayElemAt: [
+                  {
+                    $map: {
+                      input: {
+                        $filter: {
+                          input: "$imageLabels",
+                          as: "lbl",
+                          cond: { $eq: ["$$lbl._id", "$$img.imageLabel"] },
+                        },
+                      },
+                      as: "lbl",
+                      in: "$$lbl.label",
+                    },
+                  },
+                  0,
+                ],
+              },
+              fileName: "$$img.fileName",
+              url: "$$img.url",
+              key: "$$img.key",
+              alt: "$$img.alt",
+              mimeType: "$$img.mimeType",
+              size: "$$img.size",
+              noteForAdmin: "$$img.noteForAdmin",
+            },
+          },
+        },
+      },
+    },
+
+    // Role mapping helper
+    {
+      $addFields: {
+        inspector: {
+          _id: "$inspector._id",
+          userId: "$inspector.userId",
+          firstName: "$inspector.firstName",
+          lastName: "$inspector.lastName",
+          email: "$inspector.email",
+          role: "Inspector",
+        },
+        job: {
+          _id: 1,
+          orderId: 1,
+          streetAddress: 1,
+          developmentName: 1,
+          siteContactName: 1,
+          siteContactPhone: 1,
+          siteContactEmail: 1,
+          dueDate: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          createdBy: {
+            _id: "$job.createdBy._id",
+            firstName: "$job.createdBy.firstName",
+            lastName: "$job.createdBy.lastName",
+            email: "$job.createdBy.email",
+            role: {
+              $switch: {
+                branches: [
+                  {
+                    case: { $eq: ["$job.createdBy.role", 0] },
+                    then: "Super Admin",
+                  },
+                  { case: { $eq: ["$job.createdBy.role", 1] }, then: "Admin" },
+                  {
+                    case: { $eq: ["$job.createdBy.role", 2] },
+                    then: "Inspector",
+                  },
+                ],
+                default: "Unknown",
+              },
+            },
+          },
+          lastUpdatedBy: {
+            _id: "$job.lastUpdatedBy._id",
+            firstName: "$job.lastUpdatedBy.firstName",
+            lastName: "$job.lastUpdatedBy.lastName",
+            email: "$job.lastUpdatedBy.email",
+            role: {
+              $switch: {
+                branches: [
+                  {
+                    case: { $eq: ["$job.lastUpdatedBy.role", 0] },
+                    then: "Super Admin",
+                  },
+                  {
+                    case: { $eq: ["$job.lastUpdatedBy.role", 1] },
+                    then: "Admin",
+                  },
+                  {
+                    case: { $eq: ["$job.lastUpdatedBy.role", 2] },
+                    then: "Inspector",
+                  },
+                ],
+                default: "Unknown",
+              },
+            },
+          },
+        },
+      },
+    },
+
+    // Project final fields
+    {
+      $project: {
+        inspector: 1,
+        job: 1,
+        status: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        images: 1,
+      },
+    },
+  ]);
+
+  if (report.length === 0) {
     const err = new Error("Report not found");
     err.status = 404;
     err.code = "REPORT_NOT_FOUND";
     throw err;
   }
-  report.status = status;
-  if (updateData.lastUpdatedBy) {
-    report.lastUpdatedBy = updateData.lastUpdatedBy;
-  }
+
+  return report[0];
 }
 
 /**

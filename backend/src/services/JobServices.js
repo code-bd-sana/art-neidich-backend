@@ -123,6 +123,7 @@ async function createJob(payload) {
   return result[0] || null;
 }
 
+// TODO: job report add kora lagbe ei id er under e
 /**
  * Get job by id using aggregation (with inspector)
  * @param {string} id
