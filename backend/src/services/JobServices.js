@@ -184,7 +184,7 @@ async function getJobById(id) {
     {
       $addFields: {
         hasReport: { $gt: [{ $size: "$reportCheck" }, 0] }, // ✅ true / false
-
+        reportId: { $arrayElemAt: ["$reportCheck._id", 0] }, // ✅ expose the report _id
         "inspector.role": {
           $switch: {
             branches: [
@@ -239,8 +239,8 @@ async function getJobById(id) {
         specialNoteForApOrAr: 1,
         createdAt: 1,
         updatedAt: 1,
-        hasReport: 1, // exposed here
-
+        hasReport: 1,
+        reportId: 1,
         inspector: {
           _id: "$inspector._id",
           userId: "$inspector.userId",

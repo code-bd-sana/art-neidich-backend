@@ -20,6 +20,7 @@ async function createReportController(req, res, next) {
   try {
     const payload = req.validated;
     payload.inspector = new mongoose.Types.ObjectId(req.user?._id);
+    payload.job = new mongoose.Types.ObjectId(req.params.job);
     const report = await createReport(payload);
     return res.status(201).json({
       success: true,

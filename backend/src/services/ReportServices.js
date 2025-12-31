@@ -3,6 +3,7 @@ const { Readable } = require("stream");
 const mongoose = require("mongoose");
 
 const ImageLabelModel = require("../models/ImageLabelModel");
+const JobModel = require("../models/JobModel");
 const ReportModel = require("../models/ReportModel");
 const { uploadMultiple, deleteMultiple } = require("../utils/s3");
 
@@ -17,6 +18,18 @@ const { uploadMultiple, deleteMultiple } = require("../utils/s3");
  * @returns {Promise<Object>} - Created report
  */
 async function createReport(payload) {
+  // Check the job for this report exists
+  const jobExists = await JobModel.exists({
+    _id: payload.job,
+  });
+
+  if (!jobExists) {
+    const err = new Error("Associated job not found");
+    err.status = 404;
+    err.code = "JOB_NOT_FOUND";
+    throw err;
+  }
+
   const images = Array.isArray(payload.images) ? payload.images : [];
   // Minimum 1, Maximum 2 images
   if (images.length < 1 || images.length > 2) {
@@ -108,7 +121,7 @@ async function createReport(payload) {
 }
 
 /**
- * Get a single report by job id
+ * Get a single report by id
  *
  * @param {string} id - Report ID
  * @returns {Promise<Object>} - Report document
