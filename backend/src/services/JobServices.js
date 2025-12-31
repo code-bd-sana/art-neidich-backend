@@ -123,7 +123,6 @@ async function createJob(payload) {
   return result[0] || null;
 }
 
-// TODO: job report add kora lagbe ei id er under e
 /**
  * Get job by id using aggregation (with inspector)
  * @param {string} id
@@ -133,12 +132,10 @@ async function getJobById(id) {
   const jobId = new mongoose.Types.ObjectId(id);
 
   const result = await JobModel.aggregate([
-    // Match job
-    {
-      $match: { _id: jobId },
-    },
+    /* ---------------- MATCH JOB ---------------- */
+    { $match: { _id: jobId } },
 
-    // Lookup inspector
+    /* ---------------- USERS ---------------- */
     {
       $lookup: {
         from: "users",
@@ -147,14 +144,8 @@ async function getJobById(id) {
         as: "inspector",
       },
     },
-    {
-      $unwind: {
-        path: "$inspector",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
+    { $unwind: { path: "$inspector", preserveNullAndEmptyArrays: true } },
 
-    // Lookup createdBy
     {
       $lookup: {
         from: "users",
@@ -163,14 +154,8 @@ async function getJobById(id) {
         as: "createdBy",
       },
     },
-    {
-      $unwind: {
-        path: "$createdBy",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
+    { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
 
-    // Lookup lastUpdatedBy
     {
       $lookup: {
         from: "users",
@@ -179,14 +164,140 @@ async function getJobById(id) {
         as: "lastUpdatedBy",
       },
     },
+    { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
+
+    /* ---------------- REPORTS ---------------- */
     {
-      $unwind: {
-        path: "$lastUpdatedBy",
-        preserveNullAndEmptyArrays: true,
+      $lookup: {
+        from: "reports",
+        let: { jobId: "$_id" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$job", "$$jobId"] } } },
+
+          // Inspector of report
+          {
+            $lookup: {
+              from: "users",
+              localField: "inspector",
+              foreignField: "_id",
+              as: "inspector",
+            },
+          },
+          { $unwind: "$inspector" },
+
+          // Image labels
+          {
+            $lookup: {
+              from: "imagelabels",
+              localField: "images.imageLabel",
+              foreignField: "_id",
+              as: "labels",
+            },
+          },
+
+          // Group images by label
+          {
+            $addFields: {
+              images: {
+                $reduce: {
+                  input: "$images",
+                  initialValue: {},
+                  in: {
+                    $let: {
+                      vars: {
+                        labelObj: {
+                          $first: {
+                            $filter: {
+                              input: "$labels",
+                              as: "l",
+                              cond: { $eq: ["$$l._id", "$$this.imageLabel"] },
+                            },
+                          },
+                        },
+                      },
+                      in: {
+                        $mergeObjects: [
+                          "$$value",
+                          {
+                            $arrayToObject: [
+                              [
+                                {
+                                  k: "$$labelObj.label",
+                                  v: {
+                                    $concatArrays: [
+                                      {
+                                        $ifNull: [
+                                          {
+                                            $getField: {
+                                              field: "$$labelObj.label",
+                                              input: "$$value",
+                                            },
+                                          },
+                                          [],
+                                        ],
+                                      },
+                                      [
+                                        {
+                                          fileName: "$$this.fileName",
+                                          url: "$$this.url",
+                                          alt: "$$this.alt",
+                                          mimeType: "$$this.mimeType",
+                                          size: "$$this.size",
+                                          noteForAdmin: "$$this.noteForAdmin",
+                                        },
+                                      ],
+                                    ],
+                                  },
+                                },
+                              ],
+                            ],
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+
+          {
+            $project: {
+              _id: 1,
+              status: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              inspector: {
+                _id: "$inspector._id",
+                firstName: "$inspector.firstName",
+                lastName: "$inspector.lastName",
+                email: "$inspector.email",
+                role: {
+                  $switch: {
+                    branches: [
+                      {
+                        case: { $eq: ["$inspector.role", 0] },
+                        then: "Super Admin",
+                      },
+                      { case: { $eq: ["$inspector.role", 1] }, then: "Admin" },
+                      {
+                        case: { $eq: ["$inspector.role", 2] },
+                        then: "Inspector",
+                      },
+                    ],
+                    default: "Unknown",
+                  },
+                },
+              },
+              images: 1,
+            },
+          },
+        ],
+        as: "reports",
       },
     },
 
-    // Convert roles to readable labels
+    /* ---------------- ROLE MAPPING ---------------- */
     {
       $addFields: {
         "inspector.role": {
@@ -225,7 +336,7 @@ async function getJobById(id) {
       },
     },
 
-    // Project safe fields only
+    /* ---------------- FINAL PROJECTION ---------------- */
     {
       $project: {
         formType: 1,
@@ -243,33 +354,10 @@ async function getJobById(id) {
         specialNoteForApOrAr: 1,
         createdAt: 1,
         updatedAt: 1,
-
-        inspector: {
-          _id: "$inspector._id",
-          userId: "$inspector.userId",
-          firstName: "$inspector.firstName",
-          lastName: "$inspector.lastName",
-          email: "$inspector.email",
-          role: "$inspector.role",
-        },
-
-        createdBy: {
-          _id: "$createdBy._id",
-          userId: "$createdBy.userId",
-          firstName: "$createdBy.firstName",
-          lastName: "$createdBy.lastName",
-          email: "$createdBy.email",
-          role: "$createdBy.role",
-        },
-
-        lastUpdatedBy: {
-          _id: "$lastUpdatedBy._id",
-          userId: "$lastUpdatedBy.userId",
-          firstName: "$lastUpdatedBy.firstName",
-          lastName: "$lastUpdatedBy.lastName",
-          email: "$lastUpdatedBy.email",
-          role: "$lastUpdatedBy.role",
-        },
+        inspector: 1,
+        createdBy: 1,
+        lastUpdatedBy: 1,
+        reports: 1,
       },
     },
   ]);
