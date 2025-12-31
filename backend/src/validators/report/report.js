@@ -9,7 +9,7 @@ const { mongoIdSchema } = require("../common/mongoId");
  */
 const createReportSchema = z
   .object({
-    jobId: mongoIdSchema.shape.id,
+    job: mongoIdSchema.shape.id,
     images: z
       .array(
         z.object({
