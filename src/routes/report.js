@@ -14,13 +14,11 @@ const { authenticate, authorizeRoles } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
 const { mongoIdSchema } = require("../validators/common/mongoId");
 const {
-  searchAndPaginationSchema,
-} = require("../validators/common/searchAndPagination");
-const {
   createReportSchema,
   updateReportSchema,
   updateReportStatusSchema,
   reportStatusSchema,
+  reportPaginationSchema,
 } = require("../validators/report/report");
 
 // Multer setup for in-memory upload
@@ -74,8 +72,7 @@ router.post(
  */
 router.get(
   "/",
-  validate(searchAndPaginationSchema, { target: "query" }),
-  validate(reportStatusSchema, { target: "query" }),
+  validate(reportPaginationSchema, { target: "query" }),
   getReportsController
 );
 

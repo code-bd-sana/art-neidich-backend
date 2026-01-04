@@ -38,8 +38,20 @@ const createReportSchema = z
 /**
  * Validation schema for search report with the status field
  */
-const reportStatusSchema = z
+const reportPaginationSchema = z
   .object({
+    page: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 1))
+      .refine((val) => val > 0, { message: "Page must be a positive integer" }),
+    limit: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 10))
+      .refine((val) => val > 0, {
+        message: "Limit must be a positive integer",
+      }),
     status: z
       .enum(["in_progress", "in_review", "completed", "rejected"])
       .optional(),
@@ -59,6 +71,6 @@ const updateReportStatusSchema = z
 
 module.exports = {
   createReportSchema,
-  reportStatusSchema,
+  reportPaginationSchema,
   updateReportStatusSchema,
 };
