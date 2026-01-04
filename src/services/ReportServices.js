@@ -20,13 +20,25 @@ const { uploadMultiple, deleteMultiple } = require("../utils/s3");
 async function createReport(payload) {
   // Check the job for this report exists
   const jobExists = await JobModel.exists({
-    _id: payload.job,
+    _id: new mongoose.Types.ObjectId(payload.job),
   });
 
   if (!jobExists) {
     const err = new Error("Associated job not found");
     err.status = 404;
     err.code = "JOB_NOT_FOUND";
+    throw err;
+  }
+
+  // Check any report exists for this job already
+  const reportExists = await ReportModel.exists({
+    job: new mongoose.Types.ObjectId(payload.job),
+  });
+
+  if (reportExists) {
+    const err = new Error("A report for this job already exists.");
+    err.status = 400;
+    err.code = "REPORT_ALREADY_EXISTS";
     throw err;
   }
 
