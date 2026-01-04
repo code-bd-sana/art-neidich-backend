@@ -17,6 +17,7 @@ const reportSchema = new mongoose.Schema(
     // Report content
     images: [
       {
+        // Label for the image (e.g., "front_view", "damage_area")
         imageLabel: {
           type: String,
           required: true,
