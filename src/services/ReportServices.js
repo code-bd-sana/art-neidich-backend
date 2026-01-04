@@ -274,51 +274,214 @@ async function getReportById(id) {
       },
     },
 
-    // Lookup labels for images
+    // Unwind images to lookup labels for each image
+    { $unwind: { path: "$images", preserveNullAndEmptyArrays: true } },
+
+    // Lookup label for each image
     {
       $lookup: {
         from: "imagelabels",
         localField: "images.imageLabel",
         foreignField: "_id",
-        as: "imageLabels",
+        as: "imageLabelInfo",
       },
     },
 
-    // Map images with label name
+    // Get the label text
     {
       $addFields: {
-        images: {
-          $map: {
-            input: "$images",
-            as: "img",
+        "images.label": {
+          $cond: {
+            if: { $gt: [{ $size: "$imageLabelInfo" }, 0] },
+            then: { $arrayElemAt: ["$imageLabelInfo.label", 0] },
+            else: "Unknown Label",
+          },
+        },
+      },
+    },
+
+    // Group images by label
+    {
+      $group: {
+        _id: "$_id",
+        inspector: { $first: "$inspector" },
+        job: { $first: "$job" },
+        jobCreatedBy: { $first: "$job.createdBy" },
+        jobLastUpdatedBy: { $first: "$job.lastUpdatedBy" },
+        status: { $first: "$status" },
+        createdAt: { $first: "$createdAt" },
+        updatedAt: { $first: "$updatedAt" },
+        imagesByLabel: {
+          $push: {
+            label: "$images.label",
+            labelId: "$images.imageLabel",
+            image: {
+              _id: "$images._id",
+              fileName: "$images.fileName",
+              url: "$images.url",
+              key: "$images.key",
+              alt: "$images.alt",
+              mimeType: "$images.mimeType",
+              size: "$images.size",
+              noteForAdmin: "$images.noteForAdmin",
+              uploadedBy: "$images.uploadedBy",
+            },
+          },
+        },
+      },
+    },
+
+    // Group images within each label
+    {
+      $addFields: {
+        groupedImages: {
+          $reduce: {
+            input: "$imagesByLabel",
+            initialValue: [],
             in: {
-              label: {
-                $arrayElemAt: [
-                  {
-                    $map: {
-                      input: {
+              $let: {
+                vars: {
+                  existingGroup: {
+                    $arrayElemAt: [
+                      {
                         $filter: {
-                          input: "$imageLabels",
-                          as: "lbl",
-                          cond: { $eq: ["$$lbl._id", "$$img.imageLabel"] },
+                          input: "$$value",
+                          as: "group",
+                          cond: { $eq: ["$$group.label", "$$this.label"] },
                         },
                       },
-                      as: "lbl",
-                      in: "$$lbl.label",
+                      0,
+                    ],
+                  },
+                },
+                in: {
+                  $cond: {
+                    if: { $eq: [{ $type: "$$existingGroup" }, "missing"] },
+                    then: {
+                      $concatArrays: [
+                        "$$value",
+                        [
+                          {
+                            label: "$$this.label",
+                            labelId: "$$this.labelId",
+                            images: ["$$this.image"],
+                          },
+                        ],
+                      ],
+                    },
+                    else: {
+                      $map: {
+                        input: "$$value",
+                        as: "group",
+                        in: {
+                          $cond: {
+                            if: { $eq: ["$$group.label", "$$this.label"] },
+                            then: {
+                              label: "$$group.label",
+                              labelId: "$$group.labelId",
+                              images: {
+                                $concatArrays: [
+                                  "$$group.images",
+                                  ["$$this.image"],
+                                ],
+                              },
+                            },
+                            else: "$$group",
+                          },
+                        },
+                      },
                     },
                   },
-                  0,
-                ],
+                },
               },
-              labelId: "$$img.imageLabel",
-              fileName: "$$img.fileName",
-              url: "$$img.url",
-              key: "$$img.key",
-              alt: "$$img.alt",
-              mimeType: "$$img.mimeType",
-              size: "$$img.size",
-              noteForAdmin: "$$img.noteForAdmin",
             },
+          },
+        },
+      },
+    },
+
+    // Rename images field to grouped structure
+    {
+      $addFields: {
+        images: "$groupedImages",
+      },
+    },
+
+    // Lookup uploadedBy for each image in each group
+    { $unwind: { path: "$images", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$images.images", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "images.images.uploadedBy",
+        foreignField: "_id",
+        as: "images.images.uploadedByInfo",
+      },
+    },
+    {
+      $addFields: {
+        "images.images.uploadedBy": {
+          $cond: {
+            if: { $gt: [{ $size: "$images.images.uploadedByInfo" }, 0] },
+            then: {
+              $arrayElemAt: [
+                {
+                  $map: {
+                    input: "$images.images.uploadedByInfo",
+                    as: "user",
+                    in: {
+                      _id: "$$user._id",
+                      userId: "$$user.userId",
+                      firstName: "$$user.firstName",
+                      lastName: "$$user.lastName",
+                      email: "$$user.email",
+                    },
+                  },
+                },
+                0,
+              ],
+            },
+            else: null,
+          },
+        },
+      },
+    },
+
+    // Group back by label
+    {
+      $group: {
+        _id: {
+          reportId: "$_id",
+          label: "$images.label",
+          labelId: "$images.labelId",
+        },
+        inspector: { $first: "$inspector" },
+        job: { $first: "$job" },
+        jobCreatedBy: { $first: "$jobCreatedBy" },
+        jobLastUpdatedBy: { $first: "$jobLastUpdatedBy" },
+        status: { $first: "$status" },
+        createdAt: { $first: "$createdAt" },
+        updatedAt: { $first: "$updatedAt" },
+        images: { $push: "$images.images" },
+      },
+    },
+
+    // Final grouping to get all labels with their images
+    {
+      $group: {
+        _id: "$_id.reportId",
+        inspector: { $first: "$inspector" },
+        job: { $first: "$job" },
+        jobCreatedBy: { $first: "$jobCreatedBy" },
+        jobLastUpdatedBy: { $first: "$jobLastUpdatedBy" },
+        status: { $first: "$status" },
+        createdAt: { $first: "$createdAt" },
+        updatedAt: { $first: "$updatedAt" },
+        images: {
+          $push: {
+            label: "$_id.label",
+            labelId: "$_id.labelId",
+            images: "$images",
           },
         },
       },
@@ -336,31 +499,31 @@ async function getReportById(id) {
           role: "Inspector",
         },
         job: {
-          _id: 1,
-          orderId: 1,
-          streetAddress: 1,
-          developmentName: 1,
-          siteContactName: 1,
-          siteContactPhone: 1,
-          siteContactEmail: 1,
-          dueDate: 1,
-          createdAt: 1,
-          updatedAt: 1,
+          _id: "$job._id",
+          orderId: "$job.orderId",
+          streetAddress: "$job.streetAddress",
+          developmentName: "$job.developmentName",
+          siteContactName: "$job.siteContactName",
+          siteContactPhone: "$job.siteContactPhone",
+          siteContactEmail: "$job.siteContactEmail",
+          dueDate: "$job.dueDate",
+          createdAt: "$job.createdAt",
+          updatedAt: "$job.updatedAt",
           createdBy: {
-            _id: "$job.createdBy._id",
-            firstName: "$job.createdBy.firstName",
-            lastName: "$job.createdBy.lastName",
-            email: "$job.createdBy.email",
+            _id: "$jobCreatedBy._id",
+            firstName: "$jobCreatedBy.firstName",
+            lastName: "$jobCreatedBy.lastName",
+            email: "$jobCreatedBy.email",
             role: {
               $switch: {
                 branches: [
                   {
-                    case: { $eq: ["$job.createdBy.role", 0] },
+                    case: { $eq: ["$jobCreatedBy.role", 0] },
                     then: "Super Admin",
                   },
-                  { case: { $eq: ["$job.createdBy.role", 1] }, then: "Admin" },
+                  { case: { $eq: ["$jobCreatedBy.role", 1] }, then: "Admin" },
                   {
-                    case: { $eq: ["$job.createdBy.role", 2] },
+                    case: { $eq: ["$jobCreatedBy.role", 2] },
                     then: "Inspector",
                   },
                 ],
@@ -369,23 +532,23 @@ async function getReportById(id) {
             },
           },
           lastUpdatedBy: {
-            _id: "$job.lastUpdatedBy._id",
-            firstName: "$job.lastUpdatedBy.firstName",
-            lastName: "$job.lastUpdatedBy.lastName",
-            email: "$job.lastUpdatedBy.email",
+            _id: "$jobLastUpdatedBy._id",
+            firstName: "$jobLastUpdatedBy.firstName",
+            lastName: "$jobLastUpdatedBy.lastName",
+            email: "$jobLastUpdatedBy.email",
             role: {
               $switch: {
                 branches: [
                   {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 0] },
+                    case: { $eq: ["$jobLastUpdatedBy.role", 0] },
                     then: "Super Admin",
                   },
                   {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 1] },
+                    case: { $eq: ["$jobLastUpdatedBy.role", 1] },
                     then: "Admin",
                   },
                   {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 2] },
+                    case: { $eq: ["$jobLastUpdatedBy.role", 2] },
                     then: "Inspector",
                   },
                 ],
