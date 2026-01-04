@@ -36,6 +36,17 @@ const createReportSchema = z
   .strict();
 
 /**
+ * Validation schema for search report with the status field
+ */
+const reportStatusSchema = z
+  .object({
+    status: z
+      .enum(["in_progress", "in_review", "completed", "rejected"])
+      .optional(),
+  })
+  .strict();
+
+/**
  * Validation schema for updating report status
  */
 const updateReportStatusSchema = z
@@ -48,5 +59,6 @@ const updateReportStatusSchema = z
 
 module.exports = {
   createReportSchema,
+  reportStatusSchema,
   updateReportStatusSchema,
 };

@@ -19,6 +19,55 @@ async function connect() {
   await mongoose.connect(uri, { dbName: process.env.DB_NAME || undefined });
 }
 
+function validateModels() {
+  const checks = [
+    {
+      model: "User",
+      paths: ["firstName", "lastName", "email", "password", "role"],
+    },
+    { model: "ImageLabel", paths: ["label", "createdBy"] },
+    {
+      model: "Job",
+      paths: [
+        "inspector",
+        "formType",
+        "feeStatus",
+        "agreedFee",
+        "fhaCaseDetailsNo",
+        "orderId",
+        "streetAddress",
+        "developmentName",
+        "siteContactName",
+        "siteContactPhone",
+        "dueDate",
+        "createdBy",
+      ],
+    },
+    {
+      model: "Report",
+      paths: ["inspector", "job", "images", "status"],
+    },
+  ];
+
+  for (const c of checks) {
+    let mdl;
+    try {
+      mdl = mongoose.model(c.model);
+    } catch (e) {
+      throw new Error(`Model ${c.model} is not registered with mongoose`);
+    }
+    for (const p of c.paths) {
+      // for array subpaths (images.url) we just check the base path exists
+      const path = mdl.schema.path(p);
+      if (!path) {
+        throw new Error(
+          `Model ${c.model} is missing expected schema path: ${p}`
+        );
+      }
+    }
+  }
+}
+
 async function clearCollections() {
   await Promise.all([
     ImageLabel.deleteMany({}),
@@ -34,6 +83,8 @@ async function seed() {
     await connect();
     console.log("Connected.");
 
+    console.log("Validating models before seeding...");
+    validateModels();
     console.log(
       "Clearing existing collections (ImageLabel, Report, Job, User)..."
     );
@@ -183,7 +234,7 @@ async function seed() {
       const due = new Date();
       due.setDate(due.getDate() + randInt(1, 90));
       jobsToCreate.push({
-        inspectorId,
+        inspector: inspectorId,
         formType: formTypes[i % formTypes.length],
         feeStatus: feeStatusOptions[i % feeStatusOptions.length],
         agreedFee: randInt(50, 2000),
@@ -224,6 +275,7 @@ async function seed() {
         images.push({
           imageLabel: label,
           url: `https://example.com/images/${i}_${j}.jpg`,
+          key: `images/${i}_${j}.jpg`,
           fileName: `img_${i}_${j}.jpg`,
           alt: `${labelStrings[idx]} photo`,
           uploadedBy: inspectorId,
@@ -235,7 +287,9 @@ async function seed() {
 
       // assign varied statuses so not all reports are "in_progress"
       const r = Math.random();
-      const status = r < 0.6 ? "in_progress" : r < 0.9 ? "success" : "rejected"; // 60/30/10 split
+      // map 'success' -> 'completed' to match Report schema
+      const status =
+        r < 0.6 ? "in_progress" : r < 0.9 ? "completed" : "rejected"; // 60/30/10 split
 
       reportsToCreate.push({
         inspector: inspectorId,

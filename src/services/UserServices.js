@@ -113,8 +113,11 @@ async function getUsers(query = {}) {
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
+  const role = query.role;
 
   const result = await UserModel.aggregate([
+    // Filter by role if provided
+    ...(role !== undefined ? [{ $match: { role: Number(role) } }] : []),
     ...(search
       ? [
           {

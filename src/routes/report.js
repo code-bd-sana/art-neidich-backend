@@ -7,7 +7,6 @@ const {
   createReportController,
   getReportsController,
   getReportByIdController,
-  updateReportController,
   deleteReportController,
   updateReportStatusController,
 } = require("../controllers/ReportControllers");
@@ -21,6 +20,7 @@ const {
   createReportSchema,
   updateReportSchema,
   updateReportStatusSchema,
+  reportStatusSchema,
 } = require("../validators/report/report");
 
 // Multer setup for in-memory upload
@@ -60,6 +60,23 @@ router.post(
   mergeFilesWithBody,
   validate(createReportSchema, { target: "body" }),
   createReportController
+);
+
+/**
+ * Get all reports with optional search and pagination
+ *
+ * @route GET /api/v1/report
+ * Private route
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+router.get(
+  "/",
+  validate(searchAndPaginationSchema, { target: "query" }),
+  validate(reportStatusSchema, { target: "query" }),
+  getReportsController
 );
 
 /**
