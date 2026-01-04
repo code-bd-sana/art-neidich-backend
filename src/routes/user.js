@@ -18,6 +18,7 @@ const { mongoIdSchema } = require("../validators/common/mongoId");
 const {
   searchAndPaginationSchema,
 } = require("../validators/common/searchAndPagination");
+const { roleSchema } = require("../validators/user/role");
 const { updateUserSchema } = require("../validators/user/updateUser");
 
 // Apply authentication middleware to ALL routes in this router
@@ -65,6 +66,7 @@ router.get(
   "/",
   authorizeRoles(0, 1), // Only root (0) and admin (1) can access
   validate(searchAndPaginationSchema, { target: "query" }),
+  validate(roleSchema, { target: "query" }),
   getAllUsersController
 );
 

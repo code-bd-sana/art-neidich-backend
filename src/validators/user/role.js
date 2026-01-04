@@ -1,7 +1,7 @@
 const { z } = require("zod");
 
 /**
- * Validation schema for search and pagination
+ * Validation schema for user roles.
  *
  * @type {import("zod").ZodObject}
  */
