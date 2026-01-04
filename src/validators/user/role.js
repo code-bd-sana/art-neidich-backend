@@ -20,11 +20,20 @@ const userSearchAndPaginationSchema = z
       .refine((val) => val > 0, {
         message: "Limit must be a positive integer",
       }),
-    role: z.enum([0, 1, 2], {
-      required_error: "Role is required",
-      invalid_type_error:
-        "Role must be one of the following values: 0 (root), 1 (admin), 2 (inspector)",
-    }),
+    role: z
+      .string()
+      .optional()
+      .transform((val) => {
+        if (!val) return undefined;
+        const parsed = parseInt(val, 10);
+        if (isNaN(parsed)) {
+          throw new Error("Role must be a number");
+        }
+        return parsed;
+      })
+      .refine((val) => val === undefined || [0, 1, 2].includes(val), {
+        message: "Role must be one of: 0 (root), 1 (admin), 2 (inspector)",
+      }),
   })
   .strict();
 

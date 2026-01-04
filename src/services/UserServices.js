@@ -139,9 +139,9 @@ async function getUsers(query = {}) {
         role: {
           $switch: {
             branches: [
-              { case: { $eq: ["$role", "0"] }, then: "Super Admin" },
-              { case: { $eq: ["$role", "1"] }, then: "Admin" },
-              { case: { $eq: ["$role", "2"] }, then: "Inspector" },
+              { case: { $eq: ["$role", 0] }, then: "Super Admin" },
+              { case: { $eq: ["$role", 1] }, then: "Admin" },
+              { case: { $eq: ["$role", 2] }, then: "Inspector" },
             ],
             default: "Unknown",
           },
