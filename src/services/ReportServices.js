@@ -629,5 +629,8 @@ async function deleteReport(id) {
 }
 module.exports = {
   createReport,
+  getAllReports,
+  updateReportStatus,
   getReportById,
+  deleteReport,
 };
