@@ -277,35 +277,12 @@ async function getReportById(id) {
     // Unwind images to process each one
     { $unwind: { path: "$images", preserveNullAndEmptyArrays: true } },
 
-    // Lookup label for each image
-    {
-      $lookup: {
-        from: "imagelabels",
-        localField: "images.imageLabel",
-        foreignField: "_id",
-        as: "labelInfo",
-      },
-    },
-
-    // Add label text to each image
-    {
-      $addFields: {
-        label: {
-          $cond: {
-            if: { $gt: [{ $size: "$labelInfo" }, 0] },
-            then: { $arrayElemAt: ["$labelInfo.label", 0] },
-            else: "Unknown Label",
-          },
-        },
-      },
-    },
-
-    // Group images by label
+    // Group images by imageLabel (ObjectId)
     {
       $group: {
         _id: {
           reportId: "$_id",
-          label: "$label",
+          imageLabel: "$images.imageLabel", // Keep the ObjectId
         },
         inspector: { $first: "$inspector" },
         job: { $first: "$job" },
@@ -341,7 +318,7 @@ async function getReportById(id) {
         updatedAt: { $first: "$updatedAt" },
         images: {
           $push: {
-            label: "$_id.label",
+            imageLabel: "$_id.imageLabel", // Direct ObjectId
             images: "$images",
           },
         },
