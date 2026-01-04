@@ -274,7 +274,7 @@ async function getReportById(id) {
       },
     },
 
-    // Unwind images to lookup labels for each image
+    // Unwind images to process each one
     { $unwind: { path: "$images", preserveNullAndEmptyArrays: true } },
 
     // Lookup label for each image
@@ -283,17 +283,17 @@ async function getReportById(id) {
         from: "imagelabels",
         localField: "images.imageLabel",
         foreignField: "_id",
-        as: "imageLabelInfo",
+        as: "labelInfo",
       },
     },
 
-    // Get the label text
+    // Add label text to each image
     {
       $addFields: {
-        "images.label": {
+        label: {
           $cond: {
-            if: { $gt: [{ $size: "$imageLabelInfo" }, 0] },
-            then: { $arrayElemAt: ["$imageLabelInfo.label", 0] },
+            if: { $gt: [{ $size: "$labelInfo" }, 0] },
+            then: { $arrayElemAt: ["$labelInfo.label", 0] },
             else: "Unknown Label",
           },
         },
@@ -303,7 +303,10 @@ async function getReportById(id) {
     // Group images by label
     {
       $group: {
-        _id: "$_id",
+        _id: {
+          reportId: "$_id",
+          label: "$label",
+        },
         inspector: { $first: "$inspector" },
         job: { $first: "$job" },
         jobCreatedBy: { $first: "$job.createdBy" },
@@ -311,162 +314,21 @@ async function getReportById(id) {
         status: { $first: "$status" },
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
-        imagesByLabel: {
+        images: {
           $push: {
-            label: "$images.label",
-            labelId: "$images.imageLabel",
-            image: {
-              _id: "$images._id",
-              fileName: "$images.fileName",
-              url: "$images.url",
-              key: "$images.key",
-              alt: "$images.alt",
-              mimeType: "$images.mimeType",
-              size: "$images.size",
-              noteForAdmin: "$images.noteForAdmin",
-              uploadedBy: "$images.uploadedBy",
-            },
+            fileName: "$images.fileName",
+            url: "$images.url",
+            key: "$images.key",
+            alt: "$images.alt",
+            mimeType: "$images.mimeType",
+            size: "$images.size",
+            noteForAdmin: "$images.noteForAdmin",
           },
         },
       },
     },
 
-    // Group images within each label
-    {
-      $addFields: {
-        groupedImages: {
-          $reduce: {
-            input: "$imagesByLabel",
-            initialValue: [],
-            in: {
-              $let: {
-                vars: {
-                  existingGroup: {
-                    $arrayElemAt: [
-                      {
-                        $filter: {
-                          input: "$$value",
-                          as: "group",
-                          cond: { $eq: ["$$group.label", "$$this.label"] },
-                        },
-                      },
-                      0,
-                    ],
-                  },
-                },
-                in: {
-                  $cond: {
-                    if: { $eq: [{ $type: "$$existingGroup" }, "missing"] },
-                    then: {
-                      $concatArrays: [
-                        "$$value",
-                        [
-                          {
-                            label: "$$this.label",
-                            labelId: "$$this.labelId",
-                            images: ["$$this.image"],
-                          },
-                        ],
-                      ],
-                    },
-                    else: {
-                      $map: {
-                        input: "$$value",
-                        as: "group",
-                        in: {
-                          $cond: {
-                            if: { $eq: ["$$group.label", "$$this.label"] },
-                            then: {
-                              label: "$$group.label",
-                              labelId: "$$group.labelId",
-                              images: {
-                                $concatArrays: [
-                                  "$$group.images",
-                                  ["$$this.image"],
-                                ],
-                              },
-                            },
-                            else: "$$group",
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-
-    // Rename images field to grouped structure
-    {
-      $addFields: {
-        images: "$groupedImages",
-      },
-    },
-
-    // Lookup uploadedBy for each image in each group
-    { $unwind: { path: "$images", preserveNullAndEmptyArrays: true } },
-    { $unwind: { path: "$images.images", preserveNullAndEmptyArrays: true } },
-    {
-      $lookup: {
-        from: "users",
-        localField: "images.images.uploadedBy",
-        foreignField: "_id",
-        as: "images.images.uploadedByInfo",
-      },
-    },
-    {
-      $addFields: {
-        "images.images.uploadedBy": {
-          $cond: {
-            if: { $gt: [{ $size: "$images.images.uploadedByInfo" }, 0] },
-            then: {
-              $arrayElemAt: [
-                {
-                  $map: {
-                    input: "$images.images.uploadedByInfo",
-                    as: "user",
-                    in: {
-                      _id: "$$user._id",
-                      userId: "$$user.userId",
-                      firstName: "$$user.firstName",
-                      lastName: "$$user.lastName",
-                      email: "$$user.email",
-                    },
-                  },
-                },
-                0,
-              ],
-            },
-            else: null,
-          },
-        },
-      },
-    },
-
-    // Group back by label
-    {
-      $group: {
-        _id: {
-          reportId: "$_id",
-          label: "$images.label",
-          labelId: "$images.labelId",
-        },
-        inspector: { $first: "$inspector" },
-        job: { $first: "$job" },
-        jobCreatedBy: { $first: "$jobCreatedBy" },
-        jobLastUpdatedBy: { $first: "$jobLastUpdatedBy" },
-        status: { $first: "$status" },
-        createdAt: { $first: "$createdAt" },
-        updatedAt: { $first: "$updatedAt" },
-        images: { $push: "$images.images" },
-      },
-    },
-
-    // Final grouping to get all labels with their images
+    // Group back by report to create label groups
     {
       $group: {
         _id: "$_id.reportId",
@@ -480,7 +342,6 @@ async function getReportById(id) {
         images: {
           $push: {
             label: "$_id.label",
-            labelId: "$_id.labelId",
             images: "$images",
           },
         },
