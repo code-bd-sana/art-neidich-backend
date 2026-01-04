@@ -363,25 +363,26 @@ async function getMyJobs(query = {}, userId) {
   // Search (job fields + inspector name)
 
   if (search) {
-    const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
-    const regex = new RegExp(esc, "i");
+    // Proper regex escaping for MongoDB $regex
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escapedSearch, "i");
     pipeline.push({
       $match: {
         $or: [
-          { streetAddress: regex },
-          { orderId: regex },
-          { fhaCaseDetailsNo: regex },
-          { developmentName: regex },
-          { siteContactName: regex },
-          { "inspector.firstName": regex },
-          { "inspector.lastName": regex },
+          { streetAddress: { $regex: escapedSearch, $options: "i" } },
+          { orderId: { $regex: escapedSearch, $options: "i" } },
+          { fhaCaseDetailsNo: { $regex: escapedSearch, $options: "i" } },
+          { developmentName: { $regex: escapedSearch, $options: "i" } },
+          { siteContactName: { $regex: escapedSearch, $options: "i" } },
+          { "inspector.firstName": { $regex: escapedSearch, $options: "i" } },
+          { "inspector.lastName": { $regex: escapedSearch, $options: "i" } },
           {
             $expr: {
               $regexMatch: {
                 input: {
                   $concat: ["$inspector.firstName", " ", "$inspector.lastName"],
                 },
-                regex: esc,
+                regex: escapedSearch,
                 options: "i",
               },
             },
