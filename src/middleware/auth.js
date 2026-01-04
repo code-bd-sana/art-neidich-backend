@@ -14,14 +14,12 @@ const UserModel = require("../models/UserModel");
  */
 async function authenticate(req, res, next) {
   const authHeader = req.headers["authorization"];
-  console.log(authHeader);
-  const cookieToken = req.cookies["token"];
-  if (!authHeader || !authHeader.startsWith("Bearer ") || !cookieToken) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res
       .status(401)
       .json({ success: false, message: "No token provided" });
   }
-  const token = authHeader.split(" ")[1] || cookieToken;
+  const token = authHeader.split(" ")[1];
   try {
     const secret = process.env.JWT_SECRET || "change_this_secret";
     const decoded = await verifyToken(token);
