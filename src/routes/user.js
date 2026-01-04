@@ -37,7 +37,7 @@ router.get("/profile", getUserProfileController);
 
 /**
  * Update logged-in user's profile
- *
+ * 
  * @route PUT /api/v1/user/profile
  * Private route
  *

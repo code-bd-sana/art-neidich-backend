@@ -14,6 +14,7 @@ const UserModel = require("../models/UserModel");
  */
 async function authenticate(req, res, next) {
   const authHeader = req.headers["authorization"];
+  console.log(authHeader);
   const cookieToken = req.cookies["token"];
   if (!authHeader || !authHeader.startsWith("Bearer ") || !cookieToken) {
     return res
