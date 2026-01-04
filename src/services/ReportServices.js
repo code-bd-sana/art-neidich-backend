@@ -310,6 +310,7 @@ async function getReportById(id) {
                   0,
                 ],
               },
+              labelId: "$$img.imageLabel",
               fileName: "$$img.fileName",
               url: "$$img.url",
               key: "$$img.key",
