@@ -72,6 +72,7 @@ router.post(
  */
 router.get(
   "/",
+  authorizeRoles(0, 1),
   validate(reportPaginationSchema, { target: "query" }),
   getReportsController
 );
@@ -88,6 +89,7 @@ router.get(
  */
 router.get(
   "/:id",
+  authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
   getReportByIdController
 );
