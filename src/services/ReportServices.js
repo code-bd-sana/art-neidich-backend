@@ -121,6 +121,89 @@ async function createReport(payload) {
 }
 
 /**
+ * Get all reports with optional search and pagination
+ *
+ * @param {Object} query - Query parameters
+ * @returns {Promise<{reports: Array<Object>, metaData: Object}>} - Reports and metadata
+ */
+async function getAllReports(query) {
+  const page = parseInt(query.page, 10) || 1;
+  const limit = parseInt(query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+  const matchStage = {};
+
+  // Optional filtering by status
+  if (query.status) {
+    matchStage.status = query.status;
+  }
+
+  const totalReports = await ReportModel.countDocuments(matchStage);
+
+  const reports = await ReportModel.aggregate([
+    { $match: matchStage },
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    // Lookup inspector
+    {
+      $lookup: {
+        from: "users",
+        localField: "inspector",
+        foreignField: "_id",
+        as: "inspector",
+      },
+    },
+    { $unwind: "$inspector" },
+    // Lookup job
+    {
+      $lookup: {
+        from: "jobs",
+        localField: "job",
+        foreignField: "_id",
+        as: "job",
+      },
+    },
+    { $unwind: "$job" },
+
+    // Project final fields
+    {
+      $project: {
+        inspector: {
+          _id: "$inspector._id",
+          userId: "$inspector.userId",
+          firstName: "$inspector.firstName",
+          lastName: "$inspector.lastName",
+          email: "$inspector.email",
+          role: "Inspector",
+        },
+        job: {
+          _id: 1,
+          orderId: 1,
+          streetAddress: 1,
+          developmentName: 1,
+          siteContactName: 1,
+          siteContactPhone: 1,
+          siteContactEmail: 1,
+          dueDate: 1,
+        },
+        status: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    },
+  ]);
+
+  const metaData = {
+    total: totalReports,
+    page,
+    limit,
+    totalPages: Math.ceil(totalReports / limit),
+  };
+
+  return { reports, metaData };
+}
+
+/**
  * Get a single report by id
  *
  * @param {string} id - Report ID

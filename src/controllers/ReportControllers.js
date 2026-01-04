@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 
 const {
   createReport,
-  updateReport,
   getReportById,
   getAllReports,
   deleteReport,
@@ -26,6 +25,27 @@ async function createReportController(req, res, next) {
       success: true,
       message: "Report created successfully",
       data: report,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * Get all reports with optional search and pagination
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function getReportsController(req, res, next) {
+  try {
+    const { reports, metaData } = await getAllReports(req.query);
+    return res.status(200).json({
+      success: true,
+      message: "Reports fetched successfully",
+      data: reports,
+      metaData,
     });
   } catch (err) {
     return next(err);
@@ -94,6 +114,7 @@ async function deleteReportController(req, res, next) {
 
 module.exports = {
   createReportController,
+  getReportsController,
   getReportByIdController,
   deleteReportController,
   updateReportStatusController,
