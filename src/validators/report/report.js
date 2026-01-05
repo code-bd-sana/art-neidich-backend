@@ -52,9 +52,7 @@ const reportPaginationSchema = z
       .refine((val) => val > 0, {
         message: "Limit must be a positive integer",
       }),
-    status: z
-      .enum(["in_progress", "in_review", "completed", "rejected"])
-      .optional(),
+    status: z.enum(["in_progress", "completed", "rejected"]).optional(),
   })
   .strict();
 
@@ -63,7 +61,7 @@ const reportPaginationSchema = z
  */
 const updateReportStatusSchema = z
   .object({
-    status: z.enum(["submitted", "in_review", "completed", "rejected"], {
+    status: z.enum(["submitted", "completed", "rejected"], {
       required_error: "Status is required",
     }),
   })
