@@ -48,46 +48,39 @@ async function getProfile(userId) {
  * @returns {Promise<Object>}
  */
 async function updateProfile(userId, updateData) {
-  const result = await UserModel.aggregate([
-    {
-      $match: {
-        _id: new mongoose.Types.ObjectId(userId),
-      },
-    },
-    {
-      $set: {
-        ...updateData,
-      },
-    },
-    {
-      $addFields: {
-        role: {
-          $switch: {
-            branches: [
-              { case: { $eq: ["$role", 0] }, then: "Super Admin" },
-              { case: { $eq: ["$role", 1] }, then: "Admin" },
-              { case: { $eq: ["$role", 2] }, then: "Inspector" },
-            ],
-            default: "Unknown",
-          },
-        },
-      },
-    },
-    {
-      $project: {
-        password: 0,
-      },
-    },
-  ]);
+  // 1. Update the user
+  const updatedUser = await UserModel.findByIdAndUpdate(
+    userId,
+    { $set: updateData },
+    { new: true } // return the updated document
+  );
 
-  if (result.length === 0) {
+  if (!updatedUser) {
     const err = new Error("User not found");
     err.status = 404;
     err.code = "USER_NOT_FOUND";
     throw err;
   }
 
-  return result[0] || null;
+  // 2. Map role for output
+  let roleName;
+  switch (updatedUser.role) {
+    case 0:
+      roleName = "Super Admin";
+      break;
+    case 1:
+      roleName = "Admin";
+      break;
+    case 2:
+      roleName = "Inspector";
+      break;
+    default:
+      roleName = "Unknown";
+  }
+
+  // 3. Return safe output
+  const { password, ...rest } = updatedUser.toObject();
+  return { ...rest, role: roleName };
 }
 
 /**
