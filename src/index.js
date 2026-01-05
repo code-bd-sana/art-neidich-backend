@@ -33,7 +33,7 @@ const server = app.listen(process.env.PORT, async () => {
   // Minimal startup message
   console.log(`Server running on port ${process.env.PORT}`);
   console.log(`Base Url: http://localhost:${process.env.PORT}`);
-  console.log("Api versioning: ");
+  console.log("Api versioning: version v1");
 });
 
 process.on("uncaughtException", (err) => {
