@@ -78,12 +78,17 @@ async function createJob(payload) {
         as: "reportCheck",
       },
     },
-    // Convert roles to readable labels and add report status
+    // Convert roles to readable labels and add report status(found or not found make it In Progress)
     {
       $addFields: {
         hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
         reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
-        reportStatus: { $arrayElemAt: ["$reportCheck.status", 0] },
+        reportStatus: {
+          $ifNull: [
+            { $arrayElemAt: ["$reportCheck.status", 0] },
+            "In Progress",
+          ],
+        },
         "inspector.role": {
           $switch: {
             branches: [
@@ -274,7 +279,7 @@ async function getJobById(id) {
                 then: "Rejected",
               },
             ],
-            default: "No Report",
+            default: "In Progress",
           },
         },
         "inspector.role": {
@@ -541,7 +546,7 @@ async function getMyJobs(query = {}, userId) {
               then: "Rejected",
             },
           ],
-          default: "No Report",
+          default: "In Progress",
         },
       },
       "inspector.role": {
@@ -812,7 +817,7 @@ async function getJobs(query = {}) {
               then: "Rejected",
             },
           ],
-          default: "No Report",
+          default: "In Progress",
         },
       },
       "inspector.role": {
@@ -1029,7 +1034,7 @@ async function updateJob(id, payload) {
                 then: "Rejected",
               },
             ],
-            default: "No Report",
+            default: "In Progress",
           },
         },
         "inspector.role": {
