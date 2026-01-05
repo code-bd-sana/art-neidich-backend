@@ -246,10 +246,10 @@ async function getJobById(id) {
                 case: {
                   $eq: [
                     { $arrayElemAt: ["$reportCheck.status", 0] },
-                    "in_progress",
+                    "submitted",
                   ],
                 },
-                then: "In Progress",
+                then: "Submitted",
               },
               {
                 case: {
@@ -516,10 +516,10 @@ async function getMyJobs(query = {}, userId) {
               case: {
                 $eq: [
                   { $arrayElemAt: ["$reportCheck.status", 0] },
-                  "in_progress",
+                  "submitted",
                 ],
               },
-              then: "In Progress",
+              then: "Submitted",
             },
             {
               case: {
@@ -787,10 +787,10 @@ async function getJobs(query = {}) {
               case: {
                 $eq: [
                   { $arrayElemAt: ["$reportCheck.status", 0] },
-                  "in_progress",
+                  "submitted",
                 ],
               },
-              then: "In Progress",
+              then: "Submitted",
             },
             {
               case: {
@@ -1001,10 +1001,10 @@ async function updateJob(id, payload) {
                 case: {
                   $eq: [
                     { $arrayElemAt: ["$reportCheck.status", 0] },
-                    "in_progress",
+                    "submitted",
                   ],
                 },
-                then: "In Progress",
+                then: "Submitted",
               },
               {
                 case: {

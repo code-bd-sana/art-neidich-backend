@@ -66,8 +66,8 @@ const reportSchema = new mongoose.Schema(
     // Report review status
     status: {
       type: String,
-      enum: ["in_progress", "in_review", "completed", "rejected"],
-      default: "in_progress",
+      enum: ["submitted", "in_review", "completed", "rejected"],
+      default: "submitted",
     },
   },
   { timestamps: true, versionKey: false }

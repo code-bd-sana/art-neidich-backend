@@ -641,6 +641,7 @@ async function deleteReport(id) {
   }
   await ReportModel.findByIdAndDelete(id);
 }
+
 module.exports = {
   createReport,
   getAllReports,

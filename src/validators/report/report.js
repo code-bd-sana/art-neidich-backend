@@ -63,7 +63,7 @@ const reportPaginationSchema = z
  */
 const updateReportStatusSchema = z
   .object({
-    status: z.enum(["in_progress", "in_review", "completed", "rejected"], {
+    status: z.enum(["submitted", "in_review", "completed", "rejected"], {
       required_error: "Status is required",
     }),
   })
