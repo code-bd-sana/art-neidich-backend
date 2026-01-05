@@ -9,6 +9,7 @@ const {
   getReportByIdController,
   deleteReportController,
   updateReportStatusController,
+  getReportPdfController,
 } = require("../controllers/ReportControllers");
 const { authenticate, authorizeRoles } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
@@ -92,6 +93,14 @@ router.get(
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
   getReportByIdController
+);
+
+// Stream PDF for a report
+router.get(
+  "/:id/pdf",
+  authorizeRoles(0, 1),
+  validate(mongoIdSchema, { target: "params" }),
+  getReportPdfController
 );
 
 /**

@@ -366,7 +366,9 @@ async function updateImageLabel(id, payload) {
       $match: { _id: new mongoose.Types.ObjectId(id) },
     },
     {
-      $set: Object.assign({}, payload),
+      $set: {
+        ...payload,
+      },
     },
     // Lookup createdBy
     {

@@ -55,7 +55,9 @@ async function updateProfile(userId, updateData) {
       },
     },
     {
-      $set: updateData,
+      $set: {
+        ...updateData,
+      },
     },
     {
       $addFields: {

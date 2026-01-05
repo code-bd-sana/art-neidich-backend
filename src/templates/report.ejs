@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #333;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 0;
+        border-bottom: 1px solid #e6e6e6;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+      }
+      .logo img {
+        height: 60px;
+      }
+      .title {
+        text-align: center;
+        margin: 18px 0;
+      }
+      h1 {
+        margin: 0;
+        font-size: 20px;
+        color: #1a7f6a;
+      }
+      .meta {
+        font-size: 12px;
+        color: #666;
+      }
+      .section {
+        margin: 28px 0;
+      }
+      .section h2 {
+        font-size: 16px;
+        color: #333;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+      }
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-top: 12px;
+      }
+      .card {
+        width: 48%;
+        background: #fff;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+      .card img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        display: block;
+      }
+      .caption {
+        padding: 8px 10px;
+        font-size: 12px;
+        color: #444;
+      }
+      .full {
+        width: 100%;
+      }
+      .footer {
+        position: fixed;
+        bottom: 10px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 11px;
+        color: #999;
+      }
+      @media print {
+        .card img {
+          height: 200px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="logo">
+        <!-- Put your logo URL here or keep as text -->
+        <img
+          src="https://via.placeholder.com/180x60?text=Art+Neidich"
+          alt="logo" />
+      </div>
+      <div class="meta">
+        <div>
+          <strong>Type of Inspection:</strong> HUD-FHA 92051 Compliance - FINAL
+        </div>
+        <div>
+          <strong>Date of Inspection:</strong> <%= new
+          Date(report.createdAt).toLocaleDateString() %>
+        </div>
+        <div>
+          <strong>Case:</strong> # <%= report.job && report.job.orderId ?
+          report.job.orderId : '' %>
+        </div>
+      </div>
+    </div>
+
+    <div class="title">
+      <h1>Inspection report</h1>
+      <div class="meta">Attachment to FHA form # <%= report._id %></div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; gap: 20px">
+      <div style="flex: 1">
+        <div style="font-weight: 600">Subject Property:</div>
+        <div>
+          <%= report.job && report.job.streetAddress ? report.job.streetAddress
+          : '' %>
+        </div>
+        <div>
+          <%= report.job && report.job.developmentName ?
+          report.job.developmentName : '' %>
+        </div>
+      </div>
+      <div
+        style="width: 260px; text-align: right; font-size: 12px; color: #555">
+        <div><strong>Inspector:</strong></div>
+        <div>
+          <%= report.inspector && report.inspector.firstName ?
+          (report.inspector.firstName + ' ' + report.inspector.lastName) : '' %>
+        </div>
+        <div>
+          <%= report.inspector && report.inspector.email ?
+          report.inspector.email : '' %>
+        </div>
+      </div>
+    </div>
+
+    <% if (report.images && report.images.length) { %> <%
+    report.images.forEach(function(group) { %>
+    <div class="section">
+      <h2><%= group.imageLabel %></h2>
+      <div class="grid">
+        <% group.images.forEach(function(img) { %>
+        <div class="card">
+          <img src="<%= img.url %>" alt="<%= img.alt || img.fileName %>" />
+          <div class="caption"><%= img.fileName %></div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+    <% }) %> <% } else { %>
+    <div class="section"><em>No images attached to this report.</em></div>
+    <% } %>
+
+    <div class="footer">
+      All Utilities Are On And Tested Unless Otherwise Noted
+    </div>
+  </body>
+</html>
