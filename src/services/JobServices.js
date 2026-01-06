@@ -654,6 +654,7 @@ async function getJobs(query = {}) {
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
+  const statusFilter = query.status;
 
   const pipeline = [];
 
@@ -725,6 +726,25 @@ async function getJobs(query = {}) {
     },
   });
 
+  // Add reportStatus field (default: in_progress)
+  pipeline.push({
+    $addFields: {
+      reportStatus: {
+        $ifNull: [
+          { $arrayElemAt: ["$reportCheck.status", 0] },
+          "in_progress",
+        ],
+      },
+    },
+  });
+
+  // Filter by status if provided and not 'all'
+  if (statusFilter && statusFilter !== "all") {
+    pipeline.push({
+      $match: { reportStatus: statusFilter },
+    });
+  }
+
   // Search (job fields + inspector name)
   if (search) {
     const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
@@ -756,41 +776,32 @@ async function getJobs(query = {}) {
     });
   }
 
-  // Convert roles to readable labels and add report status
+  // Convert roles to readable labels and add report status label
   pipeline.push({
     $addFields: {
       hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
       reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
-      reportStatus: { $arrayElemAt: ["$reportCheck.status", 0] },
       reportStatusLabel: {
         $switch: {
           branches: [
             {
-              case: {
-                $eq: [
-                  { $arrayElemAt: ["$reportCheck.status", 0] },
-                  "submitted",
-                ],
-              },
+              case: { $eq: ["$reportStatus", "submitted"] },
               then: "Submitted",
             },
             {
-              case: {
-                $eq: [
-                  { $arrayElemAt: ["$reportCheck.status", 0] },
-                  "completed",
-                ],
-              },
+              case: { $eq: ["$reportStatus", "completed"] },
               then: "Completed",
             },
             {
-              case: {
-                $eq: [{ $arrayElemAt: ["$reportCheck.status", 0] }, "rejected"],
-              },
+              case: { $eq: ["$reportStatus", "rejected"] },
               then: "Rejected",
             },
+            {
+              case: { $eq: ["$reportStatus", "in_progress"] },
+              then: "In Progress",
+            },
           ],
-          default: "In Progress",
+          default: "Unknown",
         },
       },
       "inspector.role": {
@@ -908,184 +919,11 @@ async function getJobs(query = {}) {
  */
 async function updateJob(id, payload) {
   // Update the document
-  await JobModel.updateOne({ _id: id }, { $set: payload });
-
-  // Fetch updated document with aggregation
-  const result = await JobModel.aggregate([
-    { $match: { _id: new mongoose.Types.ObjectId(id) } },
-
-    // Lookup inspector
-    {
-      $lookup: {
-        from: "users",
-        localField: "inspector",
-        foreignField: "_id",
-        as: "inspector",
-      },
-    },
-    { $unwind: { path: "$inspector", preserveNullAndEmptyArrays: true } },
-
-    // Lookup createdBy
-    {
-      $lookup: {
-        from: "users",
-        localField: "createdBy",
-        foreignField: "_id",
-        as: "createdBy",
-      },
-    },
-    { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
-
-    // Lookup lastUpdatedBy
-    {
-      $lookup: {
-        from: "users",
-        localField: "lastUpdatedBy",
-        foreignField: "_id",
-        as: "lastUpdatedBy",
-      },
-    },
-    { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
-
-    // Lookup report status
-    {
-      $lookup: {
-        from: "reports",
-        let: { jobId: "$_id" },
-        pipeline: [
-          { $match: { $expr: { $eq: ["$job", "$$jobId"] } } },
-          { $limit: 1 },
-          { $project: { _id: 1, status: 1 } },
-        ],
-        as: "reportCheck",
-      },
-    },
-
-    // Map roles to labels and add report status
-    {
-      $addFields: {
-        hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
-        reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
-        reportStatus: { $arrayElemAt: ["$reportCheck.status", 0] },
-        reportStatusLabel: {
-          $switch: {
-            branches: [
-              {
-                case: {
-                  $eq: [
-                    { $arrayElemAt: ["$reportCheck.status", 0] },
-                    "submitted",
-                  ],
-                },
-                then: "Submitted",
-              },
-              {
-                case: {
-                  $eq: [
-                    { $arrayElemAt: ["$reportCheck.status", 0] },
-                    "completed",
-                  ],
-                },
-                then: "Completed",
-              },
-              {
-                case: {
-                  $eq: [
-                    { $arrayElemAt: ["$reportCheck.status", 0] },
-                    "rejected",
-                  ],
-                },
-                then: "Rejected",
-              },
-            ],
-            default: "In Progress",
-          },
-        },
-        "inspector.role": {
-          $switch: {
-            branches: [
-              { case: { $eq: ["$inspector.role", 0] }, then: "Super Admin" },
-              { case: { $eq: ["$inspector.role", 1] }, then: "Admin" },
-              { case: { $eq: ["$inspector.role", 2] }, then: "Inspector" },
-            ],
-            default: "Unknown",
-          },
-        },
-        "createdBy.role": {
-          $switch: {
-            branches: [
-              { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
-              { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
-              { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
-            ],
-            default: "Unknown",
-          },
-        },
-        "lastUpdatedBy.role": {
-          $switch: {
-            branches: [
-              {
-                case: { $eq: ["$lastUpdatedBy.role", 0] },
-                then: "Super Admin",
-              },
-              { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
-              { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
-            ],
-            default: "Unknown",
-          },
-        },
-      },
-    },
-
-    // Project only safe fields
-    {
-      $project: {
-        formType: 1,
-        feeStatus: 1,
-        agreedFee: 1,
-        fhaCaseDetailsNo: 1,
-        orderId: 1,
-        streetAddress: 1,
-        developmentName: 1,
-        siteContactName: 1,
-        siteContactPhone: 1,
-        siteContactEmail: 1,
-        dueDate: 1,
-        specialNotesForInspector: 1,
-        specialNoteForApOrAr: 1,
-        createdAt: 1,
-        updatedAt: 1,
-        hasReport: 1,
-        reportId: 1,
-        reportStatus: 1,
-        reportStatusLabel: 1,
-        inspector: {
-          _id: "$inspector._id",
-          userId: "$inspector.userId",
-          firstName: "$inspector.firstName",
-          lastName: "$inspector.lastName",
-          email: "$inspector.email",
-          role: "$inspector.role",
-        },
-        createdBy: {
-          _id: "$createdBy._id",
-          userId: "$createdBy.userId",
-          firstName: "$createdBy.firstName",
-          lastName: "$createdBy.lastName",
-          email: "$createdBy.email",
-          role: "$createdBy.role",
-        },
-        lastUpdatedBy: {
-          _id: "$lastUpdatedBy._id",
-          userId: "$lastUpdatedBy.userId",
-          firstName: "$lastUpdatedBy.firstName",
-          lastName: "$lastUpdatedBy.lastName",
-          email: "$lastUpdatedBy.email",
-          role: "$lastUpdatedBy.role",
-        },
-      },
-    },
-  ]);
+  const result = await JobModel.updateOne(
+    { _id: id },
+    { $set: payload },
+    { new: true }
+  );
 
   if (!result || result.length === 0) {
     const err = new Error("Job not found");
@@ -1094,7 +932,7 @@ async function updateJob(id, payload) {
     throw err;
   }
 
-  return result[0];
+  return await getJobById(id);
 }
 
 /**

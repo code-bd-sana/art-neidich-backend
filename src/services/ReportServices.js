@@ -145,39 +145,100 @@ async function getAllReports(query) {
   const matchStage = {};
 
   // Optional filtering by status
-  if (query.status) {
-    matchStage.status = query.status;
+  if (query.status && query.status !== "all") {
+    if (query.status === "in_progress") {
+      matchStage.status = { $in: [null, "in_progress"] };
+    } else {
+      matchStage.status = query.status;
+    }
   }
 
-  const totalReports = await ReportModel.countDocuments(matchStage);
+  // Optional search
+  let searchPipeline = [];
+  if (query.search && query.search.trim()) {
+    const search = query.search.trim();
+    const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
+    const regex = new RegExp(esc, "i");
+    searchPipeline = [
+      // Lookup inspector for search
+      {
+        $lookup: {
+          from: "users",
+          localField: "inspector",
+          foreignField: "_id",
+          as: "inspector",
+        },
+      },
+      { $unwind: "$inspector" },
+      // Lookup job for search
+      {
+        $lookup: {
+          from: "jobs",
+          localField: "job",
+          foreignField: "_id",
+          as: "job",
+        },
+      },
+      { $unwind: "$job" },
+      {
+        $match: {
+          $or: [
+            { "job.orderId": regex },
+            { "job.streetAddress": regex },
+            { "job.developmentName": regex },
+            { "job.siteContactName": regex },
+            { "inspector.firstName": regex },
+            { "inspector.lastName": regex },
+            {
+              $expr: {
+                $regexMatch: {
+                  input: {
+                    $concat: [
+                      "$inspector.firstName",
+                      " ",
+                      "$inspector.lastName",
+                    ],
+                  },
+                  regex: esc,
+                  options: "i",
+                },
+              },
+            },
+          ],
+        },
+      },
+    ];
+  } else {
+    // If not searching, still need to lookup for projection
+    searchPipeline = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "inspector",
+          foreignField: "_id",
+          as: "inspector",
+        },
+      },
+      { $unwind: "$inspector" },
+      {
+        $lookup: {
+          from: "jobs",
+          localField: "job",
+          foreignField: "_id",
+          as: "job",
+        },
+      },
+      { $unwind: "$job" },
+    ];
+  }
 
-  const reports = await ReportModel.aggregate([
+  // Compose aggregation pipeline
+  const pipeline = [
     { $match: matchStage },
+    ...searchPipeline,
     { $sort: { createdAt: -1 } },
     { $skip: skip },
     { $limit: limit },
-    // Lookup inspector
-    {
-      $lookup: {
-        from: "users",
-        localField: "inspector",
-        foreignField: "_id",
-        as: "inspector",
-      },
-    },
-    { $unwind: "$inspector" },
-    // Lookup job
-    {
-      $lookup: {
-        from: "jobs",
-        localField: "job",
-        foreignField: "_id",
-        as: "job",
-      },
-    },
-    { $unwind: "$job" },
-
-    // Project final fields
     {
       $project: {
         inspector: {
@@ -189,21 +250,32 @@ async function getAllReports(query) {
           role: "Inspector",
         },
         job: {
-          _id: 1,
-          orderId: 1,
-          streetAddress: 1,
-          developmentName: 1,
-          siteContactName: 1,
-          siteContactPhone: 1,
-          siteContactEmail: 1,
-          dueDate: 1,
+          _id: "$job._id",
+          orderId: "$job.orderId",
+          streetAddress: "$job.streetAddress",
+          developmentName: "$job.developmentName",
+          siteContactName: "$job.siteContactName",
+          siteContactPhone: "$job.siteContactPhone",
+          siteContactEmail: "$job.siteContactEmail",
+          dueDate: "$job.dueDate",
         },
         status: 1,
         createdAt: 1,
         updatedAt: 1,
       },
     },
-  ]);
+  ];
+
+  // For total count, use same pipeline but without skip/limit/sort
+  const countPipeline = [
+    { $match: matchStage },
+    ...searchPipeline,
+    { $count: "total" },
+  ];
+  const countResult = await ReportModel.aggregate(countPipeline);
+  const totalReports = countResult[0]?.total || 0;
+
+  const reports = await ReportModel.aggregate(pipeline);
 
   const metaData = {
     total: totalReports,
@@ -421,208 +493,29 @@ async function getReportById(id) {
  * @returns {Promise<Object>} - Updated report document
  */
 async function updateReportStatus(id, updateData) {
-  const { status } = updateData;
-  const report = await ReportModel.aggregate([
-    { $match: { _id: new mongoose.Types.ObjectId(id) } },
+  const { status, lastUpdatedBy } = updateData;
+
+  const updated = await ReportModel.findByIdAndUpdate(
+    id,
     {
       $set: {
         status,
-        lastUpdatedBy: updateData.lastUpdatedBy,
+        lastUpdatedBy,
         updatedAt: new Date(),
       },
     },
-    // Lookup inspector
-    {
-      $lookup: {
-        from: "users",
-        localField: "inspector",
-        foreignField: "_id",
-        as: "inspector",
-      },
-    },
-    { $unwind: "$inspector" },
+    { new: true }
+  );
 
-    // Lookup job
-    {
-      $lookup: {
-        from: "jobs",
-        localField: "job",
-        foreignField: "_id",
-        as: "job",
-      },
-    },
-    { $unwind: "$job" },
-
-    // Lookup job createdBy
-    {
-      $lookup: {
-        from: "users",
-        localField: "job.createdBy",
-        foreignField: "_id",
-        as: "job.createdBy",
-      },
-    },
-    { $unwind: { path: "$job.createdBy", preserveNullAndEmptyArrays: true } },
-
-    // Lookup job lastUpdatedBy
-    {
-      $lookup: {
-        from: "users",
-        localField: "job.lastUpdatedBy",
-        foreignField: "_id",
-        as: "job.lastUpdatedBy",
-      },
-    },
-    {
-      $unwind: {
-        path: "$job.lastUpdatedBy",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-
-    // Lookup labels for images
-    {
-      $lookup: {
-        from: "imagelabels",
-        localField: "images.imageLabel",
-        foreignField: "_id",
-        as: "imageLabels",
-      },
-    },
-
-    // Map images with label name
-    {
-      $addFields: {
-        images: {
-          $map: {
-            input: "$images",
-            as: "img",
-            in: {
-              label: {
-                $arrayElemAt: [
-                  {
-                    $map: {
-                      input: {
-                        $filter: {
-                          input: "$imageLabels",
-                          as: "lbl",
-                          cond: { $eq: ["$$lbl._id", "$$img.imageLabel"] },
-                        },
-                      },
-                      as: "lbl",
-                      in: "$$lbl.label",
-                    },
-                  },
-                  0,
-                ],
-              },
-              fileName: "$$img.fileName",
-              url: "$$img.url",
-              key: "$$img.key",
-              alt: "$$img.alt",
-              mimeType: "$$img.mimeType",
-              size: "$$img.size",
-              noteForAdmin: "$$img.noteForAdmin",
-            },
-          },
-        },
-      },
-    },
-
-    // Role mapping helper
-    {
-      $addFields: {
-        inspector: {
-          _id: "$inspector._id",
-          userId: "$inspector.userId",
-          firstName: "$inspector.firstName",
-          lastName: "$inspector.lastName",
-          email: "$inspector.email",
-          role: "Inspector",
-        },
-        job: {
-          _id: 1,
-          orderId: 1,
-          streetAddress: 1,
-          developmentName: 1,
-          siteContactName: 1,
-          siteContactPhone: 1,
-          siteContactEmail: 1,
-          dueDate: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          createdBy: {
-            _id: "$job.createdBy._id",
-            firstName: "$job.createdBy.firstName",
-            lastName: "$job.createdBy.lastName",
-            email: "$job.createdBy.email",
-            role: {
-              $switch: {
-                branches: [
-                  {
-                    case: { $eq: ["$job.createdBy.role", 0] },
-                    then: "Super Admin",
-                  },
-                  { case: { $eq: ["$job.createdBy.role", 1] }, then: "Admin" },
-                  {
-                    case: { $eq: ["$job.createdBy.role", 2] },
-                    then: "Inspector",
-                  },
-                ],
-                default: "Unknown",
-              },
-            },
-          },
-          lastUpdatedBy: {
-            _id: "$job.lastUpdatedBy._id",
-            firstName: "$job.lastUpdatedBy.firstName",
-            lastName: "$job.lastUpdatedBy.lastName",
-            email: "$job.lastUpdatedBy.email",
-            role: {
-              $switch: {
-                branches: [
-                  {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 0] },
-                    then: "Super Admin",
-                  },
-                  {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 1] },
-                    then: "Admin",
-                  },
-                  {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 2] },
-                    then: "Inspector",
-                  },
-                ],
-                default: "Unknown",
-              },
-            },
-          },
-        },
-      },
-    },
-
-    // Project final fields
-    {
-      $project: {
-        inspector: 1,
-        job: 1,
-        status: 1,
-        createdAt: 1,
-        updatedAt: 1,
-        images: 1,
-      },
-    },
-  ]);
-
-  if (report.length === 0) {
+  if (!updated) {
     const err = new Error("Report not found");
     err.status = 404;
     err.code = "REPORT_NOT_FOUND";
     throw err;
   }
 
-  return report[0];
+  // Return EXACT SAME response as GET BY ID
+  return await getReportById(id);
 }
 
 /**
@@ -641,6 +534,7 @@ async function deleteReport(id) {
   }
   await ReportModel.findByIdAndDelete(id);
 }
+
 module.exports = {
   createReport,
   getAllReports,

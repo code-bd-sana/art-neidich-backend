@@ -692,6 +692,11 @@
                   "key": "search",
                   "value": "",
                   "description": "Search term for jobs"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Job status filter. Allowed values: all, in_progress, submitted, completed, rejected. Default: all."
                 }
               ]
             }
@@ -929,7 +934,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/report?page=1&limit=10&search=",
+              "raw": "{{baseUrl}}/report?page=1&limit=10&search=&status=all",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -951,6 +956,11 @@
                   "key": "search",
                   "value": "",
                   "description": "Search term for reports"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Report status filter. Allowed values: all, in_progress, submitted, completed, rejected. Default: all."
                 }
               ]
             }
@@ -1061,7 +1071,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"approved\",\n  \"comment\": \"Status updated by admin.\"\n}"
+              "raw": "{\n  \"status\": \"completed\",\n}"
             }
           },
           "response": [

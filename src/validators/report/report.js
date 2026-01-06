@@ -40,6 +40,7 @@ const createReportSchema = z
  */
 const reportPaginationSchema = z
   .object({
+    search: z.string().trim().optional(),
     page: z
       .string()
       .optional()
@@ -52,7 +53,7 @@ const reportPaginationSchema = z
       .refine((val) => val > 0, {
         message: "Limit must be a positive integer",
       }),
-    status: z.enum(["in_progress", "completed", "rejected"]).optional(),
+    status: z.enum(["all", "submitted", "completed", "rejected"]).optional(),
   })
   .strict();
 
