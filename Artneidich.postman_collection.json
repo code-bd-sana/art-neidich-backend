@@ -88,7 +88,7 @@
               "originalRequest": {},
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"token\": \"jwt-token\"\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZDIxYjQ2NjdkMGQ4OTkyZTYxMGM4NSIsImVtYWlsIjoidXNlckBleGFtcGxlLmNvbSIsInJvbGUiOjIsImlhdCI6MTYwOTAwMDAwMCwiZXhwIjoxNjA5MDg2NDAwfQ.sflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\"\n}"
             }
           ],
           "description": "Authenticate a user and receive a JWT token."
@@ -239,7 +239,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User profile fetched successfully\",\n  \"data\": { /* user object */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"User profile fetched successfully\",\n  \"data\": {\n    \"_id\": \"60d21b4667d0d8992e610c85\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"user@example.com\",\n    \"role\": 2,\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
             },
             {
               "name": "401 Unauthorized",
@@ -285,7 +285,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User profile updated successfully\",\n  \"data\": { /* updated user */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"User profile updated successfully\",\n  \"data\": {\n    \"_id\": \"60d21b4667d0d8992e610c85\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"user@example.com\",\n    \"role\": 2,\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
             },
             {
               "name": "400 Bad Request",
@@ -327,7 +327,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Users fetched successfully\",\n  \"data\": [ /* users */ ],\n  \"metaData\": { /* pagination */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Users fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"60d21b4667d0d8992e610c85\",\n      \"firstName\": \"John\",\n      \"lastName\": \"Doe\",\n      \"email\": \"user@example.com\",\n      \"role\": 2,\n      \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  }\n}"
             },
             {
               "name": "403 Forbidden",
@@ -364,7 +364,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User fetched successfully\",\n  \"data\": { /* user */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"User fetched successfully\",\n  \"data\": {\n    \"_id\": \"60d21b4667d0d8992e610c85\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"user@example.com\",\n    \"role\": 2,\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
             },
             {
               "name": "404 Not Found",
@@ -601,7 +601,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Jobs fetched successfully\",\n  \"data\": [ /* jobs */ ],\n  \"metaData\": { /* pagination */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Jobs fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"jobid1\",\n      \"inspector\": \"60d21b4667d0d8992e610c85\",\n      \"formType\": \"RCI Residential Building Code Inspection\",\n      \"feeStatus\": \"Standard\",\n      \"agreedFee\": 1000,\n      \"fhaCaseDetailsNo\": \"FHA123456\",\n      \"orderId\": \"ORD123\",\n      \"streetAddress\": \"123 Main St\",\n      \"developmentName\": \"Greenfield\",\n      \"siteContactName\": \"Jane Smith\",\n      \"siteContactPhone\": \"+1234567890\",\n      \"siteContactEmail\": \"contact@example.com\",\n      \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n      \"specialNotesForInspector\": \"Please check the roof.\",\n      \"specialNoteForApOrAr\": \"Urgent job.\",\n      \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  }\n}"
             }
           ],
           "description": "Get all jobs (admin/root only)."
@@ -632,7 +632,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"My jobs fetched successfully\",\n  \"data\": [ /* jobs */ ],\n  \"metaData\": { /* pagination */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"My jobs fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"jobid2\",\n      \"inspector\": \"60d21b4667d0d8992e610c85\",\n      \"formType\": \"RCI Residential Building Code Inspection\",\n      \"feeStatus\": \"Rush Order\",\n      \"agreedFee\": 1200,\n      \"fhaCaseDetailsNo\": \"FHA654321\",\n      \"orderId\": \"ORD456\",\n      \"streetAddress\": \"456 New Ave\",\n      \"developmentName\": \"Bluefield\",\n      \"siteContactName\": \"John Smith\",\n      \"siteContactPhone\": \"+1987654321\",\n      \"siteContactEmail\": \"site@example.com\",\n      \"dueDate\": \"2026-01-15T00:00:00.000Z\",\n      \"specialNotesForInspector\": \"Updated note.\",\n      \"specialNoteForApOrAr\": \"Updated urgent job.\",\n      \"createdAt\": \"2026-01-02T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  }\n}"
             }
           ],
           "description": "Get jobs assigned to the logged-in user."
@@ -663,7 +663,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Job fetched successfully\",\n  \"data\": { /* job */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Job fetched successfully\",\n  \"data\": {\n    \"_id\": \"jobid1\",\n    \"inspector\": \"60d21b4667d0d8992e610c85\",\n    \"formType\": \"RCI Residential Building Code Inspection\",\n    \"feeStatus\": \"Standard\",\n    \"agreedFee\": 1000,\n    \"fhaCaseDetailsNo\": \"FHA123456\",\n    \"orderId\": \"ORD123\",\n    \"streetAddress\": \"123 Main St\",\n    \"developmentName\": \"Greenfield\",\n    \"siteContactName\": \"Jane Smith\",\n    \"siteContactPhone\": \"+1234567890\",\n    \"siteContactEmail\": \"contact@example.com\",\n    \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n    \"specialNotesForInspector\": \"Please check the roof.\",\n    \"specialNoteForApOrAr\": \"Urgent job.\",\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
             },
             {
               "name": "404 Not Found",
@@ -843,7 +843,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Reports fetched successfully\",\n  \"data\": [ /* reports */ ],\n  \"metaData\": { /* pagination */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Reports fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"reportid1\",\n      \"job\": \"jobid1\",\n      \"inspector\": \"60d21b4667d0d8992e610c85\",\n      \"images\": [\n        {\n          \"imageLabel\": \"labelid1\",\n          \"fileName\": \"photo1.jpg\",\n          \"alt\": \"Front view\",\n          \"mimeType\": \"image/jpeg\",\n          \"size\": 123456,\n          \"noteForAdmin\": \"Clear image\"\n        }\n      ],\n      \"createdAt\": \"2026-01-03T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  }\n}"
             }
           ],
           "description": "Get all reports (admin/root only)."
@@ -874,7 +874,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Report fetched successfully\",\n  \"data\": { /* report */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Report fetched successfully\",\n  \"data\": {\n    \"_id\": \"reportid1\",\n    \"job\": \"jobid1\",\n    \"inspector\": \"60d21b4667d0d8992e610c85\",\n    \"images\": [\n      {\n        \"imageLabel\": \"labelid1\",\n        \"fileName\": \"photo1.jpg\",\n        \"alt\": \"Front view\",\n        \"mimeType\": \"image/jpeg\",\n        \"size\": 123456,\n        \"noteForAdmin\": \"Clear image\"\n      }\n    ],\n    \"createdAt\": \"2026-01-03T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
             },
             {
               "name": "404 Not Found",
@@ -1069,7 +1069,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Image labels fetched successfully\",\n  \"data\": [ /* image labels */ ],\n  \"metaData\": { /* pagination */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Image labels fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"labelid1\",\n      \"label\": \"Tree\",\n      \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  }\n}"
             }
           ],
           "description": "Get all image labels (admin/root only)."
@@ -1100,7 +1100,7 @@
               "name": "200 OK",
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Image label fetched successfully\",\n  \"data\": { /* image label */ }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Image label fetched successfully\",\n  \"data\": {\n    \"_id\": \"labelid1\",\n    \"label\": \"Tree\",\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
             },
             {
               "name": "404 Not Found",
