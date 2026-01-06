@@ -52,6 +52,18 @@
               "status": "201 Created",
               "code": 201,
               "body": "{\n  \"success\": true,\n  \"message\": \"User registered successfully\"\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"error\": \"Email already in use\",\n  \"code\": \"EMAIL_IN_USE\"\n}"
+            },
+            {
+              "name": "500 Internal Server Error",
+              "status": "500 Internal Server Error",
+              "code": 500,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\"\n}"
             }
           ],
           "description": "Register a new user."
@@ -89,6 +101,36 @@
               "status": "200 OK",
               "code": 200,
               "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZDIxYjQ2NjdkMGQ4OTkyZTYxMGM4NSIsImVtYWlsIjoidXNlckBleGFtcGxlLmNvbSIsInJvbGUiOjIsImlhdCI6MTYwOTAwMDAwMCwiZXhwIjoxNjA5MDg2NDAwfQ.sflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "401 Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"message\": \"No token provided\"\n}"
+            },
+            {
+              "name": "401 Unauthorized (Invalid Token)",
+              "status": "401 Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid or expired token\"\n}"
+            },
+            {
+              "name": "403 Forbidden (Suspended)",
+              "status": "403 Forbidden",
+              "code": 403,
+              "body": "{\n  \"success\": false,\n  \"message\": \"You are suspended\"\n}"
+            },
+            {
+              "name": "403 Forbidden (Not Approved)",
+              "status": "403 Forbidden",
+              "code": 403,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Your account is not approved yet\"\n}"
+            },
+            {
+              "name": "500 Internal Server Error",
+              "status": "500 Internal Server Error",
+              "code": 500,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\"\n}"
             }
           ],
           "description": "Authenticate a user and receive a JWT token."
@@ -242,10 +284,34 @@
               "body": "{\n  \"success\": true,\n  \"message\": \"User profile fetched successfully\",\n  \"data\": {\n    \"_id\": \"60d21b4667d0d8992e610c85\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"user@example.com\",\n    \"role\": 2,\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
             },
             {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"error\": \"A report for this job already exists.\",\n  \"code\": \"REPORT_ALREADY_EXISTS\"\n}"
+            },
+            {
               "name": "401 Unauthorized",
               "status": "401 Unauthorized",
               "code": 401,
               "body": "{\n  \"success\": false,\n  \"message\": \"Unauthorized\"\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "status": "403 Forbidden",
+              "code": 403,
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have the required role to access this resource\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "404 Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Resource not found\"\n}"
+            },
+            {
+              "name": "500 Internal Server Error",
+              "status": "500 Internal Server Error",
+              "code": 500,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\"\n}"
             }
           ],
           "description": "Get the authenticated user's profile."
@@ -291,7 +357,7 @@
               "name": "400 Bad Request",
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\"\n}"
+              "body": "{\n  \"error\": \"You must provide at least 1 and maximum 2 images.\",\n  \"code\": \"INVALID_IMAGE_COUNT\"\n}"
             },
             {
               "name": "401 Unauthorized",
@@ -313,12 +379,29 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/user",
+              "raw": "{{baseUrl}}/user?page=1&limit=10&search=",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "user"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term for users"
+                }
               ]
             }
           },
@@ -571,7 +654,7 @@
               "name": "400 Bad Request",
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\"\n}"
+              "body": "{\n  \"error\": \"Label already exists\",\n  \"code\": \"LABEL_EXISTS\"\n}"
             }
           ],
           "description": "Create a new job (admin/root only)."
@@ -587,12 +670,29 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/job",
+              "raw": "{{baseUrl}}/job?page=1&limit=10&search=",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "job"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term for jobs"
+                }
               ]
             }
           },
@@ -715,7 +815,7 @@
               "name": "400 Bad Request",
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\"\n}"
+              "body": "{\n  \"error\": \"A report for this job already exists.\",\n  \"code\": \"REPORT_ALREADY_EXISTS\"\n}"
             }
           ],
           "description": "Update a job (admin/root only)."
@@ -813,7 +913,7 @@
               "name": "400 Bad Request",
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\"\n}"
+              "body": "{\n  \"error\": \"Label already exists\",\n  \"code\": \"LABEL_EXISTS\"\n}"
             }
           ],
           "description": "Create a new report (inspector only)."
@@ -829,12 +929,29 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/report",
+              "raw": "{{baseUrl}}/report?page=1&limit=10&search=",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "report"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term for reports"
+                }
               ]
             }
           },
@@ -1055,12 +1172,29 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/image-label",
+              "raw": "{{baseUrl}}/image-label?page=1&limit=10&search=",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "image-label"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term for image labels"
+                }
               ]
             }
           },
