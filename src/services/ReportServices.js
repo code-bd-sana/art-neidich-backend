@@ -570,6 +570,67 @@ async function updateReportStatus(id, updateData) {
           },
         },
       },
+      $addFields: {
+        job: {
+          _id: "$job._id",
+          orderId: "$job.orderId",
+          streetAddress: "$job.streetAddress",
+          developmentName: "$job.developmentName",
+          siteContactName: "$job.siteContactName",
+          siteContactPhone: "$job.siteContactPhone",
+          siteContactEmail: "$job.siteContactEmail",
+          dueDate: "$job.dueDate",
+          createdAt: "$job.createdAt",
+          updatedAt: "$job.updatedAt",
+          createdBy: {
+            _id: "$job.createdBy._id",
+            firstName: "$job.createdBy.firstName",
+            lastName: "$job.createdBy.lastName",
+            email: "$job.createdBy.email",
+            role: {
+              $switch: {
+                branches: [
+                  {
+                    case: { $eq: ["$job.createdBy.role", 0] },
+                    then: "Super Admin",
+                  },
+                  { case: { $eq: ["$job.createdBy.role", 1] }, then: "Admin" },
+                  {
+                    case: { $eq: ["$job.createdBy.role", 2] },
+                    then: "Inspector",
+                  },
+                ],
+                default: "Unknown",
+              },
+            },
+          },
+          lastUpdatedBy: {
+            _id: "$job.lastUpdatedBy._id",
+            firstName: "$job.lastUpdatedBy.firstName",
+            lastName: "$job.lastUpdatedBy.lastName",
+            email: "$job.lastUpdatedBy.email",
+            role: {
+              $switch: {
+                branches: [
+                  {
+                    case: { $eq: ["$job.lastUpdatedBy.role", 0] },
+                    then: "Super Admin",
+                  },
+                  {
+                    case: { $eq: ["$job.lastUpdatedBy.role", 1] },
+                    then: "Admin",
+                  },
+                  {
+                    case: { $eq: ["$job.lastUpdatedBy.role", 2] },
+                    then: "Inspector",
+                  },
+                ],
+                default: "Unknown",
+              },
+            },
+          },
+        },
+      },
     },
 
     {
