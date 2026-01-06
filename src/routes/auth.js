@@ -2,10 +2,20 @@ const express = require("express");
 
 const router = express.Router();
 
-const { register, login } = require("../controllers/AuthControllers");
+const {
+  register,
+  login,
+  forgotPassword,
+  resetPassword,
+  changePassword,
+} = require("../controllers/AuthControllers");
+const { authenticate } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
+const { changePasswordSchema } = require("../validators/auth/changePassword");
+const { forgotPasswordSchema } = require("../validators/auth/forgotPassword");
 const { loginSchema } = require("../validators/auth/login");
 const { registerSchema } = require("../validators/auth/register");
+const { resetPasswordSchema } = require("../validators/auth/resetPassword");
 
 /**
  * Handle user registration
@@ -45,11 +55,11 @@ router.post("/login", validate(loginSchema, { target: "body" }), login);
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-// router.post(
-//   "/forgot-password",
-//   validate(forgotPasswordSchema, { target: "body" }),
-//   forgotPassword
-// );
+router.post(
+  "/forgot-password",
+  validate(forgotPasswordSchema, { target: "body" }),
+  forgotPassword
+);
 
 /**
  * Handle reset password request
@@ -61,11 +71,11 @@ router.post("/login", validate(loginSchema, { target: "body" }), login);
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-// router.post(
-//   "/reset-password",
-//   validate(resetPasswordSchema, { target: "body" }),
-//   resetPassword
-// );
+router.post(
+  "/reset-password",
+  validate(resetPasswordSchema, { target: "body" }),
+  resetPassword
+);
 
 /**
  * Handle change password
@@ -77,11 +87,11 @@ router.post("/login", validate(loginSchema, { target: "body" }), login);
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-// router.post(
-//   "/change-password",
-//   authenticateUser,
-//   validate(changePasswordSchema, { target: "body" }),
-//   changePassword
-// );
+router.post(
+  "/change-password",
+  authenticate,
+  validate(changePasswordSchema, { target: "body" }),
+  changePassword
+);
 
 module.exports = router;

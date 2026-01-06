@@ -38,7 +38,8 @@ async function getUserProfileController(req, res, next) {
  */
 async function updateUserProfileController(req, res, next) {
   try {
-    const updatedUser = await updateProfile(req.user.id, req.body);
+    const payload = req.validated;
+    const updatedUser = await updateProfile(req.user.id, payload);
     res.status(200).json({
       success: true,
       message: "User profile updated successfully",
@@ -105,11 +106,10 @@ async function approveUserController(req, res, next) {
         message: "You cannot approve yourself",
       });
     }
-    const user = await approveUser(req.params.id);
+    await approveUser(req.params.id);
     res.status(200).json({
       success: true,
       message: "User approved successfully",
-      data: user,
     });
   } catch (error) {
     next(error);
@@ -131,11 +131,10 @@ async function suspendUserController(req, res, next) {
         message: "You cannot suspend yourself",
       });
     }
-    const user = await suspendUser(req.params.id, req.user);
+    await suspendUser(req.params.id, req.user);
     res.status(200).json({
       success: true,
       message: "User suspended successfully",
-      data: user,
     });
   } catch (error) {
     next(error);
@@ -157,11 +156,10 @@ async function unSuspendUserController(req, res, next) {
         message: "You cannot un-suspend yourself",
       });
     }
-    const user = await unSuspendUser(req.params.id, req.user);
+    await unSuspendUser(req.params.id, req.user);
     res.status(200).json({
       success: true,
       message: "User un-suspended successfully",
-      data: user,
     });
   } catch (error) {
     next(error);

@@ -17,13 +17,18 @@ const reportSchema = new mongoose.Schema(
     // Report content
     images: [
       {
+        // Label for the image (e.g., "front_view", "damage_area")
         imageLabel: {
-          type: mongoose.Schema.Types.String,
-          ref: "ImageLabel",
+          type: String,
           required: true,
         },
         // Image file stored URL
         url: {
+          type: String,
+          required: true,
+        },
+        // S3 Object Key
+        key: {
           type: String,
           required: true,
         },
@@ -58,6 +63,12 @@ const reportSchema = new mongoose.Schema(
         },
       },
     ],
+    // Report review status
+    status: {
+      type: String,
+      enum: ["submitted", "completed", "rejected"],
+      default: "submitted",
+    },
   },
   { timestamps: true, versionKey: false }
 );

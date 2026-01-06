@@ -7,7 +7,7 @@ const { z } = require("zod");
  */
 const searchAndPaginationSchema = z
   .object({
-    search: z.string().optional(),
+    search: z.string().trim().optional(),
     page: z
       .string()
       .optional()

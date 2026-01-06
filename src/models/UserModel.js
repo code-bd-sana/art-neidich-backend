@@ -70,6 +70,22 @@ const userSchema = new mongoose.Schema(
       type: Number,
       enum: [0, 1, 2], // 0 = root, 1 = admin, 2 = inspector
     },
+    resetToken: {
+      type: String,
+      default: null,
+    },
+    resetTokenExpiry: {
+      type: Date,
+      default: null,
+    },
+    resetPasswordOTP: {
+      type: String,
+      default: null,
+    },
+    resetPasswordOTPExpiry: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true, versionKey: false }
 );

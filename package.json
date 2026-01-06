@@ -1,12 +1,14 @@
 {
   "name": "artneidich",
   "version": "1.0.0",
-  "description": "horse egg",
+  "description": "Backend for Artneidich application",
   "license": "ISC",
-  "author": "banana",
+  "author": "Artur Neidich",
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
+    "merge-all": "bash -lc \"cur=$(git branch --show-current); for b in $(git for-each-ref --format='%(refname:short)' refs/heads/ | grep -vE '^(main|development)$'); do git checkout \\\"$b\\\" && git merge \\\"$cur\\\"; done && git push --all\"",
+    "merge-all-local": "bash -lc \"cur=$(git branch --show-current); for b in $(git for-each-ref --format='%(refname:short)' refs/heads/ | grep -vE '^(main|development)$'); do git checkout \\\"$b\\\" && git merge \\\"$cur\\\"; done\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
@@ -15,6 +17,8 @@
     "lint:fix": "eslint . --fix --max-warnings=0"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.432.0",
+    "@aws-sdk/lib-storage": "^3.432.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -27,8 +31,13 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.0.2",
     "morgan": "^1.10.1",
+    "multer": "^2.0.2",
     "nanoid": "^5.1.6",
+    "nodemailer": "^7.0.12",
+    "ejs": "^3.1.9",
     "nodemon": "^3.1.11",
+    "puppeteer": "^21.3.6",
+    "uuid": "^13.0.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {
