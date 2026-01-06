@@ -145,8 +145,12 @@ async function getAllReports(query) {
   const matchStage = {};
 
   // Optional filtering by status
-  if (query.status) {
-    matchStage.status = query.status;
+  if (query.status && query.status !== "all") {
+    if (query.status === "in_progress") {
+      matchStage.status = { $in: [null, "in_progress"] };
+    } else {
+      matchStage.status = query.status;
+    }
   }
 
   const totalReports = await ReportModel.countDocuments(matchStage);

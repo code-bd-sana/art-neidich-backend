@@ -52,7 +52,7 @@ const reportPaginationSchema = z
       .refine((val) => val > 0, {
         message: "Limit must be a positive integer",
       }),
-    status: z.enum(["in_progress", "completed", "rejected"]).optional(),
+    status: z.enum(["submitted", "completed", "rejected"]).optional(),
   })
   .strict();
 

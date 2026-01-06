@@ -654,6 +654,7 @@ async function getJobs(query = {}) {
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
+  const statusFilter = query.status;
 
   const pipeline = [];
 
@@ -725,6 +726,25 @@ async function getJobs(query = {}) {
     },
   });
 
+  // Add reportStatus field (default: in_progress)
+  pipeline.push({
+    $addFields: {
+      reportStatus: {
+        $ifNull: [
+          { $arrayElemAt: ["$reportCheck.status", 0] },
+          "in_progress",
+        ],
+      },
+    },
+  });
+
+  // Filter by status if provided and not 'all'
+  if (statusFilter && statusFilter !== "all") {
+    pipeline.push({
+      $match: { reportStatus: statusFilter },
+    });
+  }
+
   // Search (job fields + inspector name)
   if (search) {
     const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
@@ -756,41 +776,32 @@ async function getJobs(query = {}) {
     });
   }
 
-  // Convert roles to readable labels and add report status
+  // Convert roles to readable labels and add report status label
   pipeline.push({
     $addFields: {
       hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
       reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
-      reportStatus: { $arrayElemAt: ["$reportCheck.status", 0] },
       reportStatusLabel: {
         $switch: {
           branches: [
             {
-              case: {
-                $eq: [
-                  { $arrayElemAt: ["$reportCheck.status", 0] },
-                  "submitted",
-                ],
-              },
+              case: { $eq: ["$reportStatus", "submitted"] },
               then: "Submitted",
             },
             {
-              case: {
-                $eq: [
-                  { $arrayElemAt: ["$reportCheck.status", 0] },
-                  "completed",
-                ],
-              },
+              case: { $eq: ["$reportStatus", "completed"] },
               then: "Completed",
             },
             {
-              case: {
-                $eq: [{ $arrayElemAt: ["$reportCheck.status", 0] }, "rejected"],
-              },
+              case: { $eq: ["$reportStatus", "rejected"] },
               then: "Rejected",
             },
+            {
+              case: { $eq: ["$reportStatus", "in_progress"] },
+              then: "In Progress",
+            },
           ],
-          default: "In Progress",
+          default: "Unknown",
         },
       },
       "inspector.role": {
