@@ -421,17 +421,31 @@ async function getReportById(id) {
  * @returns {Promise<Object>} - Updated report document
  */
 async function updateReportStatus(id, updateData) {
-  const { status } = updateData;
-  const report = await ReportModel.aggregate([
-    { $match: { _id: new mongoose.Types.ObjectId(id) } },
+  const { status, lastUpdatedBy } = updateData;
+
+  const updated = await ReportModel.findByIdAndUpdate(
+    id,
     {
       $set: {
         status,
-        lastUpdatedBy: updateData.lastUpdatedBy,
+        lastUpdatedBy,
         updatedAt: new Date(),
       },
     },
-    // Lookup inspector
+    { new: true }
+  );
+
+  if (!updated) {
+    const err = new Error("Report not found");
+    err.status = 404;
+    err.code = "REPORT_NOT_FOUND";
+    throw err;
+  }
+
+  const report = await ReportModel.aggregate([
+    { $match: { _id: updated._id } },
+
+    /* ---------- Inspector ---------- */
     {
       $lookup: {
         from: "users",
@@ -442,7 +456,7 @@ async function updateReportStatus(id, updateData) {
     },
     { $unwind: "$inspector" },
 
-    // Lookup job
+    /* ---------- Job ---------- */
     {
       $lookup: {
         from: "jobs",
@@ -453,7 +467,7 @@ async function updateReportStatus(id, updateData) {
     },
     { $unwind: "$job" },
 
-    // Lookup job createdBy
+    /* ---------- Job createdBy ---------- */
     {
       $lookup: {
         from: "users",
@@ -464,7 +478,7 @@ async function updateReportStatus(id, updateData) {
     },
     { $unwind: { path: "$job.createdBy", preserveNullAndEmptyArrays: true } },
 
-    // Lookup job lastUpdatedBy
+    /* ---------- Job lastUpdatedBy ---------- */
     {
       $lookup: {
         from: "users",
@@ -480,7 +494,7 @@ async function updateReportStatus(id, updateData) {
       },
     },
 
-    // Lookup labels for images
+    /* ---------- Image Labels ---------- */
     {
       $lookup: {
         from: "imagelabels",
@@ -490,7 +504,7 @@ async function updateReportStatus(id, updateData) {
       },
     },
 
-    // Map images with label name
+    /* ---------- Map images ---------- */
     {
       $addFields: {
         images: {
@@ -529,7 +543,7 @@ async function updateReportStatus(id, updateData) {
       },
     },
 
-    // Role mapping helper
+    /* ---------- Role mapping ---------- */
     {
       $addFields: {
         inspector: {
@@ -540,69 +554,9 @@ async function updateReportStatus(id, updateData) {
           email: "$inspector.email",
           role: "Inspector",
         },
-        job: {
-          _id: 1,
-          orderId: 1,
-          streetAddress: 1,
-          developmentName: 1,
-          siteContactName: 1,
-          siteContactPhone: 1,
-          siteContactEmail: 1,
-          dueDate: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          createdBy: {
-            _id: "$job.createdBy._id",
-            firstName: "$job.createdBy.firstName",
-            lastName: "$job.createdBy.lastName",
-            email: "$job.createdBy.email",
-            role: {
-              $switch: {
-                branches: [
-                  {
-                    case: { $eq: ["$job.createdBy.role", 0] },
-                    then: "Super Admin",
-                  },
-                  { case: { $eq: ["$job.createdBy.role", 1] }, then: "Admin" },
-                  {
-                    case: { $eq: ["$job.createdBy.role", 2] },
-                    then: "Inspector",
-                  },
-                ],
-                default: "Unknown",
-              },
-            },
-          },
-          lastUpdatedBy: {
-            _id: "$job.lastUpdatedBy._id",
-            firstName: "$job.lastUpdatedBy.firstName",
-            lastName: "$job.lastUpdatedBy.lastName",
-            email: "$job.lastUpdatedBy.email",
-            role: {
-              $switch: {
-                branches: [
-                  {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 0] },
-                    then: "Super Admin",
-                  },
-                  {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 1] },
-                    then: "Admin",
-                  },
-                  {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 2] },
-                    then: "Inspector",
-                  },
-                ],
-                default: "Unknown",
-              },
-            },
-          },
-        },
       },
     },
 
-    // Project final fields
     {
       $project: {
         inspector: 1,
@@ -614,13 +568,6 @@ async function updateReportStatus(id, updateData) {
       },
     },
   ]);
-
-  if (report.length === 0) {
-    const err = new Error("Report not found");
-    err.status = 404;
-    err.code = "REPORT_NOT_FOUND";
-    throw err;
-  }
 
   return report[0];
 }
