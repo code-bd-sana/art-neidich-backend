@@ -20,7 +20,13 @@ const userSearchAndPaginationSchema = z
       .refine((val) => val > 0, {
         message: "Limit must be a positive integer",
       }),
-    role: z.enum(["Super Admin", "Admin", "Inspector"]).optional(),
+    role: z.coerce
+      .number()
+      .int()
+      .refine((val) => [0, 1, 2].includes(val), {
+        message: "Role must be 0 (Super Admin), 1 (Admin), or 2 (Inspector)",
+      })
+      .optional(),
   })
   .strict();
 
