@@ -153,35 +153,92 @@ async function getAllReports(query) {
     }
   }
 
-  const totalReports = await ReportModel.countDocuments(matchStage);
+  // Optional search
+  let searchPipeline = [];
+  if (query.search && query.search.trim()) {
+    const search = query.search.trim();
+    const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
+    const regex = new RegExp(esc, "i");
+    searchPipeline = [
+      // Lookup inspector for search
+      {
+        $lookup: {
+          from: "users",
+          localField: "inspector",
+          foreignField: "_id",
+          as: "inspector",
+        },
+      },
+      { $unwind: "$inspector" },
+      // Lookup job for search
+      {
+        $lookup: {
+          from: "jobs",
+          localField: "job",
+          foreignField: "_id",
+          as: "job",
+        },
+      },
+      { $unwind: "$job" },
+      {
+        $match: {
+          $or: [
+            { "job.orderId": regex },
+            { "job.streetAddress": regex },
+            { "job.developmentName": regex },
+            { "job.siteContactName": regex },
+            { "inspector.firstName": regex },
+            { "inspector.lastName": regex },
+            {
+              $expr: {
+                $regexMatch: {
+                  input: {
+                    $concat: [
+                      "$inspector.firstName",
+                      " ",
+                      "$inspector.lastName",
+                    ],
+                  },
+                  regex: esc,
+                  options: "i",
+                },
+              },
+            },
+          ],
+        },
+      },
+    ];
+  } else {
+    // If not searching, still need to lookup for projection
+    searchPipeline = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "inspector",
+          foreignField: "_id",
+          as: "inspector",
+        },
+      },
+      { $unwind: "$inspector" },
+      {
+        $lookup: {
+          from: "jobs",
+          localField: "job",
+          foreignField: "_id",
+          as: "job",
+        },
+      },
+      { $unwind: "$job" },
+    ];
+  }
 
-  const reports = await ReportModel.aggregate([
+  // Compose aggregation pipeline
+  const pipeline = [
     { $match: matchStage },
+    ...searchPipeline,
     { $sort: { createdAt: -1 } },
     { $skip: skip },
     { $limit: limit },
-    // Lookup inspector
-    {
-      $lookup: {
-        from: "users",
-        localField: "inspector",
-        foreignField: "_id",
-        as: "inspector",
-      },
-    },
-    { $unwind: "$inspector" },
-    // Lookup job
-    {
-      $lookup: {
-        from: "jobs",
-        localField: "job",
-        foreignField: "_id",
-        as: "job",
-      },
-    },
-    { $unwind: "$job" },
-
-    // Project final fields
     {
       $project: {
         inspector: {
@@ -193,21 +250,32 @@ async function getAllReports(query) {
           role: "Inspector",
         },
         job: {
-          _id: 1,
-          orderId: 1,
-          streetAddress: 1,
-          developmentName: 1,
-          siteContactName: 1,
-          siteContactPhone: 1,
-          siteContactEmail: 1,
-          dueDate: 1,
+          _id: "$job._id",
+          orderId: "$job.orderId",
+          streetAddress: "$job.streetAddress",
+          developmentName: "$job.developmentName",
+          siteContactName: "$job.siteContactName",
+          siteContactPhone: "$job.siteContactPhone",
+          siteContactEmail: "$job.siteContactEmail",
+          dueDate: "$job.dueDate",
         },
         status: 1,
         createdAt: 1,
         updatedAt: 1,
       },
     },
-  ]);
+  ];
+
+  // For total count, use same pipeline but without skip/limit/sort
+  const countPipeline = [
+    { $match: matchStage },
+    ...searchPipeline,
+    { $count: "total" },
+  ];
+  const countResult = await ReportModel.aggregate(countPipeline);
+  const totalReports = countResult[0]?.total || 0;
+
+  const reports = await ReportModel.aggregate(pipeline);
 
   const metaData = {
     total: totalReports,
