@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+
 const { v4 } = require("uuid");
 
 const { generateToken } = require("../helpers/jwt/jwt-utils");
@@ -360,32 +362,35 @@ async function loginUser(payload) {
  * @returns {Promise<void>}
  */
 async function initiateForgotPassword(payload) {
-  const { email } = payload;
+  const { email, webRequest, mobileRequest } = payload;
 
   const user = await UserModel.findOne({ email });
 
+  // Do not reveal whether the email exists. Return early so controller
+  // can respond with a generic success message.
   if (!user) {
-    const err = new Error("If the email exists, a reset link will be sent");
-    err.status = 200;
-    throw err;
+    return;
   }
 
-  const resetToken = v4();
-  const resetTokenExpiry =
-    Date.now() + parseInt(process.env.RESET_PASSWORD_TOKEN_EXPIRES_IN, 10); // 1 hour from now
+  // if webRequest is true then send this
+  if (webRequest) {
+    const resetToken = v4();
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
-  user.resetToken = resetToken;
-  user.resetTokenExpiry = resetTokenExpiry;
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = resetTokenExpiry;
 
-  await user.save();
+    await user.save();
 
-  // Generate reset URL
-  const resetUrl = `${
-    process.env.FRONTEND_URL
-  }/reset-password?token=${resetToken}&email=${encodeURIComponent(user.email)}`;
+    // Generate reset URL
+    const resetUrl = `${
+      process.env.FRONTEND_URL
+    }/reset-password?token=${resetToken}&email=${encodeURIComponent(
+      user.email
+    )}`;
 
-  // Email template for real estate inspector
-  const emailHtml = `
+    // Email template for real estate inspector
+    const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -591,12 +596,113 @@ async function initiateForgotPassword(payload) {
 </html>
   `;
 
-  // Send the email
-  await sendMail({
-    to: user.email,
-    subject: "🔐 Password Reset - Property Inspector Pro",
-    html: emailHtml,
-  });
+    // Send the email
+    await sendMail({
+      to: user.email,
+      subject: "🔐 Password Reset - Property Inspector Pro",
+      html: emailHtml,
+    });
+  }
+
+  if (mobileRequest) {
+    // Generate OTP
+    // Use a cryptographically secure generator for the OTP
+    const otp = crypto.randomInt(100000, 1000000).toString(); // 6-digit OTP
+    const otpExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+    user.resetPasswordOTP = otp;
+    user.resetPasswordOTPExpiry = otpExpiry;
+    await user.save();
+
+    // Send OTP via email
+    const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset OTP - Property Inspector Pro</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #1a3a5f 0%, #2c5282 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .otp-box {  
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            font-size: 32px;
+            letter-spacing: 8px;
+            font-weight: 600;
+            margin: 30px 0;
+            border-left: 4px solid #2c5282;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 25px 30px;
+            text-align: center;
+            font-size: 14px;
+            color: #718096; 
+            border-top: 1px solid #e2e8f0;
+        }
+        @media (max-width: 600px) {
+            .content {
+                padding: 30px 20px;
+            }
+            .header {   
+                padding: 25px 15px;
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Password Reset OTP</h1>
+        </div>
+        <div class="content">
+            <p>Dear ${user.firstName} ${user.lastName},</p>
+            <p>We received a request to reset your password for your <strong>Property Inspector Pro</strong> account. Use the One-Time Password (OTP) below to proceed with resetting your password. If you didn't make this request, you can safely ignore this email.</p>
+            <div class="otp-box">${otp}</div>
+            <p>This OTP will expire in 1 hour.</p>
+    `;
+
+    // Send the email
+    await sendMail({
+      to: user.email,
+      subject: "🔐 Password Reset OTP - Property Inspector Pro",
+      html: emailHtml,
+    });
+  }
 
   return;
 }
@@ -608,26 +714,59 @@ async function initiateForgotPassword(payload) {
  * @returns {Promise<void>}
  */
 async function resetUserPassword(payload) {
-  const { email, token, newPassword } = payload;
-  const user = await UserModel.findOne({ email, resetToken: token });
-  // Validate token and expiry
-  if (!user) {
-    const err = new Error("Invalid or expired reset token");
+  const { email, otp, token, newPassword } = payload;
+
+  // Ensure one of token or otp is provided (validator should enforce this,
+  // but safeguard here in case function is called directly).
+  if (!token && !otp) {
+    const err = new Error("Either reset token or OTP must be provided");
     err.status = 400;
-    err.code = "INVALID_RESET_TOKEN";
+    err.code = "MISSING_RESET_CREDENTIALS";
     throw err;
   }
-  if (Date.now() > user.resetTokenExpiry) {
-    const err = new Error("Reset token has expired");
-    err.status = 400;
-    err.code = "RESET_TOKEN_EXPIRED";
-    throw err;
+
+  if (token) {
+    const user = await UserModel.findOne({ email, resetToken: token });
+    // Validate token and expiry
+    if (!user) {
+      const err = new Error("Invalid or expired reset token");
+      err.status = 400;
+      err.code = "INVALID_RESET_TOKEN";
+      throw err;
+    }
+    if (Date.now() > user.resetTokenExpiry) {
+      const err = new Error("Reset token has expired");
+      err.status = 400;
+      err.code = "RESET_TOKEN_EXPIRED";
+      throw err;
+    }
+    const hashed = await hashPassword(newPassword);
+    user.password = hashed;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await user.save();
+  } else if (otp) {
+    const user = await UserModel.findOne({ email, resetPasswordOTP: otp });
+    // Validate OTP and expiry
+    if (!user) {
+      const err = new Error("Invalid or expired OTP");
+      err.status = 400;
+      err.code = "INVALID_OTP";
+      throw err;
+    }
+    if (Date.now() > user.resetPasswordOTPExpiry) {
+      const err = new Error("OTP has expired");
+      err.status = 400;
+      err.code = "OTP_EXPIRED";
+      throw err;
+    }
+    const hashed = await hashPassword(newPassword);
+    user.password = hashed;
+    user.resetPasswordOTP = null;
+    user.resetPasswordOTPExpiry = null;
+    await user.save();
   }
-  const hashed = await hashPassword(newPassword);
-  user.password = hashed;
-  user.resetToken = null;
-  user.resetTokenExpiry = null;
-  await user.save();
+
   return;
 }
 

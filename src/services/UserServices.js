@@ -48,44 +48,39 @@ async function getProfile(userId) {
  * @returns {Promise<Object>}
  */
 async function updateProfile(userId, updateData) {
-  const result = await UserModel.aggregate([
-    {
-      $match: {
-        _id: new mongoose.Types.ObjectId(userId),
-      },
-    },
-    {
-      $set: updateData,
-    },
-    {
-      $addFields: {
-        role: {
-          $switch: {
-            branches: [
-              { case: { $eq: ["$role", 0] }, then: "Super Admin" },
-              { case: { $eq: ["$role", 1] }, then: "Admin" },
-              { case: { $eq: ["$role", 2] }, then: "Inspector" },
-            ],
-            default: "Unknown",
-          },
-        },
-      },
-    },
-    {
-      $project: {
-        password: 0,
-      },
-    },
-  ]);
+  // 1. Update the user
+  const updatedUser = await UserModel.findByIdAndUpdate(
+    userId,
+    { $set: updateData },
+    { new: true } // return the updated document
+  );
 
-  if (result.length === 0) {
+  if (!updatedUser) {
     const err = new Error("User not found");
     err.status = 404;
     err.code = "USER_NOT_FOUND";
     throw err;
   }
 
-  return result[0] || null;
+  // 2. Map role for output
+  let roleName;
+  switch (updatedUser.role) {
+    case 0:
+      roleName = "Super Admin";
+      break;
+    case 1:
+      roleName = "Admin";
+      break;
+    case 2:
+      roleName = "Inspector";
+      break;
+    default:
+      roleName = "Unknown";
+  }
+
+  // 3. Return safe output
+  const { password, ...rest } = updatedUser.toObject();
+  return { ...rest, role: roleName };
 }
 
 /**
@@ -113,53 +108,80 @@ async function getUsers(query = {}) {
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
+  const role = query.role !== undefined ? Number(query.role) : undefined;
 
-  const result = await UserModel.aggregate([
-    ...(search
-      ? [
-          {
-            $match: {
-              $or: [
-                { firstName: { $regex: search, $options: "i" } },
-                { lastName: { $regex: search, $options: "i" } },
-                { email: { $regex: search, $options: "i" } },
-                { userId: { $regex: search, $options: "i" } },
-              ],
-            },
-          },
-        ]
-      : []),
+  const pipeline = [];
 
-    // Replace role value with label
-    {
-      $addFields: {
-        role: {
-          $switch: {
-            branches: [
-              { case: { $eq: ["$role", "0"] }, then: "Super Admin" },
-              { case: { $eq: ["$role", "1"] }, then: "Admin" },
-              { case: { $eq: ["$role", "2"] }, then: "Inspector" },
-            ],
-            default: "Unknown",
-          },
+  // Filter by role if provided
+  if (role !== undefined) {
+    pipeline.push({ $match: { role: role } });
+  }
+
+  // Search filter if provided
+  if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchMatch = {
+      $match: {
+        $or: [
+          { firstName: { $regex: escapedSearch, $options: "i" } },
+          { lastName: { $regex: escapedSearch, $options: "i" } },
+          { email: { $regex: escapedSearch, $options: "i" } },
+          { userId: { $regex: escapedSearch, $options: "i" } },
+        ],
+      },
+    };
+
+    // If we already have a role match, we need to combine with $and
+    if (pipeline.length > 0 && pipeline[pipeline.length - 1].$match) {
+      const existingMatch = pipeline[pipeline.length - 1].$match;
+      pipeline[pipeline.length - 1] = {
+        $match: {
+          $and: [existingMatch, searchMatch.$match],
+        },
+      };
+    } else {
+      pipeline.push(searchMatch);
+    }
+  }
+
+  // Add role label while preserving original role value
+  pipeline.push({
+    $addFields: {
+      roleLabel: {
+        $switch: {
+          branches: [
+            { case: { $eq: ["$role", 0] }, then: "Super Admin" },
+            { case: { $eq: ["$role", 1] }, then: "Admin" },
+            { case: { $eq: ["$role", 2] }, then: "Inspector" },
+          ],
+          default: "Unknown",
         },
       },
     },
+  });
 
-    {
-      $facet: {
-        users: [
-          { $skip: skip },
-          { $limit: limit },
-          { $project: { password: 0 } },
-        ],
-        metaData: [{ $count: "totalUser" }],
-      },
+  // Facet for pagination and counting
+  pipeline.push({
+    $facet: {
+      users: [
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $project: {
+            password: 0,
+            resetToken: 0,
+            resetTokenExpiry: 0,
+          },
+        },
+      ],
+      metaData: [{ $count: "totalUser" }],
     },
-  ]);
+  });
 
-  const users = result[0].users;
-  const totalUser = result[0].metaData[0]?.totalUser || 0;
+  const result = await UserModel.aggregate(pipeline);
+
+  const users = result[0]?.users || [];
+  const totalUser = result[0]?.metaData[0]?.totalUser || 0;
 
   return {
     users,

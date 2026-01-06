@@ -8,31 +8,35 @@ dotenv.config();
 const app = require("./app");
 const { logError } = require("./helpers/logger");
 
-const server = app.listen(process.env.PORT, () => {
-  // Minimal startup message
-  console.log(`Server running on port ${process.env.PORT}`);
-});
+dotenv.config();
 
-// Connect DB after server starts
-mongoose
-  .connect(process.env.DB_CONNECTION_URI)
-  .then(() => {
-    console.log("Database connected successfully");
-  })
-  .catch((err) => {
-    // log silently and show minimal message
-    logError(err, { context: "mongoose.connect" });
-    console.log("Database connection failed");
+const server = app.listen(process.env.PORT, async () => {
+  // Connect DB after server starts
+  await mongoose
+    .connect(process.env.DB_CONNECTION_URI)
+    .then(() => {
+      console.log("Database connected successfully");
+    })
+    .catch((err) => {
+      // log silently and show minimal message
+      logError(err, { context: "mongoose.connect" });
+      console.log("Database connection failed");
+    });
+
+  // Handle unhandled promise rejections and uncaught exceptions silently
+  process.on("unhandledRejection", (reason) => {
+    try {
+      logError(reason, { type: "unhandledRejection" });
+    } catch (e) {
+      // ignore
+      console.error("Error logging unhandled rejection:", e);
+    }
   });
 
-// Handle unhandled promise rejections and uncaught exceptions silently
-process.on("unhandledRejection", (reason) => {
-  try {
-    logError(reason, { type: "unhandledRejection" });
-  } catch (e) {
-    // ignore
-    console.error("Error logging unhandled rejection:", e);
-  }
+  // Minimal startup message
+  console.log(`Server running on port ${process.env.PORT}`);
+  console.log(`Base Url: http://localhost:${process.env.PORT}`);
+  console.log("Api versioning: version v1");
 });
 
 process.on("uncaughtException", (err) => {

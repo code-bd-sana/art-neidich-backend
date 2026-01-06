@@ -342,9 +342,10 @@ async function getImageLabel(id) {
  * @param {{label?: string}} payload
  * @returns {Promise<Object>} updated label
  */
-async function updateImageLabel(id, payload) {
+async function updateImageLabel(id, payload, userId) {
   const labelValue = payload.label;
 
+  /* ---------- DUPLICATE CHECK ---------- */
   if (labelValue) {
     const esc = escapeRegExp(labelValue);
     const existing = await ImageLabelModel.findOne({
@@ -360,15 +361,29 @@ async function updateImageLabel(id, payload) {
     }
   }
 
-  const updated = await ImageLabelModel.aggregate([
-    // Update stage
+  /* ---------- UPDATE DOCUMENT ---------- */
+  const updateResult = await ImageLabelModel.findByIdAndUpdate(
+    id,
     {
-      $match: { _id: new mongoose.Types.ObjectId(id) },
+      $set: {
+        label: payload.label,
+        lastUpdatedBy: userId,
+      },
     },
-    {
-      $set: Object.assign({}, payload),
-    },
-    // Lookup createdBy
+    { new: true }
+  );
+
+  if (!updateResult) {
+    const err = new Error("Image label not found");
+    err.status = 404;
+    err.code = "LABEL_NOT_FOUND";
+    throw err;
+  }
+
+  /* ---------- FETCH UPDATED DATA WITH LOOKUPS ---------- */
+  const result = await ImageLabelModel.aggregate([
+    { $match: { _id: updateResult._id } },
+
     {
       $lookup: {
         from: "users",
@@ -378,7 +393,7 @@ async function updateImageLabel(id, payload) {
       },
     },
     { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
-    // Lookup lastUpdatedBy
+
     {
       $lookup: {
         from: "users",
@@ -388,7 +403,7 @@ async function updateImageLabel(id, payload) {
       },
     },
     { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
-    // Map roles
+
     {
       $addFields: {
         "createdBy.role": {
@@ -416,38 +431,31 @@ async function updateImageLabel(id, payload) {
         },
       },
     },
-    // Project safe fields
+
     {
       $project: {
         label: 1,
         createdAt: 1,
         updatedAt: 1,
         createdBy: {
-          _id: "$createdBy._id",
-          firstName: "$createdBy.firstName",
-          lastName: "$createdBy.lastName",
-          email: "$createdBy.email",
-          role: "$createdBy.role",
+          _id: 1,
+          firstName: 1,
+          lastName: 1,
+          email: 1,
+          role: 1,
         },
         lastUpdatedBy: {
-          _id: "$lastUpdatedBy._id",
-          firstName: "$lastUpdatedBy.firstName",
-          lastName: "$lastUpdatedBy.lastName",
-          email: "$lastUpdatedBy.email",
-          role: "$lastUpdatedBy.role",
+          _id: 1,
+          firstName: 1,
+          lastName: 1,
+          email: 1,
+          role: 1,
         },
       },
     },
   ]);
 
-  if (!updated || !updated.length) {
-    const err = new Error("Image label not found");
-    err.status = 404;
-    err.code = "LABEL_NOT_FOUND";
-    throw err;
-  }
-
-  return updated[0];
+  return result[0];
 }
 
 /**

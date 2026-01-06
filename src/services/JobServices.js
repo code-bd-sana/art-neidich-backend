@@ -24,7 +24,7 @@ async function createJob(payload) {
     {
       $lookup: {
         from: "users",
-        localField: "inspectorId",
+        localField: "inspector",
         foreignField: "_id",
         as: "inspector",
       },
@@ -44,7 +44,6 @@ async function createJob(payload) {
         as: "createdBy",
       },
     },
-
     {
       $unwind: {
         path: "$createdBy",
@@ -66,9 +65,30 @@ async function createJob(payload) {
         preserveNullAndEmptyArrays: true,
       },
     },
-    // Convert roles to readable labels
+    // Check if report exists
+    {
+      $lookup: {
+        from: "reports",
+        let: { jobId: "$_id" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$job", "$$jobId"] } } },
+          { $limit: 1 },
+          { $project: { _id: 1, status: 1 } },
+        ],
+        as: "reportCheck",
+      },
+    },
+    // Convert roles to readable labels and add report status(found or not found make it In Progress)
     {
       $addFields: {
+        hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
+        reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
+        reportStatus: {
+          $ifNull: [
+            { $arrayElemAt: ["$reportCheck.status", 0] },
+            "In Progress",
+          ],
+        },
         "inspector.role": {
           $switch: {
             branches: [
@@ -107,15 +127,48 @@ async function createJob(payload) {
     // Project safe fields only
     {
       $project: {
-        "inspector.password": 0,
-        "inspector.resetToken": 0,
-        "inspector.resetTokenExpiry": 0,
-        "createdBy.password": 0,
-        "createdBy.resetToken": 0,
-        "createdBy.resetTokenExpiry": 0,
-        "lastUpdatedBy.password": 0,
-        "lastUpdatedBy.resetToken": 0,
-        "lastUpdatedBy.resetTokenExpiry": 0,
+        formType: 1,
+        feeStatus: 1,
+        agreedFee: 1,
+        fhaCaseDetailsNo: 1,
+        orderId: 1,
+        streetAddress: 1,
+        developmentName: 1,
+        siteContactName: 1,
+        siteContactPhone: 1,
+        siteContactEmail: 1,
+        dueDate: 1,
+        specialNotesForInspector: 1,
+        specialNoteForApOrAr: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        hasReport: 1,
+        reportId: 1,
+        reportStatus: 1,
+        inspector: {
+          _id: "$inspector._id",
+          userId: "$inspector.userId",
+          firstName: "$inspector.firstName",
+          lastName: "$inspector.lastName",
+          email: "$inspector.email",
+          role: "$inspector.role",
+        },
+        createdBy: {
+          _id: "$createdBy._id",
+          userId: "$createdBy.userId",
+          firstName: "$createdBy.firstName",
+          lastName: "$createdBy.lastName",
+          email: "$createdBy.email",
+          role: "$createdBy.role",
+        },
+        lastUpdatedBy: {
+          _id: "$lastUpdatedBy._id",
+          userId: "$lastUpdatedBy.userId",
+          firstName: "$lastUpdatedBy.firstName",
+          lastName: "$lastUpdatedBy.lastName",
+          email: "$lastUpdatedBy.email",
+          role: "$lastUpdatedBy.role",
+        },
       },
     },
   ]);
@@ -142,8 +195,8 @@ async function getJobById(id) {
         let: { jobId: "$_id" },
         pipeline: [
           { $match: { $expr: { $eq: ["$job", "$$jobId"] } } },
-          { $limit: 1 }, // only need existence
-          { $project: { _id: 1 } },
+          { $limit: 1 },
+          { $project: { _id: 1, status: 1 } },
         ],
         as: "reportCheck",
       },
@@ -183,8 +236,43 @@ async function getJobById(id) {
     /* ---------------- ROLE MAPPING ---------------- */
     {
       $addFields: {
-        hasReport: { $gt: [{ $size: "$reportCheck" }, 0] }, // ✅ true / false
-        reportId: { $arrayElemAt: ["$reportCheck._id", 0] }, // ✅ expose the report _id
+        hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
+        reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
+        reportStatus: { $arrayElemAt: ["$reportCheck.status", 0] },
+        reportStatusLabel: {
+          $switch: {
+            branches: [
+              {
+                case: {
+                  $eq: [
+                    { $arrayElemAt: ["$reportCheck.status", 0] },
+                    "submitted",
+                  ],
+                },
+                then: "Submitted",
+              },
+              {
+                case: {
+                  $eq: [
+                    { $arrayElemAt: ["$reportCheck.status", 0] },
+                    "completed",
+                  ],
+                },
+                then: "Completed",
+              },
+              {
+                case: {
+                  $eq: [
+                    { $arrayElemAt: ["$reportCheck.status", 0] },
+                    "rejected",
+                  ],
+                },
+                then: "Rejected",
+              },
+            ],
+            default: "In Progress",
+          },
+        },
         "inspector.role": {
           $switch: {
             branches: [
@@ -241,6 +329,8 @@ async function getJobById(id) {
         updatedAt: 1,
         hasReport: 1,
         reportId: 1,
+        reportStatus: 1,
+        reportStatusLabel: 1,
         inspector: {
           _id: "$inspector._id",
           userId: "$inspector.userId",
@@ -249,7 +339,6 @@ async function getJobById(id) {
           email: "$inspector.email",
           role: "$inspector.role",
         },
-
         createdBy: {
           _id: "$createdBy._id",
           userId: "$createdBy.userId",
@@ -258,7 +347,6 @@ async function getJobById(id) {
           email: "$createdBy.email",
           role: "$createdBy.role",
         },
-
         lastUpdatedBy: {
           _id: "$lastUpdatedBy._id",
           userId: "$lastUpdatedBy.userId",
@@ -360,28 +448,43 @@ async function getMyJobs(query = {}, userId) {
       },
     }
   );
-  // Search (job fields + inspector name)
 
+  // Lookup report status
+  pipeline.push({
+    $lookup: {
+      from: "reports",
+      let: { jobId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$job", "$$jobId"] } } },
+        { $limit: 1 },
+        { $project: { _id: 1, status: 1 } },
+      ],
+      as: "reportCheck",
+    },
+  });
+
+  // Search (job fields + inspector name)
   if (search) {
-    const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
-    const regex = new RegExp(esc, "i");
+    // Proper regex escaping for MongoDB $regex
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escapedSearch, "i");
     pipeline.push({
       $match: {
         $or: [
-          { streetAddress: regex },
-          { orderId: regex },
-          { fhaCaseDetailsNo: regex },
-          { developmentName: regex },
-          { siteContactName: regex },
-          { "inspector.firstName": regex },
-          { "inspector.lastName": regex },
+          { streetAddress: { $regex: escapedSearch, $options: "i" } },
+          { orderId: { $regex: escapedSearch, $options: "i" } },
+          { fhaCaseDetailsNo: { $regex: escapedSearch, $options: "i" } },
+          { developmentName: { $regex: escapedSearch, $options: "i" } },
+          { siteContactName: { $regex: escapedSearch, $options: "i" } },
+          { "inspector.firstName": { $regex: escapedSearch, $options: "i" } },
+          { "inspector.lastName": { $regex: escapedSearch, $options: "i" } },
           {
             $expr: {
               $regexMatch: {
                 input: {
                   $concat: ["$inspector.firstName", " ", "$inspector.lastName"],
                 },
-                regex: esc,
+                regex: escapedSearch,
                 options: "i",
               },
             },
@@ -390,9 +493,44 @@ async function getMyJobs(query = {}, userId) {
       },
     });
   }
-  // Convert roles to readable labels
+
+  // Convert roles to readable labels and add report status
   pipeline.push({
     $addFields: {
+      hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
+      reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
+      reportStatus: { $arrayElemAt: ["$reportCheck.status", 0] },
+      reportStatusLabel: {
+        $switch: {
+          branches: [
+            {
+              case: {
+                $eq: [
+                  { $arrayElemAt: ["$reportCheck.status", 0] },
+                  "submitted",
+                ],
+              },
+              then: "Submitted",
+            },
+            {
+              case: {
+                $eq: [
+                  { $arrayElemAt: ["$reportCheck.status", 0] },
+                  "completed",
+                ],
+              },
+              then: "Completed",
+            },
+            {
+              case: {
+                $eq: [{ $arrayElemAt: ["$reportCheck.status", 0] }, "rejected"],
+              },
+              then: "Rejected",
+            },
+          ],
+          default: "In Progress",
+        },
+      },
       "inspector.role": {
         $switch: {
           branches: [
@@ -425,6 +563,7 @@ async function getMyJobs(query = {}, userId) {
       },
     },
   });
+
   // Project safe fields only
   pipeline.push({
     $project: {
@@ -440,6 +579,11 @@ async function getMyJobs(query = {}, userId) {
       siteContactEmail: 1,
       dueDate: 1,
       createdAt: 1,
+      updatedAt: 1,
+      hasReport: 1,
+      reportId: 1,
+      reportStatus: 1,
+      reportStatusLabel: 1,
       inspector: {
         _id: "$inspector._id",
         userId: "$inspector.userId",
@@ -466,6 +610,7 @@ async function getMyJobs(query = {}, userId) {
       },
     },
   });
+
   // Pagination + count
   pipeline.push(
     { $sort: { createdAt: -1 } },
@@ -476,6 +621,7 @@ async function getMyJobs(query = {}, userId) {
       },
     }
   );
+
   const result = await JobModel.aggregate(pipeline);
   const jobs = result[0]?.jobs || [];
   const totalJob = result[0]?.metaData[0]?.totalJob || 0;
@@ -565,8 +711,21 @@ async function getJobs(query = {}) {
     }
   );
 
-  // Search (job fields + inspector name)
+  // Lookup report status
+  pipeline.push({
+    $lookup: {
+      from: "reports",
+      let: { jobId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$job", "$$jobId"] } } },
+        { $limit: 1 },
+        { $project: { _id: 1, status: 1 } },
+      ],
+      as: "reportCheck",
+    },
+  });
 
+  // Search (job fields + inspector name)
   if (search) {
     const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
     const regex = new RegExp(esc, "i");
@@ -597,10 +756,43 @@ async function getJobs(query = {}) {
     });
   }
 
-  // Convert roles to readable labels
-
+  // Convert roles to readable labels and add report status
   pipeline.push({
     $addFields: {
+      hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
+      reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
+      reportStatus: { $arrayElemAt: ["$reportCheck.status", 0] },
+      reportStatusLabel: {
+        $switch: {
+          branches: [
+            {
+              case: {
+                $eq: [
+                  { $arrayElemAt: ["$reportCheck.status", 0] },
+                  "submitted",
+                ],
+              },
+              then: "Submitted",
+            },
+            {
+              case: {
+                $eq: [
+                  { $arrayElemAt: ["$reportCheck.status", 0] },
+                  "completed",
+                ],
+              },
+              then: "Completed",
+            },
+            {
+              case: {
+                $eq: [{ $arrayElemAt: ["$reportCheck.status", 0] }, "rejected"],
+              },
+              then: "Rejected",
+            },
+          ],
+          default: "In Progress",
+        },
+      },
       "inspector.role": {
         $switch: {
           branches: [
@@ -635,7 +827,6 @@ async function getJobs(query = {}) {
   });
 
   // Project safe fields only
-
   pipeline.push({
     $project: {
       formType: 1,
@@ -650,7 +841,11 @@ async function getJobs(query = {}) {
       siteContactEmail: 1,
       dueDate: 1,
       createdAt: 1,
-
+      updatedAt: 1,
+      hasReport: 1,
+      reportId: 1,
+      reportStatus: 1,
+      reportStatusLabel: 1,
       inspector: {
         _id: "$inspector._id",
         userId: "$inspector.userId",
@@ -659,7 +854,6 @@ async function getJobs(query = {}) {
         email: "$inspector.email",
         role: "$inspector.role",
       },
-
       createdBy: {
         _id: "$createdBy._id",
         userId: "$createdBy.userId",
@@ -668,7 +862,6 @@ async function getJobs(query = {}) {
         email: "$createdBy.email",
         role: "$createdBy.role",
       },
-
       lastUpdatedBy: {
         _id: "$lastUpdatedBy._id",
         userId: "$lastUpdatedBy.userId",
@@ -681,7 +874,6 @@ async function getJobs(query = {}) {
   });
 
   // Pagination + count
-
   pipeline.push(
     { $sort: { createdAt: -1 } },
     {
@@ -693,7 +885,6 @@ async function getJobs(query = {}) {
   );
 
   const result = await JobModel.aggregate(pipeline);
-
   const jobs = result[0]?.jobs || [];
   const totalJob = result[0]?.metaData[0]?.totalJob || 0;
 
@@ -721,7 +912,7 @@ async function updateJob(id, payload) {
 
   // Fetch updated document with aggregation
   const result = await JobModel.aggregate([
-    { $match: { _id: id } },
+    { $match: { _id: new mongoose.Types.ObjectId(id) } },
 
     // Lookup inspector
     {
@@ -756,9 +947,60 @@ async function updateJob(id, payload) {
     },
     { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
 
-    // Map roles to labels
+    // Lookup report status
+    {
+      $lookup: {
+        from: "reports",
+        let: { jobId: "$_id" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$job", "$$jobId"] } } },
+          { $limit: 1 },
+          { $project: { _id: 1, status: 1 } },
+        ],
+        as: "reportCheck",
+      },
+    },
+
+    // Map roles to labels and add report status
     {
       $addFields: {
+        hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
+        reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
+        reportStatus: { $arrayElemAt: ["$reportCheck.status", 0] },
+        reportStatusLabel: {
+          $switch: {
+            branches: [
+              {
+                case: {
+                  $eq: [
+                    { $arrayElemAt: ["$reportCheck.status", 0] },
+                    "submitted",
+                  ],
+                },
+                then: "Submitted",
+              },
+              {
+                case: {
+                  $eq: [
+                    { $arrayElemAt: ["$reportCheck.status", 0] },
+                    "completed",
+                  ],
+                },
+                then: "Completed",
+              },
+              {
+                case: {
+                  $eq: [
+                    { $arrayElemAt: ["$reportCheck.status", 0] },
+                    "rejected",
+                  ],
+                },
+                then: "Rejected",
+              },
+            ],
+            default: "In Progress",
+          },
+        },
         "inspector.role": {
           $switch: {
             branches: [
@@ -813,7 +1055,10 @@ async function updateJob(id, payload) {
         specialNoteForApOrAr: 1,
         createdAt: 1,
         updatedAt: 1,
-
+        hasReport: 1,
+        reportId: 1,
+        reportStatus: 1,
+        reportStatusLabel: 1,
         inspector: {
           _id: "$inspector._id",
           userId: "$inspector.userId",
@@ -822,7 +1067,6 @@ async function updateJob(id, payload) {
           email: "$inspector.email",
           role: "$inspector.role",
         },
-
         createdBy: {
           _id: "$createdBy._id",
           userId: "$createdBy.userId",
@@ -831,7 +1075,6 @@ async function updateJob(id, payload) {
           email: "$createdBy.email",
           role: "$createdBy.role",
         },
-
         lastUpdatedBy: {
           _id: "$lastUpdatedBy._id",
           userId: "$lastUpdatedBy.userId",

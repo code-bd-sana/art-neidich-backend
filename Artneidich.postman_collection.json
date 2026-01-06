@@ -1,0 +1,1200 @@
+{
+  "info": {
+    "_postman_id": "artneidich-api-collection-2026",
+    "name": "Artneidich API Collection",
+    "description": "Full API collection for Artneidich backend. Includes all endpoints, variables for base URL and authentication, and example responses.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "authToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"role\": 2\n}"
+            },
+            "description": "Register a new user.\n\nValidation fields:\n- firstName: string, required, min 1 character\n- lastName: string, required, min 1 character\n- email: string, required, valid email\n- password: string, required, min 6 characters\n- role: 1 (admin) or 2 (inspector), required"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {},
+              "status": "201 Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"User registered successfully\"\n}"
+            }
+          ],
+          "description": "Register a new user."
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "description": "Authenticate a user and receive a JWT token.\n\nValidation fields:\n- email: string, required, valid email\n- password: string, required, min 6 characters"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {},
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZDIxYjQ2NjdkMGQ4OTkyZTYxMGM4NSIsImVtYWlsIjoidXNlckBleGFtcGxlLmNvbSIsInJvbGUiOjIsImlhdCI6MTYwOTAwMDAwMCwiZXhwIjoxNjA5MDg2NDAwfQ.sflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\"\n}"
+            }
+          ],
+          "description": "Authenticate a user and receive a JWT token."
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"webRequest\": true\n}"
+            },
+            "description": "Request a password reset link.\n\nValidation fields:\n- email: string, required, valid email\n- webRequest: boolean, optional\n- mobileRequest: boolean, optional\n- Either webRequest or mobileRequest must be provided, but not both."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {},
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Password reset link sent if email exists\"\n}"
+            }
+          ],
+          "description": "Request a password reset link."
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newPassword123\"\n}"
+            },
+            "description": "Reset user password using a token or OTP.\n\nValidation fields (OTP mode):\n- email: string, required, valid email\n- otp: string, required, exactly 6 characters\n- newPassword: string, required, min 6 characters\n\nValidation fields (Token mode):\n- email: string, required, valid email\n- token: string, required, valid UUID\n- newPassword: string, required, min 6 characters"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {},
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Password reset successful\"\n}"
+            }
+          ],
+          "description": "Reset user password using a token."
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"oldPassword123\",\n  \"newPassword\": \"newPassword123\"\n}"
+            },
+            "description": "Change the password for the authenticated user.\n\nValidation fields:\n- currentPassword: string, required, min 6 characters\n- newPassword: string, required, min 6 characters"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {},
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Password changed successfully\"\n}"
+            }
+          ],
+          "description": "Change the password for the authenticated user."
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "profile"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"User profile fetched successfully\",\n  \"data\": {\n    \"_id\": \"60d21b4667d0d8992e610c85\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"user@example.com\",\n    \"role\": 2,\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "401 Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Unauthorized\"\n}"
+            }
+          ],
+          "description": "Get the authenticated user's profile."
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "profile"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"user@example.com\"\n}"
+            },
+            "description": "Update the authenticated user's profile.\n\nValidation fields (all optional):\n- firstName: string, min 1 character\n- lastName: string, min 1 character\n- email: string, valid email"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"User profile updated successfully\",\n  \"data\": {\n    \"_id\": \"60d21b4667d0d8992e610c85\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"user@example.com\",\n    \"role\": 2,\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "401 Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Unauthorized\"\n}"
+            }
+          ],
+          "description": "Update the authenticated user's profile."
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Users fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"60d21b4667d0d8992e610c85\",\n      \"firstName\": \"John\",\n      \"lastName\": \"Doe\",\n      \"email\": \"user@example.com\",\n      \"role\": 2,\n      \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  }\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "status": "403 Forbidden",
+              "code": 403,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Forbidden\"\n}"
+            }
+          ],
+          "description": "Get all users (admin/root only)."
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                ":id"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"User fetched successfully\",\n  \"data\": {\n    \"_id\": \"60d21b4667d0d8992e610c85\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"user@example.com\",\n    \"role\": 2,\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "404 Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"User not found\"\n}"
+            }
+          ],
+          "description": "Get a user by ID (admin/root only)."
+        },
+        {
+          "name": "Approve User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                ":id",
+                "approve"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"User approved successfully\"\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"You cannot approve yourself\"\n}"
+            }
+          ],
+          "description": "Approve a user (admin/root only)."
+        },
+        {
+          "name": "Suspend User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/:id/suspend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                ":id",
+                "suspend"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"User suspended successfully\"\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"You cannot suspend yourself\"\n}"
+            }
+          ],
+          "description": "Suspend a user (admin/root only)."
+        },
+        {
+          "name": "Un-suspend User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/:id/unsuspend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                ":id",
+                "unsuspend"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"User un-suspended successfully\"\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"You cannot un-suspend yourself\"\n}"
+            }
+          ],
+          "description": "Un-suspend a user (admin/root only)."
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                ":id"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"User deleted successfully\"\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"You cannot delete yourself\"\n}"
+            }
+          ],
+          "description": "Delete a user (root only)."
+        }
+      ]
+    },
+    {
+      "name": "Job",
+      "item": [
+        {
+          "name": "Create Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/job",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "job"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspector\": \"60d21b4667d0d8992e610c85\",\n  \"formType\": \"RCI Residential Building Code Inspection\",\n  \"feeStatus\": \"Standard\",\n  \"agreedFee\": 1000,\n  \"fhaCaseDetailsNo\": \"FHA123456\",\n  \"orderId\": \"ORD123\",\n  \"streetAddress\": \"123 Main St\",\n  \"developmentName\": \"Greenfield\",\n  \"siteContactName\": \"Jane Smith\",\n  \"siteContactPhone\": \"+1234567890\",\n  \"siteContactEmail\": \"contact@example.com\",\n  \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n  \"specialNotesForInspector\": \"Please check the roof.\",\n  \"specialNoteForApOrAr\": \"Urgent job.\"\n}"
+            },
+            "description": "Create a new job (admin/root only).\n\nValidation fields:\n- inspector: string (MongoId), required\n- formType: enum, required (\"RCI Residential Building Code Inspection\", \"UnKnown\")\n- feeStatus: enum, required (\"Standard\", \"Rush Order\", \"Occupied Fee\", \"Modified Fee\", \"Long Distance Fee\")\n- agreedFee: integer, required, nonnegative\n- fhaCaseDetailsNo: string, required\n- orderId: string, required\n- streetAddress: string, required\n- developmentName: string, required\n- siteContactName: string, required\n- siteContactPhone: string, required\n- siteContactEmail: string, optional, valid email\n- dueDate: date, required, cannot be in the past\n- specialNotesForInspector: string, optional, max 1250 chars\n- specialNoteForApOrAr: string, optional, max 1250 chars"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "201 Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Job created successfully\",\n  \"data\": { /* job */ }\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\"\n}"
+            }
+          ],
+          "description": "Create a new job (admin/root only)."
+        },
+        {
+          "name": "Get All Jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/job",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "job"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Jobs fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"jobid1\",\n      \"inspector\": \"60d21b4667d0d8992e610c85\",\n      \"formType\": \"RCI Residential Building Code Inspection\",\n      \"feeStatus\": \"Standard\",\n      \"agreedFee\": 1000,\n      \"fhaCaseDetailsNo\": \"FHA123456\",\n      \"orderId\": \"ORD123\",\n      \"streetAddress\": \"123 Main St\",\n      \"developmentName\": \"Greenfield\",\n      \"siteContactName\": \"Jane Smith\",\n      \"siteContactPhone\": \"+1234567890\",\n      \"siteContactEmail\": \"contact@example.com\",\n      \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n      \"specialNotesForInspector\": \"Please check the roof.\",\n      \"specialNoteForApOrAr\": \"Urgent job.\",\n      \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  }\n}"
+            }
+          ],
+          "description": "Get all jobs (admin/root only)."
+        },
+        {
+          "name": "Get My Jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/job/my-jobs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "job",
+                "my-jobs"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"My jobs fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"jobid2\",\n      \"inspector\": \"60d21b4667d0d8992e610c85\",\n      \"formType\": \"RCI Residential Building Code Inspection\",\n      \"feeStatus\": \"Rush Order\",\n      \"agreedFee\": 1200,\n      \"fhaCaseDetailsNo\": \"FHA654321\",\n      \"orderId\": \"ORD456\",\n      \"streetAddress\": \"456 New Ave\",\n      \"developmentName\": \"Bluefield\",\n      \"siteContactName\": \"John Smith\",\n      \"siteContactPhone\": \"+1987654321\",\n      \"siteContactEmail\": \"site@example.com\",\n      \"dueDate\": \"2026-01-15T00:00:00.000Z\",\n      \"specialNotesForInspector\": \"Updated note.\",\n      \"specialNoteForApOrAr\": \"Updated urgent job.\",\n      \"createdAt\": \"2026-01-02T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  }\n}"
+            }
+          ],
+          "description": "Get jobs assigned to the logged-in user."
+        },
+        {
+          "name": "Get Job By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/job/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "job",
+                ":id"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Job fetched successfully\",\n  \"data\": {\n    \"_id\": \"jobid1\",\n    \"inspector\": \"60d21b4667d0d8992e610c85\",\n    \"formType\": \"RCI Residential Building Code Inspection\",\n    \"feeStatus\": \"Standard\",\n    \"agreedFee\": 1000,\n    \"fhaCaseDetailsNo\": \"FHA123456\",\n    \"orderId\": \"ORD123\",\n    \"streetAddress\": \"123 Main St\",\n    \"developmentName\": \"Greenfield\",\n    \"siteContactName\": \"Jane Smith\",\n    \"siteContactPhone\": \"+1234567890\",\n    \"siteContactEmail\": \"contact@example.com\",\n    \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n    \"specialNotesForInspector\": \"Please check the roof.\",\n    \"specialNoteForApOrAr\": \"Urgent job.\",\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "404 Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Job not found\"\n}"
+            }
+          ],
+          "description": "Get a job by ID (admin/root only)."
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/job/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "job",
+                ":id"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspector\": \"60d21b4667d0d8992e610c85\",\n  \"formType\": \"RCI Residential Building Code Inspection\",\n  \"feeStatus\": \"Rush Order\",\n  \"agreedFee\": 1200,\n  \"fhaCaseDetailsNo\": \"FHA654321\",\n  \"orderId\": \"ORD456\",\n  \"streetAddress\": \"456 New Ave\",\n  \"developmentName\": \"Bluefield\",\n  \"siteContactName\": \"John Smith\",\n  \"siteContactPhone\": \"+1987654321\",\n  \"siteContactEmail\": \"site@example.com\",\n  \"dueDate\": \"2026-01-15T00:00:00.000Z\",\n  \"specialNotesForInspector\": \"Updated note.\",\n  \"specialNoteForApOrAr\": \"Updated urgent job.\"\n}"
+            },
+            "description": "Update a job (admin/root only).\n\nValidation fields (all optional):\n- inspector: string (MongoId)\n- formType: enum (\"RCI Residential Building Code Inspection\", \"UnKnown\")\n- feeStatus: enum (\"Standard\", \"Rush Order\", \"Occupied Fee\", \"Modified Fee\", \"Long Distance Fee\")\n- agreedFee: integer, nonnegative\n- fhaCaseDetailsNo: string\n- orderId: string\n- streetAddress: string\n- developmentName: string\n- siteContactName: string\n- siteContactPhone: string\n- siteContactEmail: string, valid email\n- dueDate: date, cannot be in the past\n- specialNotesForInspector: string, max 1250 chars\n- specialNoteForApOrAr: string, max 1250 chars"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Job updated successfully\",\n  \"data\": { /* updated job */ }\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\"\n}"
+            }
+          ],
+          "description": "Update a job (admin/root only)."
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/job/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "job",
+                ":id"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Job deleted successfully\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "404 Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Job not found\"\n}"
+            }
+          ],
+          "description": "Delete a job (admin/root only)."
+        }
+      ]
+    },
+    {
+      "name": "Report",
+      "item": [
+        {
+          "name": "Create Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "job",
+                  "value": "60d21b4667d0d8992e610c85",
+                  "type": "text"
+                },
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "description": "Create a new report (inspector only).\n\nValidation fields:\n- job: string (MongoId), required\n- images: array of objects, required, 1-2 images\n  - imageLabel: string (MongoId), required\n  - fileName: string, required\n  - alt: string, optional\n  - mimeType: string, required\n  - size: integer, required, nonnegative\n  - noteForAdmin: string, optional\n  - buffer: any, optional\n  - stream: any, optional\n- You must provide 1 or 2 images."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "201 Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Report created successfully\",\n  \"data\": { /* report */ }\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\"\n}"
+            }
+          ],
+          "description": "Create a new report (inspector only)."
+        },
+        {
+          "name": "Get All Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Reports fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"reportid1\",\n      \"job\": \"jobid1\",\n      \"inspector\": \"60d21b4667d0d8992e610c85\",\n      \"images\": [\n        {\n          \"imageLabel\": \"labelid1\",\n          \"fileName\": \"photo1.jpg\",\n          \"alt\": \"Front view\",\n          \"mimeType\": \"image/jpeg\",\n          \"size\": 123456,\n          \"noteForAdmin\": \"Clear image\"\n        }\n      ],\n      \"createdAt\": \"2026-01-03T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  }\n}"
+            }
+          ],
+          "description": "Get all reports (admin/root only)."
+        },
+        {
+          "name": "Get Report By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/report/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report",
+                ":id"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Report fetched successfully\",\n  \"data\": {\n    \"_id\": \"reportid1\",\n    \"job\": \"jobid1\",\n    \"inspector\": \"60d21b4667d0d8992e610c85\",\n    \"images\": [\n      {\n        \"imageLabel\": \"labelid1\",\n        \"fileName\": \"photo1.jpg\",\n        \"alt\": \"Front view\",\n        \"mimeType\": \"image/jpeg\",\n        \"size\": 123456,\n        \"noteForAdmin\": \"Clear image\"\n      }\n    ],\n    \"createdAt\": \"2026-01-03T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "404 Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Report not found\"\n}"
+            }
+          ],
+          "description": "Get a report by ID (admin/root only)."
+        },
+        {
+          "name": "Get Report PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/report/:id/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report",
+                ":id",
+                "pdf"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (PDF)",
+              "status": "200 OK",
+              "code": 200,
+              "body": "<PDF binary>"
+            }
+          ],
+          "description": "Download a report as PDF (admin/root only)."
+        },
+        {
+          "name": "Update Report Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/report/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report",
+                ":id",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\",\n  \"comment\": \"Status updated by admin.\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Report status updated successfully\",\n  \"data\": { /* updated report */ }\n}"
+            }
+          ],
+          "description": "Update the status of a report (admin/root only)."
+        },
+        {
+          "name": "Delete Report",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/report/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report",
+                ":id"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Report deleted successfully\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "404 Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Report not found\"\n}"
+            }
+          ],
+          "description": "Delete a report (admin/root only)."
+        }
+      ]
+    },
+    {
+      "name": "ImageLabel",
+      "item": [
+        {
+          "name": "Create Image Label",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/image-label",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "image-label"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Tree\"\n}"
+            },
+            "description": "Create a new image label (admin/root only).\n\nValidation fields:\n- label: string, required, min 1 character"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "201 Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Image label created successfully\",\n  \"data\": { /* image label */ }\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\"\n}"
+            }
+          ],
+          "description": "Create a new image label (admin/root only)."
+        },
+        {
+          "name": "Get All Image Labels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/image-label",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "image-label"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Image labels fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"labelid1\",\n      \"label\": \"Tree\",\n      \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  }\n}"
+            }
+          ],
+          "description": "Get all image labels (admin/root only)."
+        },
+        {
+          "name": "Get Image Label By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/image-label/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "image-label",
+                ":id"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Image label fetched successfully\",\n  \"data\": {\n    \"_id\": \"labelid1\",\n    \"label\": \"Tree\",\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "404 Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Image label not found\"\n}"
+            }
+          ],
+          "description": "Get an image label by ID (admin/root only)."
+        },
+        {
+          "name": "Update Image Label",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/image-label/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "image-label",
+                ":id"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Updated Label\"\n}"
+            },
+            "description": "Update an image label (admin/root only).\n\nValidation fields (all optional):\n- label: string, min 1 character"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Image label updated successfully\",\n  \"data\": { /* updated image label */ }\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\"\n}"
+            }
+          ],
+          "description": "Update an image label (admin/root only)."
+        },
+        {
+          "name": "Delete Image Label",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/image-label/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "image-label",
+                ":id"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Image label deleted successfully\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "404 Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Image label not found\"\n}"
+            }
+          ],
+          "description": "Delete an image label (admin/root only)."
+        }
+      ]
+    }
+  ]
+}

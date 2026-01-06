@@ -20,13 +20,25 @@ const { uploadMultiple, deleteMultiple } = require("../utils/s3");
 async function createReport(payload) {
   // Check the job for this report exists
   const jobExists = await JobModel.exists({
-    _id: payload.job,
+    _id: new mongoose.Types.ObjectId(payload.job),
   });
 
   if (!jobExists) {
     const err = new Error("Associated job not found");
     err.status = 404;
     err.code = "JOB_NOT_FOUND";
+    throw err;
+  }
+
+  // Check any report exists for this job already
+  const reportExists = await ReportModel.exists({
+    job: new mongoose.Types.ObjectId(payload.job),
+  });
+
+  if (reportExists) {
+    const err = new Error("A report for this job already exists.");
+    err.status = 400;
+    err.code = "REPORT_ALREADY_EXISTS";
     throw err;
   }
 
@@ -121,6 +133,89 @@ async function createReport(payload) {
 }
 
 /**
+ * Get all reports with optional search and pagination
+ *
+ * @param {Object} query - Query parameters
+ * @returns {Promise<{reports: Array<Object>, metaData: Object}>} - Reports and metadata
+ */
+async function getAllReports(query) {
+  const page = parseInt(query.page, 10) || 1;
+  const limit = parseInt(query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+  const matchStage = {};
+
+  // Optional filtering by status
+  if (query.status) {
+    matchStage.status = query.status;
+  }
+
+  const totalReports = await ReportModel.countDocuments(matchStage);
+
+  const reports = await ReportModel.aggregate([
+    { $match: matchStage },
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    // Lookup inspector
+    {
+      $lookup: {
+        from: "users",
+        localField: "inspector",
+        foreignField: "_id",
+        as: "inspector",
+      },
+    },
+    { $unwind: "$inspector" },
+    // Lookup job
+    {
+      $lookup: {
+        from: "jobs",
+        localField: "job",
+        foreignField: "_id",
+        as: "job",
+      },
+    },
+    { $unwind: "$job" },
+
+    // Project final fields
+    {
+      $project: {
+        inspector: {
+          _id: "$inspector._id",
+          userId: "$inspector.userId",
+          firstName: "$inspector.firstName",
+          lastName: "$inspector.lastName",
+          email: "$inspector.email",
+          role: "Inspector",
+        },
+        job: {
+          _id: 1,
+          orderId: 1,
+          streetAddress: 1,
+          developmentName: 1,
+          siteContactName: 1,
+          siteContactPhone: 1,
+          siteContactEmail: 1,
+          dueDate: 1,
+        },
+        status: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    },
+  ]);
+
+  const metaData = {
+    total: totalReports,
+    page,
+    limit,
+    totalPages: Math.ceil(totalReports / limit),
+  };
+
+  return { reports, metaData };
+}
+
+/**
  * Get a single report by id
  *
  * @param {string} id - Report ID
@@ -179,50 +274,52 @@ async function getReportById(id) {
       },
     },
 
-    // Lookup labels for images
+    // Unwind images to process each one
+    { $unwind: { path: "$images", preserveNullAndEmptyArrays: true } },
+
+    // Group images by imageLabel (ObjectId)
     {
-      $lookup: {
-        from: "imagelabels",
-        localField: "images.imageLabel",
-        foreignField: "_id",
-        as: "imageLabels",
+      $group: {
+        _id: {
+          reportId: "$_id",
+          imageLabel: "$images.imageLabel", // Keep the ObjectId
+        },
+        inspector: { $first: "$inspector" },
+        job: { $first: "$job" },
+        jobCreatedBy: { $first: "$job.createdBy" },
+        jobLastUpdatedBy: { $first: "$job.lastUpdatedBy" },
+        status: { $first: "$status" },
+        createdAt: { $first: "$createdAt" },
+        updatedAt: { $first: "$updatedAt" },
+        images: {
+          $push: {
+            fileName: "$images.fileName",
+            url: "$images.url",
+            key: "$images.key",
+            alt: "$images.alt",
+            mimeType: "$images.mimeType",
+            size: "$images.size",
+            noteForAdmin: "$images.noteForAdmin",
+          },
+        },
       },
     },
 
-    // Map images with label name
+    // Group back by report to create label groups
     {
-      $addFields: {
+      $group: {
+        _id: "$_id.reportId",
+        inspector: { $first: "$inspector" },
+        job: { $first: "$job" },
+        jobCreatedBy: { $first: "$jobCreatedBy" },
+        jobLastUpdatedBy: { $first: "$jobLastUpdatedBy" },
+        status: { $first: "$status" },
+        createdAt: { $first: "$createdAt" },
+        updatedAt: { $first: "$updatedAt" },
         images: {
-          $map: {
-            input: "$images",
-            as: "img",
-            in: {
-              label: {
-                $arrayElemAt: [
-                  {
-                    $map: {
-                      input: {
-                        $filter: {
-                          input: "$imageLabels",
-                          as: "lbl",
-                          cond: { $eq: ["$$lbl._id", "$$img.imageLabel"] },
-                        },
-                      },
-                      as: "lbl",
-                      in: "$$lbl.label",
-                    },
-                  },
-                  0,
-                ],
-              },
-              fileName: "$$img.fileName",
-              url: "$$img.url",
-              key: "$$img.key",
-              alt: "$$img.alt",
-              mimeType: "$$img.mimeType",
-              size: "$$img.size",
-              noteForAdmin: "$$img.noteForAdmin",
-            },
+          $push: {
+            imageLabel: "$_id.imageLabel", // Direct ObjectId
+            images: "$images",
           },
         },
       },
@@ -240,31 +337,31 @@ async function getReportById(id) {
           role: "Inspector",
         },
         job: {
-          _id: 1,
-          orderId: 1,
-          streetAddress: 1,
-          developmentName: 1,
-          siteContactName: 1,
-          siteContactPhone: 1,
-          siteContactEmail: 1,
-          dueDate: 1,
-          createdAt: 1,
-          updatedAt: 1,
+          _id: "$job._id",
+          orderId: "$job.orderId",
+          streetAddress: "$job.streetAddress",
+          developmentName: "$job.developmentName",
+          siteContactName: "$job.siteContactName",
+          siteContactPhone: "$job.siteContactPhone",
+          siteContactEmail: "$job.siteContactEmail",
+          dueDate: "$job.dueDate",
+          createdAt: "$job.createdAt",
+          updatedAt: "$job.updatedAt",
           createdBy: {
-            _id: "$job.createdBy._id",
-            firstName: "$job.createdBy.firstName",
-            lastName: "$job.createdBy.lastName",
-            email: "$job.createdBy.email",
+            _id: "$jobCreatedBy._id",
+            firstName: "$jobCreatedBy.firstName",
+            lastName: "$jobCreatedBy.lastName",
+            email: "$jobCreatedBy.email",
             role: {
               $switch: {
                 branches: [
                   {
-                    case: { $eq: ["$job.createdBy.role", 0] },
+                    case: { $eq: ["$jobCreatedBy.role", 0] },
                     then: "Super Admin",
                   },
-                  { case: { $eq: ["$job.createdBy.role", 1] }, then: "Admin" },
+                  { case: { $eq: ["$jobCreatedBy.role", 1] }, then: "Admin" },
                   {
-                    case: { $eq: ["$job.createdBy.role", 2] },
+                    case: { $eq: ["$jobCreatedBy.role", 2] },
                     then: "Inspector",
                   },
                 ],
@@ -273,23 +370,23 @@ async function getReportById(id) {
             },
           },
           lastUpdatedBy: {
-            _id: "$job.lastUpdatedBy._id",
-            firstName: "$job.lastUpdatedBy.firstName",
-            lastName: "$job.lastUpdatedBy.lastName",
-            email: "$job.lastUpdatedBy.email",
+            _id: "$jobLastUpdatedBy._id",
+            firstName: "$jobLastUpdatedBy.firstName",
+            lastName: "$jobLastUpdatedBy.lastName",
+            email: "$jobLastUpdatedBy.email",
             role: {
               $switch: {
                 branches: [
                   {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 0] },
+                    case: { $eq: ["$jobLastUpdatedBy.role", 0] },
                     then: "Super Admin",
                   },
                   {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 1] },
+                    case: { $eq: ["$jobLastUpdatedBy.role", 1] },
                     then: "Admin",
                   },
                   {
-                    case: { $eq: ["$job.lastUpdatedBy.role", 2] },
+                    case: { $eq: ["$jobLastUpdatedBy.role", 2] },
                     then: "Inspector",
                   },
                 ],
@@ -546,5 +643,8 @@ async function deleteReport(id) {
 }
 module.exports = {
   createReport,
+  getAllReports,
+  updateReportStatus,
   getReportById,
+  deleteReport,
 };

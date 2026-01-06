@@ -7,20 +7,19 @@ const {
   createReportController,
   getReportsController,
   getReportByIdController,
-  updateReportController,
   deleteReportController,
   updateReportStatusController,
+  getReportPdfController,
 } = require("../controllers/ReportControllers");
 const { authenticate, authorizeRoles } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
 const { mongoIdSchema } = require("../validators/common/mongoId");
 const {
-  searchAndPaginationSchema,
-} = require("../validators/common/searchAndPagination");
-const {
   createReportSchema,
   updateReportSchema,
   updateReportStatusSchema,
+  reportStatusSchema,
+  reportPaginationSchema,
 } = require("../validators/report/report");
 
 // Multer setup for in-memory upload
@@ -63,6 +62,23 @@ router.post(
 );
 
 /**
+ * Get all reports with optional search and pagination
+ *
+ * @route GET /api/v1/report
+ * Private route
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+router.get(
+  "/",
+  authorizeRoles(0, 1),
+  validate(reportPaginationSchema, { target: "query" }),
+  getReportsController
+);
+
+/**
  * Get a single report by id
  *
  * @route GET /api/v1/report/:id
@@ -74,8 +90,17 @@ router.post(
  */
 router.get(
   "/:id",
+  authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
   getReportByIdController
+);
+
+// Stream PDF for a report
+router.get(
+  "/:id/pdf",
+  authorizeRoles(0, 1),
+  validate(mongoIdSchema, { target: "params" }),
+  getReportPdfController
 );
 
 /**

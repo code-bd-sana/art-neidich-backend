@@ -38,7 +38,8 @@ async function getUserProfileController(req, res, next) {
  */
 async function updateUserProfileController(req, res, next) {
   try {
-    const updatedUser = await updateProfile(req.user.id, req.body);
+    const payload = req.validated;
+    const updatedUser = await updateProfile(req.user.id, payload);
     res.status(200).json({
       success: true,
       message: "User profile updated successfully",
