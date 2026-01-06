@@ -552,14 +552,36 @@ async function updateReportStatus(id, updateData) {
           firstName: "$inspector.firstName",
           lastName: "$inspector.lastName",
           email: "$inspector.email",
-          role: "Inspector",
+          role: {
+            $switch: {
+              branches: [
+                {
+                  case: { $eq: ["$jobCreatedBy.role", 0] },
+                  then: "Super Admin",
+                },
+                { case: { $eq: ["$jobCreatedBy.role", 1] }, then: "Admin" },
+                {
+                  case: { $eq: ["$jobCreatedBy.role", 2] },
+                  then: "Inspector",
+                },
+              ],
+              default: "Unknown",
+            },
+          },
         },
       },
     },
 
     {
       $project: {
-        inspector: 1,
+        inspector: {
+          _id: "$inspector._id",
+          userId: "$inspector.userId",
+          firstName: "$inspector.firstName",
+          lastName: "$inspector.lastName",
+          email: "$inspector.email",
+          role: "Inspector",
+        },
         job: 1,
         status: 1,
         createdAt: 1,
