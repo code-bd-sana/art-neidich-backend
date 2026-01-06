@@ -102,7 +102,7 @@ async function resetPassword(req, res, next) {
 async function changePassword(req, res, next) {
   try {
     const payload = req.validated;
-    const userId = req.user.id;
+    const userId = req.user?._id;
     await changeUserPassword(userId, payload);
     return res
       .status(200)

@@ -776,8 +776,8 @@ async function resetUserPassword(payload) {
  * @param {{userId: string, currentPassword: string, newPassword: string}} payload
  * @returns {Promise<void>}
  */
-async function changeUserPassword(payload) {
-  const { userId, currentPassword, newPassword } = payload;
+async function changeUserPassword(userId, payload) {
+  const { currentPassword, newPassword } = payload;
   const user = await UserModel.findById(userId);
   if (!user) {
     const err = new Error("User not found");
