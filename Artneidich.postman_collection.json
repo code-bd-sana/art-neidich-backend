@@ -1061,7 +1061,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"approved\",\n  \"comment\": \"Status updated by admin.\"\n}"
+              "raw": "{\n  \"status\": \"completed\",\n}"
             }
           },
           "response": [
