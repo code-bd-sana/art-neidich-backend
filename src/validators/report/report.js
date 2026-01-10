@@ -31,7 +31,14 @@ const createReportSchema = z
       )
       .refine((arr) => arr.length >= 1 && arr.length <= 2, {
         message: "You must provide 1 or 2 images",
-      }),
+      })
+      .refine(
+        (arr) => {
+          const ids = arr.map((i) => String(i.imageLabel));
+          return new Set(ids).size === ids.length;
+        },
+        { message: "Each image must have a unique imageLabel id" }
+      ),
   })
   .strict();
 
