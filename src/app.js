@@ -16,6 +16,7 @@ const morgan = require("morgan");
 
 const { pathNotFoundHelper } = require("./helpers/not-found");
 const errorHandler = require("./middleware/error-handler");
+const notificationRoutes = require("./routes/notification");
 
 // Express app initialization
 const app = express();
