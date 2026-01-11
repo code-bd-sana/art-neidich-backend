@@ -9,6 +9,7 @@ const pathNotFoundHelper = (req, res) => {
     success: false,
     message: "Path not found",
     path: req.originalUrl,
+    code: 404,
   });
 };
 

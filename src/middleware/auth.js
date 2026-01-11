@@ -28,24 +28,28 @@ async function authenticate(req, res, next) {
     if (!user) {
       return res
         .status(401)
-        .json({ success: false, message: "User not found" });
+        .json({ success: false, message: "User not found", code: 401 });
     }
     if (user.isSuspended) {
       return res
         .status(403)
-        .json({ success: false, message: "You are suspended" });
+        .json({ success: false, message: "You are suspended", code: 403 });
     }
     if (!user.isApproved) {
       return res
         .status(403)
-        .json({ success: false, message: "Your account is not approved yet" });
+        .json({
+          success: false,
+          message: "Your account is not approved yet",
+          code: 403,
+        });
     }
     req.user = user;
     next();
   } catch (err) {
     return res
       .status(401)
-      .json({ success: false, message: "Invalid or expired token" });
+      .json({ success: false, message: "Invalid or expired token", code: 401 });
   }
 }
 
@@ -59,7 +63,9 @@ function authorizeRoles(...allowedRoles) {
   const allowed = allowedRoles.map(String);
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(403).json({ success: false, message: "Access denied" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Access denied", code: 403 });
     }
     const userRoles = Array.isArray(req.user.role)
       ? req.user.role.map(String)
@@ -69,6 +75,7 @@ function authorizeRoles(...allowedRoles) {
       return res.status(403).json({
         success: false,
         message: "You do not have the required role to access this resource",
+        code: 403,
       });
     }
     next();

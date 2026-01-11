@@ -26,6 +26,7 @@ async function createReportController(req, res, next) {
       success: true,
       message: "Report created successfully",
       data: report,
+      code: 201,
     });
   } catch (err) {
     return next(err);
@@ -47,6 +48,7 @@ async function getReportsController(req, res, next) {
       message: "Reports fetched successfully",
       data: reports,
       metaData,
+      code: 200,
     });
   } catch (err) {
     return next(err);
@@ -67,6 +69,7 @@ async function getReportByIdController(req, res, next) {
       success: true,
       message: "Report fetched successfully",
       data: report,
+      code: 200,
     });
   } catch (err) {
     return next(err);
@@ -107,6 +110,7 @@ async function updateReportStatusController(req, res, next) {
       success: true,
       message: "Report status updated successfully",
       data: updated,
+      code: 200,
     });
   } catch (err) {
     return next(err);
@@ -125,7 +129,11 @@ async function deleteReportController(req, res, next) {
     await deleteReport(req.params.id);
     return res
       .status(200)
-      .json({ success: true, message: "Report deleted successfully" });
+      .json({
+        success: true,
+        message: "Report deleted successfully",
+        code: 200,
+      });
   } catch (err) {
     return next(err);
   }

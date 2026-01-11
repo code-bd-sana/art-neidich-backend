@@ -18,7 +18,7 @@ module.exports = function errorHandler(err, req, res, next) {
         : (err && err.message) || "Error",
   };
 
-  if (err && err.code) response.code = err.code;
+  if (err && err.code) response.code = status;
 
   // Ensure we only send once
   if (res.headersSent) return next(err);

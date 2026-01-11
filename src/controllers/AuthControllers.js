@@ -17,9 +17,11 @@ async function register(req, res, next) {
   try {
     const payload = req.validated;
     await registerUser(payload);
-    return res
-      .status(201)
-      .json({ success: true, message: "User registered successfully" });
+    return res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      code: 201,
+    });
   } catch (err) {
     return next(err);
   }
@@ -46,7 +48,7 @@ async function login(req, res, next) {
 
     return res
       .status(200)
-      .json({ success: true, message: "Login successful", token });
+      .json({ success: true, message: "Login successful", token, code: 200 });
   } catch (err) {
     return next(err);
   }
@@ -66,6 +68,7 @@ async function forgotPassword(req, res, next) {
     return res.status(200).json({
       success: true,
       message: "Password reset link sent if email exists",
+      code: 200,
     });
   } catch (err) {
     return next(err);
@@ -86,7 +89,11 @@ async function resetPassword(req, res, next) {
     await resetUserPassword(payload);
     return res
       .status(200)
-      .json({ success: true, message: "Password reset successfully" });
+      .json({
+        success: true,
+        message: "Password reset successfully",
+        code: 200,
+      });
   } catch (err) {
     return next(err);
   }
@@ -106,7 +113,11 @@ async function changePassword(req, res, next) {
     await changeUserPassword(userId, payload);
     return res
       .status(200)
-      .json({ success: true, message: "Password changed successfully" });
+      .json({
+        success: true,
+        message: "Password changed successfully",
+        code: 200,
+      });
   } catch (err) {
     return next(err);
   }

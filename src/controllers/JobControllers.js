@@ -25,7 +25,12 @@ async function createJobController(req, res, next) {
     const job = await createJob(payload);
     return res
       .status(201)
-      .json({ success: true, message: "Job created successfully", data: job });
+      .json({
+        success: true,
+        message: "Job created successfully",
+        data: job,
+        code: 201,
+      });
   } catch (err) {
     return next(err);
   }
@@ -46,6 +51,7 @@ async function getJobsController(req, res, next) {
       message: "Jobs fetched successfully",
       data: result.jobs,
       metaData: result.metaData,
+      code: 200,
     });
   } catch (err) {
     return next(err);
@@ -68,6 +74,7 @@ async function getMyJobsController(req, res, next) {
       message: "My jobs fetched successfully",
       data: jobs,
       metaData: metaData,
+      code: 200,
     });
   } catch (err) {
     return next(err);
@@ -86,7 +93,12 @@ async function getJobByIdController(req, res, next) {
     const job = await getJobById(req.params.id);
     return res
       .status(200)
-      .json({ success: true, message: "Job fetched successfully", data: job });
+      .json({
+        success: true,
+        message: "Job fetched successfully",
+        data: job,
+        code: 200,
+      });
   } catch (err) {
     return next(err);
   }
@@ -108,6 +120,7 @@ async function updateJobController(req, res, next) {
       success: true,
       message: "Job updated successfully",
       data: updated,
+      code: 200,
     });
   } catch (err) {
     return next(err);
@@ -126,7 +139,7 @@ async function deleteJobController(req, res, next) {
     await deleteJob(req.params.id);
     return res
       .status(200)
-      .json({ success: true, message: "Job deleted successfully" });
+      .json({ success: true, message: "Job deleted successfully", code: 200 });
   } catch (err) {
     return next(err);
   }

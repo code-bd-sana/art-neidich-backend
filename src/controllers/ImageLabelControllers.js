@@ -25,6 +25,7 @@ async function createImageLabelController(req, res, next) {
       success: true,
       message: "Image label created successfully",
       data: label,
+      code: 201,
     });
   } catch (err) {
     return next(err);
@@ -46,6 +47,7 @@ async function getImageLabelsController(req, res, next) {
       message: "Image labels fetched successfully",
       data: labels,
       metaData: metaData,
+      code: 200,
     });
   } catch (err) {
     return next(err);
@@ -66,6 +68,7 @@ async function getImageLabelController(req, res, next) {
       success: true,
       message: "Image label fetched successfully",
       data: label,
+      code: 200,
     });
   } catch (err) {
     return next(err);
@@ -88,6 +91,7 @@ async function updateImageLabelController(req, res, next) {
       success: true,
       message: "Image label updated successfully",
       data: updated,
+      code: 200,
     });
   } catch (err) {
     return next(err);
@@ -107,6 +111,7 @@ async function deleteImageLabelController(req, res, next) {
     return res.status(200).json({
       success: true,
       message: "Image label deleted successfully",
+      code: 200,
     });
   } catch (err) {
     return next(err);

@@ -23,6 +23,7 @@ async function getUserProfileController(req, res, next) {
       success: true,
       message: "User profile fetched successfully",
       data: user,
+      code: 200,
     });
   } catch (error) {
     next(error);
@@ -44,6 +45,7 @@ async function updateUserProfileController(req, res, next) {
       success: true,
       message: "User profile updated successfully",
       data: updatedUser,
+      code: 200,
     });
   } catch (error) {
     next(error);
@@ -65,6 +67,7 @@ async function getAllUsersController(req, res, next) {
       message: "Users fetched successfully",
       data: users,
       metaData,
+      code: 200,
     });
   } catch (error) {
     next(error);
@@ -85,6 +88,7 @@ async function getUserByIdController(req, res, next) {
       success: true,
       message: "User fetched successfully",
       data: user,
+      code: 200,
     });
   } catch (error) {
     next(error);
@@ -104,12 +108,14 @@ async function approveUserController(req, res, next) {
       return res.status(400).json({
         success: false,
         message: "You cannot approve yourself",
+        code: 400,
       });
     }
     await approveUser(req.params.id);
     res.status(200).json({
       success: true,
       message: "User approved successfully",
+      code: 200,
     });
   } catch (error) {
     next(error);
@@ -129,12 +135,14 @@ async function suspendUserController(req, res, next) {
       return res.status(400).json({
         success: false,
         message: "You cannot suspend yourself",
+        code: 400,
       });
     }
     await suspendUser(req.params.id, req.user);
     res.status(200).json({
       success: true,
       message: "User suspended successfully",
+      code: 200,
     });
   } catch (error) {
     next(error);
@@ -154,12 +162,14 @@ async function unSuspendUserController(req, res, next) {
       return res.status(400).json({
         success: false,
         message: "You cannot un-suspend yourself",
+        code: 400,
       });
     }
     await unSuspendUser(req.params.id, req.user);
     res.status(200).json({
       success: true,
       message: "User un-suspended successfully",
+      code: 200,
     });
   } catch (error) {
     next(error);
@@ -179,12 +189,14 @@ async function deleteUserController(req, res, next) {
       return res.status(400).json({
         success: false,
         message: "You cannot delete yourself",
+        code: 400,
       });
     }
     await deleteUser(req.params.id, req.user);
     res.status(200).json({
       success: true,
       message: "User deleted successfully",
+      code: 200,
     });
   } catch (error) {
     next(error);
