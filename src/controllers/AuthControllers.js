@@ -4,6 +4,7 @@ const {
   initiateForgotPassword,
   resetUserPassword,
   changeUserPassword,
+  verifyOtp: verifyOtpService,
 } = require("../services/AuthServices");
 
 /**
@@ -76,7 +77,7 @@ async function forgotPassword(req, res, next) {
 }
 
 /**
- * Handle reset password
+ * Handle reset password - web password
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -87,13 +88,30 @@ async function resetPassword(req, res, next) {
     const payload = req.validated;
     // Assuming resetUserPassword is a service function to handle password reset
     await resetUserPassword(payload);
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successfully",
+      code: 200,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * Handle OTP verification - mobile password
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function verifyOtp(req, res, next) {
+  try {
+    const payload = req.validated;
+    await verifyOtpService(payload);
     return res
       .status(200)
-      .json({
-        success: true,
-        message: "Password reset successfully",
-        code: 200,
-      });
+      .json({ success: true, message: "OTP verified", code: 200 });
   } catch (err) {
     return next(err);
   }
@@ -111,13 +129,11 @@ async function changePassword(req, res, next) {
     const payload = req.validated;
     const userId = req.user?._id;
     await changeUserPassword(userId, payload);
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Password changed successfully",
-        code: 200,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+      code: 200,
+    });
   } catch (err) {
     return next(err);
   }
@@ -129,4 +145,5 @@ module.exports = {
   forgotPassword,
   resetPassword,
   changePassword,
+  verifyOtp,
 };

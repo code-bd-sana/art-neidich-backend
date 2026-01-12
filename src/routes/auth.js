@@ -8,6 +8,7 @@ const {
   forgotPassword,
   resetPassword,
   changePassword,
+  verifyOtp,
 } = require("../controllers/AuthControllers");
 const { authenticate } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
@@ -16,6 +17,7 @@ const { forgotPasswordSchema } = require("../validators/auth/forgotPassword");
 const { loginSchema } = require("../validators/auth/login");
 const { registerSchema } = require("../validators/auth/register");
 const { resetPasswordSchema } = require("../validators/auth/resetPassword");
+const { verifyOtpSchema } = require("../validators/auth/verifyOtp");
 
 /**
  * Handle user registration
@@ -75,6 +77,22 @@ router.post(
   "/reset-password",
   validate(resetPasswordSchema, { target: "body" }),
   resetPassword
+);
+
+/**
+ * Verify OTP
+ *
+ * @route POST /api/v1/auth/verify-otp
+ * Public route to verify OTP
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+router.post(
+  "/verify-otp",
+  validate(verifyOtpSchema, { target: "body" }),
+  verifyOtp
 );
 
 /**

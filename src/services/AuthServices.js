@@ -807,10 +807,50 @@ async function changeUserPassword(userId, payload) {
   return;
 }
 
+/**
+ * Verify OTP (mobile flow)
+ *
+ * @param {{email: string, otp: string}} payload
+ * @returns {Promise<void>}
+ */
+async function verifyOtp(payload) {
+  const { email, otp } = payload;
+
+  const user = await UserModel.findOne({ email });
+
+  const err = new Error("Invalid or expired OTP");
+  err.status = 400;
+
+  if (!user) {
+    throw err;
+  }
+
+  // Expecting OTP fields to be stored as `resetOtp` and `resetOtpExpiry`
+  if (!user.resetOtp || !user.resetOtpExpiry) {
+    throw err;
+  }
+
+  if (String(user.resetOtp) !== String(otp)) {
+    throw err;
+  }
+
+  if (new Date(user.resetOtpExpiry) < new Date()) {
+    throw err;
+  }
+
+  // Invalidate OTP after successful verification
+  user.resetOtp = undefined;
+  user.resetOtpExpiry = undefined;
+  await user.save();
+
+  return;
+}
+
 module.exports = {
   registerUser,
   loginUser,
   initiateForgotPassword,
   resetUserPassword,
   changeUserPassword,
+  verifyOtp,
 };
