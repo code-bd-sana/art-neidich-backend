@@ -707,6 +707,7 @@ async function initiateForgotPassword(payload) {
   return;
 }
 
+// TODO: Not implemented yet properly
 /**
  * Reset user password
  *

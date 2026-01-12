@@ -63,6 +63,7 @@ router.post(
   forgotPassword
 );
 
+// TODO: Not implemented yet properly
 /**
  * Handle reset password request
  *
