@@ -66,7 +66,7 @@ router.post(
 /**
  * Handle reset password request
  *
- * @route POST /api/v1/auth/reset-password
+ * @route POST /api/v1/auth/reset-web-password
  * Public route to reset user password
  *
  * @param {import('express').Request} req

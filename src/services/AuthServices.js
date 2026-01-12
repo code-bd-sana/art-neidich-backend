@@ -716,14 +716,10 @@ async function initiateForgotPassword(payload) {
 async function resetUserPassword(payload) {
   const { email, otp, token, newPassword } = payload;
 
-  // Ensure one of token or otp is provided (validator should enforce this,
-  // but safeguard here in case function is called directly).
-  if (!token && !otp) {
-    const err = new Error("Either reset token or OTP must be provided");
-    err.status = 400;
-    err.code = "MISSING_RESET_CREDENTIALS";
-    throw err;
-  }
+  // Cases supported:
+  // 1. Web token flow: provide `email` + `token` + `newPassword`
+  // 2. Direct OTP flow: provide `email` + `otp` + `newPassword`
+  // 3. Mobile verified flow: after calling verifyOtp, provide `email` + `newPassword`
 
   if (token) {
     const user = await UserModel.findOne({ email, resetToken: token });
@@ -734,7 +730,7 @@ async function resetUserPassword(payload) {
       err.code = "INVALID_RESET_TOKEN";
       throw err;
     }
-    if (Date.now() > user.resetTokenExpiry) {
+    if (!user.resetTokenExpiry || Date.now() > user.resetTokenExpiry) {
       const err = new Error("Reset token has expired");
       err.status = 400;
       err.code = "RESET_TOKEN_EXPIRED";
@@ -745,7 +741,10 @@ async function resetUserPassword(payload) {
     user.resetToken = null;
     user.resetTokenExpiry = null;
     await user.save();
-  } else if (otp) {
+    return;
+  }
+
+  if (otp) {
     const user = await UserModel.findOne({ email, resetPasswordOTP: otp });
     // Validate OTP and expiry
     if (!user) {
@@ -754,7 +753,10 @@ async function resetUserPassword(payload) {
       err.code = "INVALID_OTP";
       throw err;
     }
-    if (Date.now() > user.resetPasswordOTPExpiry) {
+    if (
+      !user.resetPasswordOTPExpiry ||
+      Date.now() > user.resetPasswordOTPExpiry
+    ) {
       const err = new Error("OTP has expired");
       err.status = 400;
       err.code = "OTP_EXPIRED";
@@ -765,8 +767,37 @@ async function resetUserPassword(payload) {
     user.resetPasswordOTP = null;
     user.resetPasswordOTPExpiry = null;
     await user.save();
+    return;
   }
 
+  // Mobile verified flow: email + newPassword, but only allowed if user has
+  // `resetPasswordVerified` flag set and not expired.
+  const user = await UserModel.findOne({ email });
+  if (!user || !user.resetPasswordVerified) {
+    const err = new Error("Either reset token or OTP must be provided");
+    err.status = 400;
+    err.code = "MISSING_RESET_CREDENTIALS";
+    throw err;
+  }
+
+  if (
+    !user.resetPasswordVerifiedExpiry ||
+    Date.now() > user.resetPasswordVerifiedExpiry
+  ) {
+    const err = new Error("OTP verification has expired");
+    err.status = 400;
+    err.code = "VERIFICATION_EXPIRED";
+    throw err;
+  }
+
+  const hashed = await hashPassword(newPassword);
+  user.password = hashed;
+  user.resetPasswordVerified = false;
+  user.resetPasswordVerifiedExpiry = null;
+  // ensure any lingering OTP fields are cleared
+  user.resetPasswordOTP = null;
+  user.resetPasswordOTPExpiry = null;
+  await user.save();
   return;
 }
 
@@ -826,21 +857,28 @@ async function verifyOtp(payload) {
   }
 
   // Expecting OTP fields to be stored as `resetOtp` and `resetOtpExpiry`
-  if (!user.resetOtp || !user.resetOtpExpiry) {
+  if (!user.resetPasswordOTP || !user.resetPasswordOTPExpiry) {
     throw err;
   }
 
-  if (String(user.resetOtp) !== String(otp)) {
+  if (String(user.resetPasswordOTP) !== String(otp)) {
     throw err;
   }
 
-  if (new Date(user.resetOtpExpiry) < new Date()) {
+  if (new Date(user.resetPasswordOTPExpiry) < new Date()) {
     throw err;
   }
 
-  // Invalidate OTP after successful verification
-  user.resetOtp = undefined;
-  user.resetOtpExpiry = undefined;
+  // Mark the account as verified for a short window where the mobile client
+  // can submit the new password. We keep this separate from the OTP fields
+  // so the client first calls verify-otp, then calls reset-mobile-password
+  // with `email` + `newPassword`.
+  user.resetPasswordVerified = true;
+  user.resetPasswordVerifiedExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+  // Clear the OTP to prevent replay
+  user.resetPasswordOTP = null;
+  user.resetPasswordOTPExpiry = null;
   await user.save();
 
   return;

@@ -86,6 +86,15 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Flag set after successful OTP verification for mobile reset flow
+    resetPasswordVerified: {
+      type: Boolean,
+      default: false,
+    },
+    resetPasswordVerifiedExpiry: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true, versionKey: false }
 );
