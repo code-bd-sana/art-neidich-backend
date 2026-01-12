@@ -369,7 +369,10 @@ async function initiateForgotPassword(payload) {
   // Do not reveal whether the email exists. Return early so controller
   // can respond with a generic success message.
   if (!user) {
-    return;
+    const err = new Error("User with this email does not exist");
+    err.status = 401;
+    err.code = "USER_NOT_FOUND";
+    throw err;
   }
 
   // if webRequest is true then send this
