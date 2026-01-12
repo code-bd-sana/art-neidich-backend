@@ -49,15 +49,13 @@ async function login(req, res, next) {
       secure: process.env.NODE_ENV === "production",
     });
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Login successful",
-        token,
-        user,
-        code: 200,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user,
+      code: 200,
+    });
   } catch (err) {
     return next(err);
   }

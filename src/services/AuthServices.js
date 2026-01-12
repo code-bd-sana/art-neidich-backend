@@ -343,7 +343,7 @@ async function loginUser(payload) {
     throw err;
   }
 
-  const token = generateToken({
+  const token = await generateToken({
     id: user._id,
     userId: user.userId,
     firstName: user.firstName,
