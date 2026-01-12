@@ -40,7 +40,7 @@ async function register(req, res, next) {
 async function login(req, res, next) {
   try {
     const payload = req.validated;
-    const token = await loginUser(payload);
+    const { user, token } = await loginUser(payload);
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -51,7 +51,13 @@ async function login(req, res, next) {
 
     return res
       .status(200)
-      .json({ success: true, message: "Login successful", token, code: 200 });
+      .json({
+        success: true,
+        message: "Login successful",
+        token,
+        user,
+        code: 200,
+      });
   } catch (err) {
     return next(err);
   }

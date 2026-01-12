@@ -352,7 +352,21 @@ async function loginUser(payload) {
     role: user.role,
   });
 
-  return token;
+  const roleMap = {
+    0: "Super Admin",
+    1: "Admin",
+    2: "Inspector",
+  };
+
+  return {
+    user: {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: roleMap[user.role],
+    },
+    token,
+  };
 }
 
 /**
