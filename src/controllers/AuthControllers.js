@@ -20,7 +20,9 @@ async function register(req, res, next) {
     await registerUser(payload);
     return res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message:
+        "User registered successfully. Your account is pending approval from an administrator. You will receive an email once your account is approved.",
+      isAccountPending: true,
       code: 201,
     });
   } catch (err) {
