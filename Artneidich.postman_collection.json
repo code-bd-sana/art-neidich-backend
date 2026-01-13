@@ -401,6 +401,21 @@
                   "key": "search",
                   "value": "",
                   "description": "Search term for users"
+                },
+                {
+                  "key": "role",
+                  "value": "",
+                  "description": "Filter by user role (0, 1, or 2)"
+                },
+                {
+                  "key": "isSuspended",
+                  "value": "",
+                  "description": "Filter by suspension status (true or false)"
+                },
+                {
+                  "key": "isApproved",
+                  "value": "",
+                  "description": "Filter by approval status (true or false)"
                 }
               ]
             }

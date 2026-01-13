@@ -17,7 +17,6 @@ const {
   searchAndPaginationSchema,
 } = require("../validators/common/searchAndPagination");
 const { createJobSchema, updateJobSchema } = require("../validators/job/job");
-const { roleSchema } = require("../validators/user/role");
 
 // All job routes require authentication
 router.use(authenticate);

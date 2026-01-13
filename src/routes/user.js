@@ -18,8 +18,8 @@ const { mongoIdSchema } = require("../validators/common/mongoId");
 const {
   searchAndPaginationSchema,
 } = require("../validators/common/searchAndPagination");
-const { userSearchAndPaginationSchema } = require("../validators/user/role");
 const { updateUserSchema } = require("../validators/user/updateUser");
+const { userSearchAndPaginationSchema } = require("../validators/user/user");
 
 // Apply authentication middleware to ALL routes in this router
 router.use(authenticate);

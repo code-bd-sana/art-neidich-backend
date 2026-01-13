@@ -27,6 +27,8 @@ const userSearchAndPaginationSchema = z
         message: "Role must be 0 (Super Admin), 1 (Admin), or 2 (Inspector)",
       })
       .optional(),
+    isSuspended: z.boolean().optional(),
+    isApproved: z.boolean().optional(),
   })
   .strict();
 

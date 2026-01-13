@@ -93,6 +93,9 @@ async function updateProfile(userId, updateData) {
  * @param {number} [query.page=1] - Page number for pagination
  * @param {number} [query.limit=10] - Number of users per page
  * @param {string} [query.search] - Search keyword to filter users
+ * @param {number} [query.role] - Filter by user role (0, 1, or 2)
+ * @param {boolean} [query.isSuspended] - Filter by suspension status
+ * @param {boolean} [query.isApproved] - Filter by approval status
  * @returns {Promise<{
  *   users: Array<Object>,
  *   metaData: {
@@ -109,8 +112,22 @@ async function getUsers(query = {}) {
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
   const role = query.role !== undefined ? Number(query.role) : undefined;
+  const isSuspended =
+    query.isSuspended !== undefined ? Boolean(query.isSuspended) : undefined;
+  const isApproved =
+    query.isApproved !== undefined ? Boolean(query.isApproved) : undefined;
 
   const pipeline = [];
+
+  // Filter by suspension status if provided
+  if (isSuspended !== undefined) {
+    pipeline.push({ $match: { isSuspended: isSuspended } });
+  }
+
+  // Filter by approval status if provided
+  if (isApproved !== undefined) {
+    pipeline.push({ $match: { isApproved: isApproved } });
+  }
 
   // Filter by role if provided
   if (role !== undefined) {
