@@ -61,7 +61,9 @@ async function updateUserProfileController(req, res, next) {
  */
 async function getAllUsersController(req, res, next) {
   try {
-    const { users, metaData } = await getUsers(req.query);
+    // Use validated query when available (validator places result on `req.validated`).
+    const query = req.validated ?? req.query;
+    const { users, metaData } = await getUsers(query);
     res.status(200).json({
       success: true,
       message: "Users fetched successfully",

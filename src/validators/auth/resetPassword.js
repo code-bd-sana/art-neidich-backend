@@ -21,24 +21,24 @@ const resetPasswordSchema = z.union([
     })
     .strict(),
   // Direct OTP mode
-  z
-    .object({
-      email: z.string().email("Invalid email address"),
-      otp: z.string().length(6, "OTP must be 6 characters long"),
-      newPassword: z
-        .string()
-        .min(6, "New password must be at least 6 characters"),
-    })
-    .strict(),
+  // z
+  //   .object({
+  //     email: z.string().email("Invalid email address"),
+  //     otp: z.string().length(6, "OTP must be 6 characters long"),
+  //     newPassword: z
+  //       .string()
+  //       .min(6, "New password must be at least 6 characters"),
+  //   })
+  //   .strict(),
   // Mobile verified mode (email + newPassword)
-  z
-    .object({
-      email: z.string().email("Invalid email address"),
-      newPassword: z
-        .string()
-        .min(6, "New password must be at least 6 characters"),
-    })
-    .strict(),
+  // z
+  //   .object({
+  //     email: z.string().email("Invalid email address"),
+  //     newPassword: z
+  //       .string()
+  //       .min(6, "New password must be at least 6 characters"),
+  //   })
+  //   .strict(),
 ]);
 
 module.exports = { resetPasswordSchema };

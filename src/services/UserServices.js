@@ -112,10 +112,25 @@ async function getUsers(query = {}) {
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
   const role = query.role !== undefined ? Number(query.role) : undefined;
-  const isSuspended =
-    query.isSuspended !== undefined ? Boolean(query.isSuspended) : undefined;
-  const isApproved =
-    query.isApproved !== undefined ? Boolean(query.isApproved) : undefined;
+
+  // Parse boolean-like query values reliably. `Boolean("false")` is truthy,
+  // so we need to explicitly handle string values like "true"/"false" and
+  // numeric "1"/"0" too.
+  const parseBoolean = (val) => {
+    if (val === undefined || val === null) return undefined;
+    if (typeof val === "boolean") return val;
+    if (typeof val === "string") {
+      const v = val.trim().toLowerCase();
+      if (v === "true" || v === "1") return true;
+      if (v === "false" || v === "0") return false;
+      return undefined;
+    }
+    if (typeof val === "number") return val === 1;
+    return undefined;
+  };
+
+  const isSuspended = parseBoolean(query.isSuspended);
+  const isApproved = parseBoolean(query.isApproved);
 
   const pipeline = [];
 
