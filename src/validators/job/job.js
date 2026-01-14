@@ -10,7 +10,7 @@ const { mongoIdSchema } = require("../common/mongoId");
 const createJobSchema = z
   .object({
     inspector: mongoIdSchema.shape.id,
-    formType: z.enum(["RCI Residential Building Code Inspection", "UnKnown"]),
+    formType: z.enum(["RCI Residential Building Code Inspection", "Unknown"]),
     feeStatus: z.enum([
       "Standard",
       "Rush Order",

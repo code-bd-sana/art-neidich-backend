@@ -11,7 +11,7 @@ const jobSchema = new mongoose.Schema(
     // RCI Residential Building Code Inspection, UnKnown(TODO: this will change)
     formType: {
       type: String,
-      enum: ["RCI Residential Building Code Inspection", "UnKnown"],
+      enum: ["RCI Residential Building Code Inspection", "Unknown"],
       required: true,
     },
     feeStatus: {
