@@ -52,7 +52,7 @@ router.post(
  */
 router.get(
   "/",
-  authorizeRoles(0, 1),
+  authorizeRoles(0, 1, 2),
   validate(searchAndPaginationSchema, { target: "query" }),
   getImageLabels
 );
