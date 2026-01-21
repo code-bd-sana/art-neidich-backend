@@ -9,36 +9,27 @@ const { z } = require("zod");
  *
  * @type {import("zod").ZodUnion}
  */
-const resetPasswordSchema = z.union([
-  // Web token mode
-  z
-    .object({
-      email: z.string().email("Invalid email address"),
-      token: z.string().uuid("Invalid or malformed reset token"),
-      newPassword: z
-        .string()
-        .min(6, "New password must be at least 6 characters"),
-    })
-    .strict(),
-  // Direct OTP mode
-  // z
-  //   .object({
-  //     email: z.string().email("Invalid email address"),
-  //     otp: z.string().length(6, "OTP must be 6 characters long"),
-  //     newPassword: z
-  //       .string()
-  //       .min(6, "New password must be at least 6 characters"),
-  //   })
-  //   .strict(),
-  // Mobile verified mode (email + newPassword)
-  // z
-  //   .object({
-  //     email: z.string().email("Invalid email address"),
-  //     newPassword: z
-  //       .string()
-  //       .min(6, "New password must be at least 6 characters"),
-  //   })
-  //   .strict(),
-]);
+const resetPasswordSchema = z
+  .object({
+    email: z.string().email("Invalid email address"),
+    token: z.string().uuid("Invalid reset token").optional(),
+    otp: z.string().length(6, "OTP must be 6 digits").optional(),
+    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      // exactly one of token or otp must be present
+      return (data.token && !data.otp) || (!data.token && data.otp);
+    },
+    {
+      message: "Must provide exactly one of: token (web) or otp (mobile)",
+      path: [], // or ["token"] / ["otp"] depending on preference
+    },
+  )
+  .refine((data) => Boolean(data.token || data.otp), {
+    message: "Either token or otp is required",
+    path: [],
+  });
 
 module.exports = { resetPasswordSchema };

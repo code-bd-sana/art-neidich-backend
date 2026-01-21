@@ -403,7 +403,7 @@ async function initiateForgotPassword(payload) {
     const resetUrl = `${
       process.env.FRONTEND_URL
     }/reset-password?token=${resetToken}&email=${encodeURIComponent(
-      user.email
+      user.email,
     )}`;
 
     // Email template for real estate inspector
@@ -724,7 +724,6 @@ async function initiateForgotPassword(payload) {
   return;
 }
 
-// TODO: Not implemented yet properly
 /**
  * Reset user password
  *
@@ -844,7 +843,7 @@ async function changeUserPassword(userId, payload) {
   // Old password cannot be the same as new password
   if (currentPassword === newPassword) {
     const err = new Error(
-      "New password must be different from current password"
+      "New password must be different from current password",
     );
     err.status = 400;
     err.code = "SAME_PASSWORD";

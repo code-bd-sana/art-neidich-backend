@@ -74,7 +74,9 @@ async function forgotPassword(req, res, next) {
     await initiateForgotPassword(payload);
     return res.status(200).json({
       success: true,
-      message: "Password reset link sent if email exists",
+      message: payload.webRequest
+        ? `Password reset link sent to the email: ${payload.email}`
+        : `OTP sent to the email: ${payload.email}`,
       code: 200,
     });
   } catch (err) {
@@ -96,7 +98,7 @@ async function resetPassword(req, res, next) {
     await resetUserPassword(payload);
     return res.status(200).json({
       success: true,
-      message: payload.token ? "Password reset successfully" : "O",
+      message: "Password reset successfully",
       code: 200,
     });
   } catch (err) {
