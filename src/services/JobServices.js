@@ -390,12 +390,49 @@ async function getMyJobs(query = {}, userId) {
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
 
-  const pipeline = [
-    // Match jobs assigned to the user
-    { $match: { inspector: new mongoose.Types.ObjectId(userId) } },
-  ];
+  const pipeline = [];
 
-  // Lookup inspector (needed for search)
+  /* ============================
+     Base match (inspector)
+  ============================ */
+  const matchStage = {
+    inspector: new mongoose.Types.ObjectId(userId),
+  };
+
+  /* ============================
+     Date filter logic
+  ============================ */
+  if (query.dateType) {
+    const now = new Date();
+    let startDate;
+    let endDate;
+
+    if (query.dateType === "this_month") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    }
+
+    if (query.dateType === "previous_month") {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    }
+
+    if (query.dateType === "custom" && query.startDate && query.endDate) {
+      startDate = new Date(query.startDate);
+      endDate = new Date(query.endDate);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    if (startDate && endDate) {
+      matchStage.createdAt = { $gte: startDate, $lte: endDate };
+    }
+  }
+
+  pipeline.push({ $match: matchStage });
+
+  /* ============================
+     Inspector lookup
+  ============================ */
   pipeline.push(
     {
       $lookup: {
@@ -405,15 +442,12 @@ async function getMyJobs(query = {}, userId) {
         as: "inspector",
       },
     },
-    {
-      $unwind: {
-        path: "$inspector",
-        preserveNullAndEmptyArrays: true,
-      },
-    }
+    { $unwind: { path: "$inspector", preserveNullAndEmptyArrays: true } },
   );
 
-  // Lookup createdBy
+  /* ============================
+     createdBy lookup
+  ============================ */
   pipeline.push(
     {
       $lookup: {
@@ -423,15 +457,12 @@ async function getMyJobs(query = {}, userId) {
         as: "createdBy",
       },
     },
-    {
-      $unwind: {
-        path: "$createdBy",
-        preserveNullAndEmptyArrays: true,
-      },
-    }
+    { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
   );
 
-  // Lookup lastUpdatedBy
+  /* ============================
+     lastUpdatedBy lookup
+  ============================ */
   pipeline.push(
     {
       $lookup: {
@@ -441,15 +472,12 @@ async function getMyJobs(query = {}, userId) {
         as: "lastUpdatedBy",
       },
     },
-    {
-      $unwind: {
-        path: "$lastUpdatedBy",
-        preserveNullAndEmptyArrays: true,
-      },
-    }
+    { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
   );
 
-  // Lookup report status
+  /* ============================
+     Report lookup
+  ============================ */
   pipeline.push({
     $lookup: {
       from: "reports",
@@ -463,11 +491,11 @@ async function getMyJobs(query = {}, userId) {
     },
   });
 
-  // Search (job fields + inspector name)
+  /* ============================
+     Search
+  ============================ */
   if (search) {
-    // Proper regex escaping for MongoDB $regex
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(escapedSearch, "i");
     pipeline.push({
       $match: {
         $or: [
@@ -494,7 +522,9 @@ async function getMyJobs(query = {}, userId) {
     });
   }
 
-  // Convert roles to readable labels and add report status
+  /* ============================
+     Add computed fields
+  ============================ */
   pipeline.push({
     $addFields: {
       hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
@@ -504,67 +534,24 @@ async function getMyJobs(query = {}, userId) {
         $switch: {
           branches: [
             {
-              case: {
-                $eq: [
-                  { $arrayElemAt: ["$reportCheck.status", 0] },
-                  "submitted",
-                ],
-              },
+              case: { $eq: ["$reportStatus", "submitted"] },
               then: "Submitted",
             },
             {
-              case: {
-                $eq: [
-                  { $arrayElemAt: ["$reportCheck.status", 0] },
-                  "completed",
-                ],
-              },
+              case: { $eq: ["$reportStatus", "completed"] },
               then: "Completed",
             },
-            {
-              case: {
-                $eq: [{ $arrayElemAt: ["$reportCheck.status", 0] }, "rejected"],
-              },
-              then: "Rejected",
-            },
+            { case: { $eq: ["$reportStatus", "rejected"] }, then: "Rejected" },
           ],
           default: "In Progress",
-        },
-      },
-      "inspector.role": {
-        $switch: {
-          branches: [
-            { case: { $eq: ["$inspector.role", 0] }, then: "Super Admin" },
-            { case: { $eq: ["$inspector.role", 1] }, then: "Admin" },
-            { case: { $eq: ["$inspector.role", 2] }, then: "Inspector" },
-          ],
-          default: "Unknown",
-        },
-      },
-      "createdBy.role": {
-        $switch: {
-          branches: [
-            { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
-            { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
-            { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
-          ],
-          default: "Unknown",
-        },
-      },
-      "lastUpdatedBy.role": {
-        $switch: {
-          branches: [
-            { case: { $eq: ["$lastUpdatedBy.role", 0] }, then: "Super Admin" },
-            { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
-            { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
-          ],
-          default: "Unknown",
         },
       },
     },
   });
 
-  // Project safe fields only
+  /* ============================
+     Projection
+  ============================ */
   pipeline.push({
     $project: {
       formType: 1,
@@ -585,33 +572,35 @@ async function getMyJobs(query = {}, userId) {
       reportStatus: 1,
       reportStatusLabel: 1,
       inspector: {
-        _id: "$inspector._id",
-        userId: "$inspector.userId",
-        firstName: "$inspector.firstName",
-        lastName: "$inspector.lastName",
-        email: "$inspector.email",
-        role: "$inspector.role",
+        _id: 1,
+        userId: 1,
+        firstName: 1,
+        lastName: 1,
+        email: 1,
+        role: 1,
       },
       createdBy: {
-        _id: "$createdBy._id",
-        userId: "$createdBy.userId",
-        firstName: "$createdBy.firstName",
-        lastName: "$createdBy.lastName",
-        email: "$createdBy.email",
-        role: "$createdBy.role",
+        _id: 1,
+        userId: 1,
+        firstName: 1,
+        lastName: 1,
+        email: 1,
+        role: 1,
       },
       lastUpdatedBy: {
-        _id: "$lastUpdatedBy._id",
-        userId: "$lastUpdatedBy.userId",
-        firstName: "$lastUpdatedBy.firstName",
-        lastName: "$lastUpdatedBy.lastName",
-        email: "$lastUpdatedBy.email",
-        role: "$lastUpdatedBy.role",
+        _id: 1,
+        userId: 1,
+        firstName: 1,
+        lastName: 1,
+        email: 1,
+        role: 1,
       },
     },
   });
 
-  // Pagination + count
+  /* ============================
+     Pagination
+  ============================ */
   pipeline.push(
     { $sort: { createdAt: -1 } },
     {
@@ -619,12 +608,13 @@ async function getMyJobs(query = {}, userId) {
         jobs: [{ $skip: skip }, { $limit: limit }],
         metaData: [{ $count: "totalJob" }],
       },
-    }
+    },
   );
 
   const result = await JobModel.aggregate(pipeline);
   const jobs = result[0]?.jobs || [];
   const totalJob = result[0]?.metaData[0]?.totalJob || 0;
+
   return {
     jobs,
     metaData: {
@@ -673,7 +663,7 @@ async function getJobs(query = {}) {
         path: "$inspector",
         preserveNullAndEmptyArrays: true,
       },
-    }
+    },
   );
 
   // Lookup createdBy
@@ -691,7 +681,7 @@ async function getJobs(query = {}) {
         path: "$createdBy",
         preserveNullAndEmptyArrays: true,
       },
-    }
+    },
   );
 
   // Lookup lastUpdatedBy
@@ -709,7 +699,7 @@ async function getJobs(query = {}) {
         path: "$lastUpdatedBy",
         preserveNullAndEmptyArrays: true,
       },
-    }
+    },
   );
 
   // Lookup report status
@@ -730,10 +720,7 @@ async function getJobs(query = {}) {
   pipeline.push({
     $addFields: {
       reportStatus: {
-        $ifNull: [
-          { $arrayElemAt: ["$reportCheck.status", 0] },
-          "in_progress",
-        ],
+        $ifNull: [{ $arrayElemAt: ["$reportCheck.status", 0] }, "in_progress"],
       },
     },
   });
@@ -892,7 +879,7 @@ async function getJobs(query = {}) {
         jobs: [{ $skip: skip }, { $limit: limit }],
         metaData: [{ $count: "totalJob" }],
       },
-    }
+    },
   );
 
   const result = await JobModel.aggregate(pipeline);
@@ -922,7 +909,7 @@ async function updateJob(id, payload) {
   const result = await JobModel.updateOne(
     { _id: id },
     { $set: payload },
-    { new: true }
+    { new: true },
   );
 
   if (!result || result.length === 0) {
