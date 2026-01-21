@@ -32,7 +32,7 @@ const { verifyOtpSchema } = require("../validators/auth/verifyOtp");
 router.post(
   "/register",
   validate(registerSchema, { target: "body" }),
-  register
+  register,
 );
 
 /**
@@ -60,7 +60,7 @@ router.post("/login", validate(loginSchema, { target: "body" }), login);
 router.post(
   "/forgot-password",
   validate(forgotPasswordSchema, { target: "body" }),
-  forgotPassword
+  forgotPassword,
 );
 
 // TODO: Not implemented yet properly
@@ -77,7 +77,7 @@ router.post(
 router.post(
   "/reset-password",
   validate(resetPasswordSchema, { target: "body" }),
-  resetPassword
+  resetPassword,
 );
 
 /**
@@ -93,7 +93,7 @@ router.post(
 router.post(
   "/verify-otp",
   validate(verifyOtpSchema, { target: "body" }),
-  verifyOtp
+  verifyOtp,
 );
 
 /**
@@ -110,7 +110,7 @@ router.post(
   "/change-password",
   authenticate,
   validate(changePasswordSchema, { target: "body" }),
-  changePassword
+  changePassword,
 );
 
 module.exports = router;
