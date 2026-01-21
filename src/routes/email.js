@@ -3,8 +3,12 @@ const express = require("express");
 const router = express.Router();
 
 const { support } = require("../controllers/EmailControllers");
+const { authenticate } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
 const { supportSchema } = require("../validators/email/support");
+
+// Apply authentication middleware to ALL routes in this router
+router.use(authenticate);
 
 /**
  * Handle email support request

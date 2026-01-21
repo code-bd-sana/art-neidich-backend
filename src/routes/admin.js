@@ -20,4 +20,8 @@ router.use(authenticate);
  */
 router.get("/overview", authorizeRoles(0, 1), adminOverview);
 
+/**
+ * Get admin
+ */
+
 module.exports = router;
