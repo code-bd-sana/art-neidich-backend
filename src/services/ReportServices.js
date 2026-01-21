@@ -251,6 +251,8 @@ async function getAllReports(query) {
         },
         job: {
           _id: "$job._id",
+          formType: "$job.formType",
+          fhaCaseDetailsNo: "$job.fhaCaseDetailsNo",
           orderId: "$job.orderId",
           streetAddress: "$job.streetAddress",
           developmentName: "$job.developmentName",
@@ -504,7 +506,7 @@ async function updateReportStatus(id, updateData) {
         updatedAt: new Date(),
       },
     },
-    { new: true }
+    { new: true },
   );
 
   if (!updated) {
