@@ -14,83 +14,8 @@ const notificationTypes = {
   ACCOUNT_UNSUSPENDED: "account_unsuspended",
 };
 
-/**
- * Mongoose schema for in-app / push / email notifications.
- * Tracks events such as report submissions, job assignments, status changes,
- * role promotions, and account status changes (suspend/unsuspend).
- *
- * @property {ObjectId} recipient      - User who should see this notification
- * @property {ObjectId} [actor]        - User who triggered the action (null for system events)
- * @property {String}   type           - Kind of notification (must match notificationTypes)
- * @property {String}   message        - Human-readable message (used in UI, email, push)
- * @property {ObjectId} [relatedId]    - ID of the related document (report/job/user)
- * @property {String}   [relatedModel] - Model name for dynamic population ("Report", "Job", "User")
- * @property {Boolean}  isRead         - Whether the recipient has viewed it
- * @property {String[]} channels       - Delivery channels this notification should use
- * @property {Object}   metadata       - Flexible extra data (status changes, report title, etc.)
- */
 const notificationSchema = new mongoose.Schema(
-  {
-    recipient: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "Recipient user is required"],
-      index: true,
-    },
-
-    actor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
-
-    type: {
-      type: String,
-      enum: Object.values(notificationTypes),
-      required: [true, "Notification type is required"],
-      index: true,
-    },
-
-    message: {
-      type: String,
-      required: [true, "Notification message is required"],
-      trim: true,
-      maxlength: [280, "Message cannot exceed 280 characters"],
-    },
-
-    relatedId: {
-      type: mongoose.Schema.Types.ObjectId,
-      refPath: "relatedModel",
-      default: null,
-    },
-
-    relatedModel: {
-      type: String,
-      enum: ["Report", "Job", "User", null],
-      default: null,
-    },
-
-    isRead: {
-      type: Boolean,
-      default: false,
-      index: true, // helps quickly filter unread notifications
-    },
-
-    channels: {
-      type: [
-        {
-          type: String,
-          enum: ["in_app", "email", "push"],
-        },
-      ],
-      default: ["in_app"],
-    },
-
-    metadata: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
-    },
-  },
+  {},
   {
     timestamps: true, // automatically adds createdAt & updatedAt
     versionKey: false, // removes __v field
