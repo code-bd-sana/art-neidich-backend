@@ -16,7 +16,6 @@ const morgan = require("morgan");
 
 const { pathNotFoundHelper } = require("./helpers/not-found");
 const errorHandler = require("./middleware/error-handler");
-const notificationRoutes = require("./routes/notification");
 
 // Express app initialization
 const app = express();
@@ -94,14 +93,14 @@ function getRoutesFromRouter(router) {
   router.stack.forEach((layer) => {
     if (layer.route && layer.route.path) {
       const methods = Object.keys(layer.route.methods || {}).map((m) =>
-        m.toUpperCase()
+        m.toUpperCase(),
       );
       routes.push({ path: layer.route.path, methods });
     } else if (layer.name === "router" && layer.handle && layer.handle.stack) {
       layer.handle.stack.forEach((l) => {
         if (l.route && l.route.path) {
           const methods = Object.keys(l.route.methods || {}).map((m) =>
-            m.toUpperCase()
+            m.toUpperCase(),
           );
           routes.push({ path: l.route.path, methods });
         }
@@ -135,11 +134,11 @@ const colors = {
 };
 
 console.log(
-  `${colors.fg.cyan}${colors.bright}Registered routes:${colors.reset}`
+  `${colors.fg.cyan}${colors.bright}Registered routes:${colors.reset}`,
 );
 mounted.forEach((m) => {
   console.log(
-    `${colors.fg.yellow}\nCategory: ${colors.fg.magenta}${m.category} ${colors.reset}-> ${colors.fg.green}${m.prefix}${colors.reset}`
+    `${colors.fg.yellow}\nCategory: ${colors.fg.magenta}${m.category} ${colors.reset}-> ${colors.fg.green}${m.prefix}${colors.reset}`,
   );
   const routes = getRoutesFromRouter(m.router);
   if (!routes.length) {
@@ -164,7 +163,7 @@ mounted.forEach((m) => {
         .join(`${colors.dim}|${colors.reset}`);
 
       console.log(
-        `  ${methodStr} ${colors.fg.blue}${m.prefix}${colors.reset}${colors.fg.white}${r.path}${colors.reset}`
+        `  ${methodStr} ${colors.fg.blue}${m.prefix}${colors.reset}${colors.fg.white}${r.path}${colors.reset}`,
       );
     });
   }
