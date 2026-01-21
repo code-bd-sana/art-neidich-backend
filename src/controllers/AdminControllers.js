@@ -11,7 +11,7 @@ async function overview(req, res, next) {
   try {
     const payload = req.validated;
     const result = await adminOverview(payload);
-    return res.status(201).json({
+    return res.status(200).json({
       success: true,
       message: "Admin overview retrieved successfully",
       code: 200,

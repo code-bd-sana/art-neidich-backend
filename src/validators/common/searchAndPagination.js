@@ -20,7 +20,9 @@ const searchAndPaginationSchema = z
       .refine((val) => val > 0, {
         message: "Limit must be a positive integer",
       }),
-    status: z.enum(["all", "in_progress", "submitted", "completed", "rejected"]).optional(),
+    status: z
+      .enum(["all", "in_progress", "submitted", "completed", "rejected"])
+      .optional(),
   })
   .strict();
 

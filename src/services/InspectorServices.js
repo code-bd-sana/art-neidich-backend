@@ -5,17 +5,17 @@ const ReportModel = require("../models/ReportModel");
  * Get inspector overview statistics (all-time)
  *
  * @param {Object} payload
- * @param {import('mongoose').Types.ObjectId} payload.inspector
+ * @param {import('mongoose').Types.ObjectId} inspector
  * @returns {Promise<Object>}
  */
-async function inspectorOverview(payload) {
+async function inspectorOverview(inspector) {
   const [totalJobs, inProgressJobs, overDueJobs, completedJobs] =
     await Promise.all([
       /* ============================
          Total jobs
       ============================ */
       JobModel.countDocuments({
-        inspector: payload.inspector,
+        inspector: inspector,
       }),
 
       /* ============================
@@ -23,7 +23,7 @@ async function inspectorOverview(payload) {
          (report exists but not completed)
       ============================ */
       ReportModel.countDocuments({
-        inspector: payload.inspector,
+        inspector: inspector,
         status: { $in: ["submitted", "rejected"] },
       }),
 
@@ -32,7 +32,7 @@ async function inspectorOverview(payload) {
          (dueDate passed & not completed)
       ============================ */
       JobModel.countDocuments({
-        inspector: payload.inspector,
+        inspector: inspector,
         dueDate: { $lt: new Date() },
         _id: {
           $nin: await ReportModel.distinct("job", {
@@ -45,7 +45,7 @@ async function inspectorOverview(payload) {
          Completed jobs
       ============================ */
       ReportModel.countDocuments({
-        inspector: payload.inspector,
+        inspector: inspector,
         status: "completed",
       }),
     ]);
