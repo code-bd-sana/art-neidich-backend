@@ -38,19 +38,18 @@ const searchAndPaginationSchema = z
     /**
      * Required only when dateType = custom
      */
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
+    customDate: z.string().optional(),
   })
   .refine(
     (data) => {
       if (data.dateType === "custom") {
-        return data.startDate && data.endDate;
+        return !!data.customDate;
       }
       return true;
     },
     {
-      message: "startDate and endDate are required for custom date filter",
-      path: ["startDate", "endDate"],
+      message: "customDate is required for custom date filter",
+      path: ["customDate"],
     },
   )
   .strict();

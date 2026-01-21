@@ -389,50 +389,18 @@ async function getMyJobs(query = {}, userId) {
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
+  const statusFilter = query.status;
+  const dateType = query.dateType;
+  const customDate = query.customDate ? new Date(query.customDate) : null;
 
-  const pipeline = [];
+  const pipeline = [
+    // Match jobs assigned to the user
+    { $match: { inspector: new mongoose.Types.ObjectId(userId) } },
+  ];
 
-  /* ============================
-     Base match (inspector)
-  ============================ */
-  const matchStage = {
-    inspector: new mongoose.Types.ObjectId(userId),
-  };
-
-  /* ============================
-     Date filter logic
-  ============================ */
-  if (query.dateType) {
-    const now = new Date();
-    let startDate;
-    let endDate;
-
-    if (query.dateType === "this_month") {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-    }
-
-    if (query.dateType === "previous_month") {
-      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-    }
-
-    if (query.dateType === "custom" && query.startDate && query.endDate) {
-      startDate = new Date(query.startDate);
-      endDate = new Date(query.endDate);
-      endDate.setHours(23, 59, 59, 999);
-    }
-
-    if (startDate && endDate) {
-      matchStage.createdAt = { $gte: startDate, $lte: endDate };
-    }
-  }
-
-  pipeline.push({ $match: matchStage });
-
-  /* ============================
-     Inspector lookup
-  ============================ */
+  // -------------------------
+  // Lookup inspector
+  // -------------------------
   pipeline.push(
     {
       $lookup: {
@@ -442,12 +410,14 @@ async function getMyJobs(query = {}, userId) {
         as: "inspector",
       },
     },
-    { $unwind: { path: "$inspector", preserveNullAndEmptyArrays: true } },
+    {
+      $unwind: { path: "$inspector", preserveNullAndEmptyArrays: true },
+    },
   );
 
-  /* ============================
-     createdBy lookup
-  ============================ */
+  // -------------------------
+  // Lookup createdBy
+  // -------------------------
   pipeline.push(
     {
       $lookup: {
@@ -457,12 +427,14 @@ async function getMyJobs(query = {}, userId) {
         as: "createdBy",
       },
     },
-    { $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true } },
+    {
+      $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true },
+    },
   );
 
-  /* ============================
-     lastUpdatedBy lookup
-  ============================ */
+  // -------------------------
+  // Lookup lastUpdatedBy
+  // -------------------------
   pipeline.push(
     {
       $lookup: {
@@ -472,12 +444,14 @@ async function getMyJobs(query = {}, userId) {
         as: "lastUpdatedBy",
       },
     },
-    { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
+    {
+      $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true },
+    },
   );
 
-  /* ============================
-     Report lookup
-  ============================ */
+  // -------------------------
+  // Lookup report status
+  // -------------------------
   pipeline.push({
     $lookup: {
       from: "reports",
@@ -491,9 +465,9 @@ async function getMyJobs(query = {}, userId) {
     },
   });
 
-  /* ============================
-     Search
-  ============================ */
+  // -------------------------
+  // Search filter
+  // -------------------------
   if (search) {
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     pipeline.push({
@@ -522,9 +496,47 @@ async function getMyJobs(query = {}, userId) {
     });
   }
 
-  /* ============================
-     Add computed fields
-  ============================ */
+  // -------------------------
+  // Status filter
+  // -------------------------
+  if (statusFilter && statusFilter !== "all") {
+    pipeline.push({
+      $match: { "reportCheck.status": statusFilter },
+    });
+  }
+
+  // -------------------------
+  // Date filter
+  // -------------------------
+  if (dateType) {
+    const now = new Date();
+    let start, end;
+
+    if (dateType === "this_month") {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (dateType === "previous_month") {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    } else if (dateType === "custom" && customDate) {
+      start = new Date(customDate);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(customDate);
+      end.setHours(23, 59, 59, 999);
+    }
+
+    if (start && end) {
+      pipeline.push({
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+        },
+      });
+    }
+  }
+
+  // -------------------------
+  // Add reportStatus, role labels
+  // -------------------------
   pipeline.push({
     $addFields: {
       hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
@@ -534,261 +546,31 @@ async function getMyJobs(query = {}, userId) {
         $switch: {
           branches: [
             {
-              case: { $eq: ["$reportStatus", "submitted"] },
-              then: "Submitted",
-            },
-            {
-              case: { $eq: ["$reportStatus", "completed"] },
-              then: "Completed",
-            },
-            { case: { $eq: ["$reportStatus", "rejected"] }, then: "Rejected" },
-          ],
-          default: "In Progress",
-        },
-      },
-    },
-  });
-
-  /* ============================
-     Projection
-  ============================ */
-  pipeline.push({
-    $project: {
-      formType: 1,
-      feeStatus: 1,
-      agreedFee: 1,
-      fhaCaseDetailsNo: 1,
-      orderId: 1,
-      streetAddress: 1,
-      developmentName: 1,
-      siteContactName: 1,
-      siteContactPhone: 1,
-      siteContactEmail: 1,
-      dueDate: 1,
-      createdAt: 1,
-      updatedAt: 1,
-      hasReport: 1,
-      reportId: 1,
-      reportStatus: 1,
-      reportStatusLabel: 1,
-      inspector: {
-        _id: 1,
-        userId: 1,
-        firstName: 1,
-        lastName: 1,
-        email: 1,
-        role: 1,
-      },
-      createdBy: {
-        _id: 1,
-        userId: 1,
-        firstName: 1,
-        lastName: 1,
-        email: 1,
-        role: 1,
-      },
-      lastUpdatedBy: {
-        _id: 1,
-        userId: 1,
-        firstName: 1,
-        lastName: 1,
-        email: 1,
-        role: 1,
-      },
-    },
-  });
-
-  /* ============================
-     Pagination
-  ============================ */
-  pipeline.push(
-    { $sort: { createdAt: -1 } },
-    {
-      $facet: {
-        jobs: [{ $skip: skip }, { $limit: limit }],
-        metaData: [{ $count: "totalJob" }],
-      },
-    },
-  );
-
-  const result = await JobModel.aggregate(pipeline);
-  const jobs = result[0]?.jobs || [];
-  const totalJob = result[0]?.metaData[0]?.totalJob || 0;
-
-  return {
-    jobs,
-    metaData: {
-      page,
-      limit,
-      totalJob,
-      totalPage: Math.ceil(totalJob / limit),
-    },
-  };
-}
-
-/**
- * Get jobs with search and pagination
- *
- * @param {Object} query
- * @returns {Promise<{
- *  jobs: Array<Object>,
- *  metaData: {
- *    page: number,
- *    limit: number,
- *    totalJob: number,
- *    totalPage: number
- * } }>}
- */
-async function getJobs(query = {}) {
-  const page = Number(query.page) || 1;
-  const limit = Number(query.limit) || 10;
-  const skip = (page - 1) * limit;
-  const search = query.search?.trim();
-  const statusFilter = query.status;
-
-  const pipeline = [];
-
-  // Lookup inspector (needed for search)
-  pipeline.push(
-    {
-      $lookup: {
-        from: "users",
-        localField: "inspector",
-        foreignField: "_id",
-        as: "inspector",
-      },
-    },
-    {
-      $unwind: {
-        path: "$inspector",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-  );
-
-  // Lookup createdBy
-  pipeline.push(
-    {
-      $lookup: {
-        from: "users",
-        localField: "createdBy",
-        foreignField: "_id",
-        as: "createdBy",
-      },
-    },
-    {
-      $unwind: {
-        path: "$createdBy",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-  );
-
-  // Lookup lastUpdatedBy
-  pipeline.push(
-    {
-      $lookup: {
-        from: "users",
-        localField: "lastUpdatedBy",
-        foreignField: "_id",
-        as: "lastUpdatedBy",
-      },
-    },
-    {
-      $unwind: {
-        path: "$lastUpdatedBy",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-  );
-
-  // Lookup report status
-  pipeline.push({
-    $lookup: {
-      from: "reports",
-      let: { jobId: "$_id" },
-      pipeline: [
-        { $match: { $expr: { $eq: ["$job", "$$jobId"] } } },
-        { $limit: 1 },
-        { $project: { _id: 1, status: 1 } },
-      ],
-      as: "reportCheck",
-    },
-  });
-
-  // Add reportStatus field (default: in_progress)
-  pipeline.push({
-    $addFields: {
-      reportStatus: {
-        $ifNull: [{ $arrayElemAt: ["$reportCheck.status", 0] }, "in_progress"],
-      },
-    },
-  });
-
-  // Filter by status if provided and not 'all'
-  if (statusFilter && statusFilter !== "all") {
-    pipeline.push({
-      $match: { reportStatus: statusFilter },
-    });
-  }
-
-  // Search (job fields + inspector name)
-  if (search) {
-    const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
-    const regex = new RegExp(esc, "i");
-
-    pipeline.push({
-      $match: {
-        $or: [
-          { streetAddress: regex },
-          { orderId: regex },
-          { fhaCaseDetailsNo: regex },
-          { developmentName: regex },
-          { siteContactName: regex },
-          { "inspector.firstName": regex },
-          { "inspector.lastName": regex },
-          {
-            $expr: {
-              $regexMatch: {
-                input: {
-                  $concat: ["$inspector.firstName", " ", "$inspector.lastName"],
-                },
-                regex: esc,
-                options: "i",
+              case: {
+                $eq: [
+                  { $arrayElemAt: ["$reportCheck.status", 0] },
+                  "submitted",
+                ],
               },
-            },
-          },
-        ],
-      },
-    });
-  }
-
-  // Convert roles to readable labels and add report status label
-  pipeline.push({
-    $addFields: {
-      hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
-      reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
-      reportStatusLabel: {
-        $switch: {
-          branches: [
-            {
-              case: { $eq: ["$reportStatus", "submitted"] },
               then: "Submitted",
             },
             {
-              case: { $eq: ["$reportStatus", "completed"] },
+              case: {
+                $eq: [
+                  { $arrayElemAt: ["$reportCheck.status", 0] },
+                  "completed",
+                ],
+              },
               then: "Completed",
             },
             {
-              case: { $eq: ["$reportStatus", "rejected"] },
+              case: {
+                $eq: [{ $arrayElemAt: ["$reportCheck.status", 0] }, "rejected"],
+              },
               then: "Rejected",
             },
-            {
-              case: { $eq: ["$reportStatus", "in_progress"] },
-              then: "In Progress",
-            },
           ],
-          default: "Unknown",
+          default: "In Progress",
         },
       },
       "inspector.role": {
@@ -824,7 +606,9 @@ async function getJobs(query = {}) {
     },
   });
 
-  // Project safe fields only
+  // -------------------------
+  // Project safe fields
+  // -------------------------
   pipeline.push({
     $project: {
       formType: 1,
@@ -871,7 +655,315 @@ async function getJobs(query = {}) {
     },
   });
 
+  // -------------------------
   // Pagination + count
+  // -------------------------
+  pipeline.push(
+    { $sort: { createdAt: -1 } },
+    {
+      $facet: {
+        jobs: [{ $skip: skip }, { $limit: limit }],
+        metaData: [{ $count: "totalJob" }],
+      },
+    },
+  );
+
+  const result = await JobModel.aggregate(pipeline);
+  const jobs = result[0]?.jobs || [];
+  const totalJob = result[0]?.metaData[0]?.totalJob || 0;
+
+  return {
+    jobs,
+    metaData: {
+      page,
+      limit,
+      totalJob,
+      totalPage: Math.ceil(totalJob / limit),
+    },
+  };
+}
+
+/**
+ * Get jobs with search and pagination
+ *
+ * @param {Object} query
+ * @returns {Promise<{
+ *  jobs: Array<Object>,
+ *  metaData: {
+ *    page: number,
+ *    limit: number,
+ *    totalJob: number,
+ *    totalPage: number
+ * } }>}
+ */
+async function getJobs(query = {}) {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const search = query.search?.trim();
+  const statusFilter = query.status;
+  const dateType = query.dateType;
+  const customDate = query.customDate ? new Date(query.customDate) : null;
+
+  const pipeline = [];
+
+  // -------------------------
+  // Lookup inspector
+  // -------------------------
+  pipeline.push(
+    {
+      $lookup: {
+        from: "users",
+        localField: "inspector",
+        foreignField: "_id",
+        as: "inspector",
+      },
+    },
+    {
+      $unwind: { path: "$inspector", preserveNullAndEmptyArrays: true },
+    },
+  );
+
+  // -------------------------
+  // Lookup createdBy
+  // -------------------------
+  pipeline.push(
+    {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        as: "createdBy",
+      },
+    },
+    {
+      $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true },
+    },
+  );
+
+  // -------------------------
+  // Lookup lastUpdatedBy
+  // -------------------------
+  pipeline.push(
+    {
+      $lookup: {
+        from: "users",
+        localField: "lastUpdatedBy",
+        foreignField: "_id",
+        as: "lastUpdatedBy",
+      },
+    },
+    {
+      $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true },
+    },
+  );
+
+  // -------------------------
+  // Lookup report status
+  // -------------------------
+  pipeline.push({
+    $lookup: {
+      from: "reports",
+      let: { jobId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$job", "$$jobId"] } } },
+        { $limit: 1 },
+        { $project: { _id: 1, status: 1 } },
+      ],
+      as: "reportCheck",
+    },
+  });
+
+  // Add reportStatus field (default: in_progress)
+  pipeline.push({
+    $addFields: {
+      reportStatus: {
+        $ifNull: [{ $arrayElemAt: ["$reportCheck.status", 0] }, "in_progress"],
+      },
+    },
+  });
+
+  // -------------------------
+  // Filter by status
+  // -------------------------
+  if (statusFilter && statusFilter !== "all") {
+    pipeline.push({ $match: { reportStatus: statusFilter } });
+  }
+
+  // -------------------------
+  // Search
+  // -------------------------
+  if (search) {
+    const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
+    const regex = new RegExp(esc, "i");
+
+    pipeline.push({
+      $match: {
+        $or: [
+          { streetAddress: regex },
+          { orderId: regex },
+          { fhaCaseDetailsNo: regex },
+          { developmentName: regex },
+          { siteContactName: regex },
+          { "inspector.firstName": regex },
+          { "inspector.lastName": regex },
+          {
+            $expr: {
+              $regexMatch: {
+                input: {
+                  $concat: ["$inspector.firstName", " ", "$inspector.lastName"],
+                },
+                regex: esc,
+                options: "i",
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+
+  // -------------------------
+  // Date filter
+  // -------------------------
+  if (dateType) {
+    const now = new Date();
+    let start, end;
+
+    if (dateType === "this_month") {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (dateType === "previous_month") {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    } else if (dateType === "custom" && customDate) {
+      start = new Date(customDate);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(customDate);
+      end.setHours(23, 59, 59, 999);
+    }
+
+    if (start && end) {
+      pipeline.push({
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+        },
+      });
+    }
+  }
+
+  // -------------------------
+  // Role & report labels
+  // -------------------------
+  pipeline.push({
+    $addFields: {
+      hasReport: { $gt: [{ $size: "$reportCheck" }, 0] },
+      reportId: { $arrayElemAt: ["$reportCheck._id", 0] },
+      reportStatusLabel: {
+        $switch: {
+          branches: [
+            {
+              case: { $eq: ["$reportStatus", "submitted"] },
+              then: "Submitted",
+            },
+            {
+              case: { $eq: ["$reportStatus", "completed"] },
+              then: "Completed",
+            },
+            { case: { $eq: ["$reportStatus", "rejected"] }, then: "Rejected" },
+            {
+              case: { $eq: ["$reportStatus", "in_progress"] },
+              then: "In Progress",
+            },
+          ],
+          default: "Unknown",
+        },
+      },
+      "inspector.role": {
+        $switch: {
+          branches: [
+            { case: { $eq: ["$inspector.role", 0] }, then: "Super Admin" },
+            { case: { $eq: ["$inspector.role", 1] }, then: "Admin" },
+            { case: { $eq: ["$inspector.role", 2] }, then: "Inspector" },
+          ],
+          default: "Unknown",
+        },
+      },
+      "createdBy.role": {
+        $switch: {
+          branches: [
+            { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
+            { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
+            { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
+          ],
+          default: "Unknown",
+        },
+      },
+      "lastUpdatedBy.role": {
+        $switch: {
+          branches: [
+            { case: { $eq: ["$lastUpdatedBy.role", 0] }, then: "Super Admin" },
+            { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
+            { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
+          ],
+          default: "Unknown",
+        },
+      },
+    },
+  });
+
+  // -------------------------
+  // Project safe fields
+  // -------------------------
+  pipeline.push({
+    $project: {
+      formType: 1,
+      feeStatus: 1,
+      agreedFee: 1,
+      fhaCaseDetailsNo: 1,
+      orderId: 1,
+      streetAddress: 1,
+      developmentName: 1,
+      siteContactName: 1,
+      siteContactPhone: 1,
+      siteContactEmail: 1,
+      dueDate: 1,
+      createdAt: 1,
+      updatedAt: 1,
+      hasReport: 1,
+      reportId: 1,
+      reportStatus: 1,
+      reportStatusLabel: 1,
+      inspector: {
+        _id: "$inspector._id",
+        userId: "$inspector.userId",
+        firstName: "$inspector.firstName",
+        lastName: "$inspector.lastName",
+        email: "$inspector.email",
+        role: "$inspector.role",
+      },
+      createdBy: {
+        _id: "$createdBy._id",
+        userId: "$createdBy.userId",
+        firstName: "$createdBy.firstName",
+        lastName: "$createdBy.lastName",
+        email: "$createdBy.email",
+        role: "$createdBy.role",
+      },
+      lastUpdatedBy: {
+        _id: "$lastUpdatedBy._id",
+        userId: "$lastUpdatedBy.userId",
+        firstName: "$lastUpdatedBy.firstName",
+        lastName: "$lastUpdatedBy.lastName",
+        email: "$lastUpdatedBy.email",
+        role: "$lastUpdatedBy.role",
+      },
+    },
+  });
+
+  // -------------------------
+  // Pagination + Count
+  // -------------------------
   pipeline.push(
     { $sort: { createdAt: -1 } },
     {
