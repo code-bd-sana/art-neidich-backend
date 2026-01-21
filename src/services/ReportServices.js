@@ -412,6 +412,8 @@ async function getReportById(id) {
         },
         job: {
           _id: "$job._id",
+          fhaCaseDetailsNo: "$job.fhaCaseDetailsNo",
+          formType: "$job.formType",
           orderId: "$job.orderId",
           streetAddress: "$job.streetAddress",
           developmentName: "$job.developmentName",
