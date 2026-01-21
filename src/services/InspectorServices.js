@@ -2,23 +2,28 @@ const JobModel = require("../models/JobModel");
 const ReportModel = require("../models/ReportModel");
 
 /**
- * Get admin overview statistics (all-time)
+ * Get inspector overview statistics (all-time)
  *
+ * @param {Object} payload
+ * @param {import('mongoose').Types.ObjectId} payload.inspector
  * @returns {Promise<Object>}
  */
-async function adminOverview() {
+async function inspectorOverview(payload) {
   const [totalJobs, inProgressJobs, overDueJobs, completedJobs] =
     await Promise.all([
       /* ============================
-         Total jobs (all-time)
+         Total jobs
       ============================ */
-      JobModel.countDocuments(),
+      JobModel.countDocuments({
+        inspector: payload.inspector,
+      }),
 
       /* ============================
          In-progress jobs
          (report exists but not completed)
       ============================ */
       ReportModel.countDocuments({
+        inspector: payload.inspector,
         status: { $in: ["submitted", "rejected"] },
       }),
 
@@ -27,6 +32,7 @@ async function adminOverview() {
          (dueDate passed & not completed)
       ============================ */
       JobModel.countDocuments({
+        inspector: payload.inspector,
         dueDate: { $lt: new Date() },
         _id: {
           $nin: await ReportModel.distinct("job", {
@@ -36,9 +42,10 @@ async function adminOverview() {
       }),
 
       /* ============================
-         Completed jobs (all-time)
+         Completed jobs
       ============================ */
       ReportModel.countDocuments({
+        inspector: payload.inspector,
         status: "completed",
       }),
     ]);
@@ -52,5 +59,5 @@ async function adminOverview() {
 }
 
 module.exports = {
-  adminOverview,
+  inspectorOverview,
 };
