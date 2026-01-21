@@ -13,8 +13,6 @@ async function support(req, res, next) {
   try {
     const payload = req.validated;
     payload.inspector = req.user;
-
-    console.log("Support payload:", payload);
     const result = await emailSupport(payload);
     return res.status(200).json({
       success: true,
