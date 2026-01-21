@@ -96,7 +96,7 @@ async function resetPassword(req, res, next) {
     await resetUserPassword(payload);
     return res.status(200).json({
       success: true,
-      message: "Password reset successfully",
+      message: payload.token ? "Password reset successfully" : "O",
       code: 200,
     });
   } catch (err) {
