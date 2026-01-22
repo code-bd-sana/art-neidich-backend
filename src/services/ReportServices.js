@@ -117,7 +117,7 @@ async function createReport(payload) {
     });
 
     await report.save();
-    return report;
+    return getReportById(report._id);
   } catch (err) {
     // Cleanup
     if (uploadedResults.length) {
