@@ -1,162 +1,282 @@
-/**
- * Utility functions for interacting with AWS S3.
- *
- * Provides functions to upload and delete files in S3.
- */
+const path = require("path");
+
 const {
   S3Client,
+  GetObjectCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
 } = require("@aws-sdk/client-s3");
 const { Upload } = require("@aws-sdk/lib-storage");
-const { nanoid } = require("nanoid");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const { v4: uuidv4 } = require("uuid");
 
-/**
- * AWS S3 Configuration
- *
- * Reads configuration from environment variables.
- * Throws an error if the required BUCKET variable is not set.
- * Initializes an S3 client for further operations.
- * Defines utility functions for uploading and deleting files in S3.
- * @module utils/s3
- */
-const REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
-const BUCKET = process.env.AWS_S3_BUCKET;
+const region =
+  process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-west-1";
+const bucket = process.env.AWS_S3_BUCKET;
 
-/**
- * Ensure the S3 bucket name is provided
- *
- * @throws {Error} If AWS_S3_BUCKET environment variable is not set
- * @module utils/s3
- */
-if (!BUCKET) {
-  throw new Error("AWS_S3_BUCKET environment variable is required");
+if (!bucket) {
+  console.warn(
+    "AWS_S3_BUCKET is not set. S3 operations will fail until configured.",
+  );
 }
 
-/**
- * Initialize S3 Client
- *
- * Creates an instance of S3Client using the specified region.
- * @module utils/s3
- */
-const s3Client = new S3Client({ region: REGION });
+const s3Client = new S3Client({
+  region,
+  credentials:
+    process.env.AWS_ACCESS_KEY && process.env.AWS_SECRET_ACCESS_KEY
+      ? {
+          accessKeyId: process.env.AWS_ACCESS_KEY,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        }
+      : undefined,
+});
 
-/**
- * Generate a unique S3 object key
- *
- * Creates a unique key for storing files in S3 by combining the current timestamp,
- * a nanoid, and a sanitized version of the original filename.
- *
- * @param {string} filename - Original filename
- * @returns {string} Unique S3 object key
- * @module utils/s3
- */
-function makeKey(filename = "file") {
-  const safe = String(filename).replace(/\s+/g, "_");
-  return `${Date.now()}_${nanoid()}_${safe}`;
+function sanitizeKey(key) {
+  if (!key) return "";
+  return key.replace(/^\/+/, "").replace(/\.\.+/g, "").replace(/\\/g, "/");
 }
 
-/**
- * Upload a file stream to S3
- *
- * Uploads a readable stream to the specified S3 bucket.
- * @param {Object} params - Upload parameters
- * @param {stream.Readable} params.stream - Readable stream of the file to upload
- * @param {string} params.filename - Original filename
- * @param {string} [params.contentType] - MIME type of the file
- * @param {string} [params.Key] - Optional S3 object key; if not provided, a unique key will be generated
- * @returns {Promise<Object>} Upload result containing Key, Location, ETag, and full result
- * @module utils/s3
- */
-async function uploadStream({ stream, filename, contentType, Key }) {
-  const key = Key || makeKey(filename);
+function generateKey(originalName = "") {
+  const ext = path.extname(originalName || "") || "";
+  return `${uuidv4()}${ext}`;
+}
 
-  const uploader = new Upload({
+// ────────────────────────────────────────────────
+// SINGLE FILE FUNCTIONS
+// ────────────────────────────────────────────────
+
+async function uploadBuffer(buffer, key, contentType) {
+  if (!bucket) throw new Error("S3 bucket not configured");
+  const safeKey = sanitizeKey(key || generateKey());
+
+  const upload = new Upload({
     client: s3Client,
     params: {
-      Bucket: BUCKET,
-      Key: key,
+      Bucket: bucket,
+      Key: safeKey,
+      Body: buffer,
+      ContentType: contentType || "application/octet-stream",
+    },
+  });
+
+  const result = await upload.done();
+
+  return {
+    Bucket: bucket,
+    Key: safeKey,
+    ETag: result.ETag,
+    Location: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(safeKey)}`,
+  };
+}
+
+async function uploadStream(stream, key, contentType) {
+  if (!bucket) throw new Error("S3 bucket not configured");
+  const safeKey = sanitizeKey(key || generateKey());
+
+  const upload = new Upload({
+    client: s3Client,
+    params: {
+      Bucket: bucket,
+      Key: safeKey,
       Body: stream,
       ContentType: contentType || "application/octet-stream",
     },
   });
 
-  const result = await uploader.done();
-
-  const location = REGION
-    ? `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`
-    : `https://${BUCKET}.s3.amazonaws.com/${key}`;
+  const result = await upload.done();
 
   return {
-    Key: key,
-    Location: location,
+    Bucket: bucket,
+    Key: safeKey,
     ETag: result.ETag,
-    result,
+    Location: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(safeKey)}`,
   };
 }
 
-/**
- * Upload multiple file streams to S3
- *
- * Uploads multiple readable streams to the specified S3 bucket.
- * @param {Array<Object>} files - Array of upload parameters
- * @param {stream.Readable} files[].stream - Readable stream of the file to upload
- * @param {string} files[].filename - Original filename
- * @param {string} [files[].contentType] - MIME type of the file
- * @param {string} [files[].Key] - Optional S3 object key; if not provided, a unique key will be generated
- * @returns {Promise<Array<Object>>} Array of upload results
- * @module utils/s3
- */
-async function uploadMultiple(files = []) {
-  const uploads = files.map((f) => uploadStream(f));
-  return Promise.all(uploads);
-}
-
-/**
- * Delete an object from S3
- *
- * Deletes a single object from the specified S3 bucket.
- * @param {string} Key - S3 object key to delete
- * @returns {Promise<Object>} Deletion result
- * @module utils/s3
- */
-async function deleteObject(Key) {
-  if (!Key) throw new Error("Key is required to delete object");
-  const cmd = new DeleteObjectCommand({ Bucket: BUCKET, Key });
+async function deleteObject(key) {
+  if (!bucket) throw new Error("S3 bucket not configured");
+  const safeKey = sanitizeKey(key);
+  const cmd = new DeleteObjectCommand({ Bucket: bucket, Key: safeKey });
   return s3Client.send(cmd);
 }
 
+async function getObjectStream(key) {
+  if (!bucket) throw new Error("S3 bucket not configured");
+  const safeKey = sanitizeKey(key);
+  const cmd = new GetObjectCommand({ Bucket: bucket, Key: safeKey });
+  const res = await s3Client.send(cmd);
+  return res.Body;
+}
+
+async function getSignedDownloadUrl(key, expiresIn = 900) {
+  if (!bucket) throw new Error("S3 bucket not configured");
+  const safeKey = sanitizeKey(key);
+  const cmd = new GetObjectCommand({ Bucket: bucket, Key: safeKey });
+  return getSignedUrl(s3Client, cmd, { expiresIn });
+}
+
+// ────────────────────────────────────────────────
+// BATCH / MULTIPLE FILE FUNCTIONS
+// ────────────────────────────────────────────────
+
 /**
- * Delete multiple objects from S3
- *
- * Deletes multiple objects from the specified S3 bucket.
- * @param {Array<string|Object>} Keys - Array of S3 object keys or objects with Key property to delete
- * @returns {Promise<Object>} Deletion result
- * @module utils/s3
+ * Upload multiple buffers concurrently
+ * @param {Array<{ buffer: Buffer, key?: string, contentType?: string, originalName?: string }>} items
+ * @param {number} [concurrency=5]
+ * @returns {Promise<Array<{ status: "fulfilled"|"rejected", value?: object, reason?: Error }>>}
  */
-async function deleteMultiple(Keys = []) {
-  if (!Array.isArray(Keys) || Keys.length === 0) {
-    throw new Error(
-      "Keys must be a non-empty array to delete multiple objects"
-    );
+async function uploadBuffers(items, concurrency = 5) {
+  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const results = [];
+  const queue = [...items];
+
+  async function processNext() {
+    while (queue.length > 0) {
+      const item = queue.shift();
+      try {
+        const safeKey = sanitizeKey(
+          item.key || generateKey(item.originalName || ""),
+        );
+        const upload = new Upload({
+          client: s3Client,
+          params: {
+            Bucket: bucket,
+            Key: safeKey,
+            Body: item.buffer,
+            ContentType: item.contentType || "application/octet-stream",
+          },
+        });
+
+        const result = await upload.done();
+
+        results.push({
+          status: "fulfilled",
+          value: {
+            Bucket: bucket,
+            Key: safeKey,
+            ETag: result.ETag,
+            Location: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(safeKey)}`,
+          },
+        });
+      } catch (err) {
+        results.push({ status: "rejected", reason: err });
+      }
+    }
   }
 
-  const Objects = Keys.map((k) => (typeof k === "string" ? { Key: k } : k));
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    processNext,
+  );
+  await Promise.all(workers);
 
-  const cmd = new DeleteObjectsCommand({
-    Bucket: BUCKET,
-    Delete: {
-      Objects,
-      Quiet: true,
-    },
-  });
-
-  return s3Client.send(cmd);
+  return results;
 }
 
+/**
+ * Upload multiple streams concurrently
+ * @param {Array<{ stream: Readable, key?: string, contentType?: string, originalName?: string }>} items
+ * @param {number} [concurrency=5]
+ * @returns {Promise<Array<{ status: "fulfilled"|"rejected", value?: object, reason?: Error }>>}
+ */
+async function uploadStreams(items, concurrency = 5) {
+  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const results = [];
+  const queue = [...items];
+
+  async function processNext() {
+    while (queue.length > 0) {
+      const item = queue.shift();
+      try {
+        const safeKey = sanitizeKey(
+          item.key || generateKey(item.originalName || ""),
+        );
+        const upload = new Upload({
+          client: s3Client,
+          params: {
+            Bucket: bucket,
+            Key: safeKey,
+            Body: item.stream,
+            ContentType: item.contentType || "application/octet-stream",
+          },
+        });
+
+        const result = await upload.done();
+
+        results.push({
+          status: "fulfilled",
+          value: {
+            Bucket: bucket,
+            Key: safeKey,
+            ETag: result.ETag,
+            Location: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(safeKey)}`,
+          },
+        });
+      } catch (err) {
+        results.push({ status: "rejected", reason: err });
+      }
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    processNext,
+  );
+  await Promise.all(workers);
+
+  return results;
+}
+
+/**
+ * Delete multiple objects (batched, max 1000 per call)
+ * @param {string[]} keys
+ * @returns {Promise<{ Deleted: Array, Errors: Array }>}
+ */
+async function deleteObjects(keys) {
+  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!keys || keys.length === 0) return { Deleted: [], Errors: [] };
+
+  const safeKeys = keys.map(sanitizeKey).filter(Boolean);
+  const chunks = [];
+  for (let i = 0; i < safeKeys.length; i += 1000) {
+    chunks.push(safeKeys.slice(i, i + 1000));
+  }
+
+  const finalResult = { Deleted: [], Errors: [] };
+
+  for (const chunk of chunks) {
+    const cmd = new DeleteObjectsCommand({
+      Bucket: bucket,
+      Delete: {
+        Objects: chunk.map((Key) => ({ Key })),
+        Quiet: false,
+      },
+    });
+
+    const response = await s3Client.send(cmd);
+    if (response.Deleted) finalResult.Deleted.push(...(response.Deleted || []));
+    if (response.Errors) finalResult.Errors.push(...(response.Errors || []));
+  }
+
+  return finalResult;
+}
+
+// ────────────────────────────────────────────────
+// Exports
+// ────────────────────────────────────────────────
+
 module.exports = {
+  uploadBuffer,
+  uploadBuffers,
   uploadStream,
-  uploadMultiple,
+  uploadStreams, // ← now implemented
   deleteObject,
-  deleteMultiple,
+  deleteObjects,
+  getObjectStream,
+  getSignedDownloadUrl,
+  generateKey,
 };
