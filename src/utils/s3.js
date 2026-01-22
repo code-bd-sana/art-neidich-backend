@@ -129,12 +129,12 @@ async function uploadBuffers(items, concurrency = 5) {
   if (!bucket) throw new Error("S3 bucket not configured");
   if (!Array.isArray(items) || items.length === 0) return [];
 
-  const results = [];
-  const queue = [...items];
+  const results = new Array(items.length);
+  const queue = items.map((it, ix) => ({ item: it, ix }));
 
   async function processNext() {
     while (queue.length > 0) {
-      const item = queue.shift();
+      const { item, ix } = queue.shift();
       try {
         const safeKey = sanitizeKey(
           item.key || generateKey(item.originalName || ""),
@@ -151,7 +151,7 @@ async function uploadBuffers(items, concurrency = 5) {
 
         const result = await upload.done();
 
-        results.push({
+        results[ix] = {
           status: "fulfilled",
           value: {
             Bucket: bucket,
@@ -159,16 +159,16 @@ async function uploadBuffers(items, concurrency = 5) {
             ETag: result.ETag,
             Location: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(safeKey)}`,
           },
-        });
+        };
       } catch (err) {
-        results.push({ status: "rejected", reason: err });
+        results[ix] = { status: "rejected", reason: err };
       }
     }
   }
 
   const workers = Array.from(
     { length: Math.min(concurrency, items.length) },
-    processNext,
+    () => processNext(),
   );
   await Promise.all(workers);
 
@@ -185,12 +185,12 @@ async function uploadStreams(items, concurrency = 5) {
   if (!bucket) throw new Error("S3 bucket not configured");
   if (!Array.isArray(items) || items.length === 0) return [];
 
-  const results = [];
-  const queue = [...items];
+  const results = new Array(items.length);
+  const queue = items.map((it, ix) => ({ item: it, ix }));
 
   async function processNext() {
     while (queue.length > 0) {
-      const item = queue.shift();
+      const { item, ix } = queue.shift();
       try {
         const safeKey = sanitizeKey(
           item.key || generateKey(item.originalName || ""),
@@ -207,7 +207,7 @@ async function uploadStreams(items, concurrency = 5) {
 
         const result = await upload.done();
 
-        results.push({
+        results[ix] = {
           status: "fulfilled",
           value: {
             Bucket: bucket,
@@ -215,16 +215,16 @@ async function uploadStreams(items, concurrency = 5) {
             ETag: result.ETag,
             Location: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(safeKey)}`,
           },
-        });
+        };
       } catch (err) {
-        results.push({ status: "rejected", reason: err });
+        results[ix] = { status: "rejected", reason: err };
       }
     }
   }
 
   const workers = Array.from(
     { length: Math.min(concurrency, items.length) },
-    processNext,
+    () => processNext(),
   );
   await Promise.all(workers);
 

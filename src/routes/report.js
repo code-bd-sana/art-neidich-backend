@@ -31,14 +31,53 @@ router.use(authenticate);
 
 // Merge multer files into req.body.images before validation
 const mergeFilesWithBody = (req, res, next) => {
-  if (req.files) {
-    req.body.images = req.files.map((file) => ({
-      fileName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      buffer: file.buffer,
-    }));
+  console.log("request body before merge:", req.body);
+  console.log(
+    "request files:",
+    req.files?.map((f) => f.originalname),
+  );
+
+  if (!req.files?.length) return next();
+
+  let meta = req.body.imagesMeta || req.body.images || "[]";
+  let parsedMeta = [];
+
+  if (typeof meta === "string") {
+    try {
+      // Handle multiline / formatted JSON better
+      const cleaned = meta.trim().replace(/\n\s*/g, " ");
+      parsedMeta = JSON.parse(cleaned);
+    } catch (e) {
+      console.error(
+        "JSON parse error on imagesMeta:",
+        e.message,
+        meta.substring(0, 100),
+      );
+      parsedMeta = [];
+    }
+  } else if (Array.isArray(meta)) {
+    parsedMeta = meta;
   }
+
+  // Build images array
+  req.body.images = req.files.map((file, idx) => ({
+    fileName: file.originalname,
+    mimeType: file.mimetype,
+    size: file.size,
+    buffer: file.buffer,
+    ...(parsedMeta[idx] || {}), // attach metadata
+  }));
+
+  // IMPORTANT: only delete the original meta field — NEVER delete images!
+  delete req.body.imagesMeta; // safe to delete
+  // Do NOT do this → delete req.body.images;  ← remove or comment this line
+
+  console.log("Sanitized body:", {
+    job: req.body.job,
+    imagesCount: req.body.images?.length || 0,
+    firstImageLabel: req.body.images?.[0]?.imageLabel,
+  });
+
   next();
 };
 
@@ -58,7 +97,7 @@ router.post(
   upload.array("images"), // no limit on number of images
   mergeFilesWithBody,
   validate(createReportSchema, { target: "body" }),
-  createReportController
+  createReportController,
 );
 
 /**
@@ -75,7 +114,7 @@ router.get(
   "/",
   authorizeRoles(0, 1),
   validate(reportPaginationSchema, { target: "query" }),
-  getReportsController
+  getReportsController,
 );
 
 /**
@@ -92,7 +131,7 @@ router.get(
   "/:id",
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
-  getReportByIdController
+  getReportByIdController,
 );
 
 // Stream PDF for a report
@@ -100,7 +139,7 @@ router.get(
   "/:id/pdf",
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
-  getReportPdfController
+  getReportPdfController,
 );
 
 /**
@@ -114,7 +153,7 @@ router.patch(
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
   validate(updateReportStatusSchema, { target: "body" }),
-  updateReportStatusController
+  updateReportStatusController,
 );
 
 /**
@@ -131,7 +170,7 @@ router.delete(
   "/:id",
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
-  deleteReportController
+  deleteReportController,
 );
 
 module.exports = router;

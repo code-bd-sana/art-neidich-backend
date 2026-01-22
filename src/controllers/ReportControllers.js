@@ -19,10 +19,12 @@ const {
 async function createReportController(req, res, next) {
   try {
     const payload = req.validated;
-    payload.inspector = new mongoose.Types.ObjectId(req.user?._id);
-    // job should come from the validated payload (body)
+
+    payload.inspector = new mongoose.Types.ObjectId(req.user._id);
     payload.job = new mongoose.Types.ObjectId(payload.job);
+
     const report = await createReport(payload);
+
     return res.status(201).json({
       success: true,
       message: "Report created successfully",
@@ -30,9 +32,15 @@ async function createReportController(req, res, next) {
       code: 201,
     });
   } catch (err) {
-    return next(err);
+    next(err);
   }
 }
+
+// ... other controllers remain unchanged
+module.exports = {
+  createReportController,
+  // ... export others
+};
 
 /**
  * Get all reports with optional search and pagination
