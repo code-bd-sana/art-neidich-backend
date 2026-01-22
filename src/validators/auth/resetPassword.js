@@ -14,7 +14,7 @@ const resetPasswordSchema = z
     email: z.string().email("Invalid email address"),
     token: z.string().uuid("Invalid reset token").optional(),
     otp: z.string().length(6, "OTP must be 6 digits").optional(),
-    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
   })
   .strict()
   .refine(
