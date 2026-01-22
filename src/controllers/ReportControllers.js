@@ -20,7 +20,8 @@ async function createReportController(req, res, next) {
   try {
     const payload = req.validated;
     payload.inspector = new mongoose.Types.ObjectId(req.user?._id);
-    payload.job = new mongoose.Types.ObjectId(req.params.job);
+    // job should come from the validated payload (body)
+    payload.job = new mongoose.Types.ObjectId(payload.job);
     const report = await createReport(payload);
     return res.status(201).json({
       success: true,
@@ -86,7 +87,7 @@ async function getReportPdfController(req, res, next) {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="report-${report._id}.pdf"`
+      `attachment; filename="report-${report._id}.pdf"`,
     );
     return res.send(pdfBuffer);
   } catch (err) {
@@ -127,13 +128,11 @@ async function updateReportStatusController(req, res, next) {
 async function deleteReportController(req, res, next) {
   try {
     await deleteReport(req.params.id);
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Report deleted successfully",
-        code: 200,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Report deleted successfully",
+      code: 200,
+    });
   } catch (err) {
     return next(err);
   }

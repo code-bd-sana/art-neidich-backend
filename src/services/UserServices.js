@@ -1,7 +1,11 @@
 const mongoose = require("mongoose");
 
+const NotificationModel = require("../models/NotificationModel");
+const PushToken = require("../models/PushToken");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
+
+const NotificationServices = require("./../services/NotificationServices");
 
 /**
  * Get user profile
@@ -52,7 +56,7 @@ async function updateProfile(userId, updateData) {
   const updatedUser = await UserModel.findByIdAndUpdate(
     userId,
     { $set: updateData },
-    { new: true } // return the updated document
+    { new: true }, // return the updated document
   );
 
   if (!updatedUser) {
@@ -477,6 +481,64 @@ async function suspendUser(userId, currentUser) {
     html: emailHtml,
   });
 
+  // Notify other admins (roles 0 and 1) about this suspension, but
+  // exclude the user being suspended from recipients.
+  try {
+    const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
+      "_id firstName lastName email",
+    );
+    const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
+    const recipients = adminIds.filter((id) => String(id) !== String(user._id));
+
+    const tokens = await PushToken.find({
+      user: { $in: recipients },
+      active: true,
+    }).select("token -_id");
+    const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+
+    const types = NotificationModel.notificationTypes || {};
+    const notif = await NotificationModel.create({
+      title: "Account suspended",
+      body: `${user.firstName} ${user.lastName} has been suspended by an administrator.`,
+      data: { userId: String(user._id), action: "suspended" },
+      type: types.ACCOUNT_SUSPENDED || "account_suspended",
+      authorId: null,
+      recipients,
+      deviceTokens,
+      status: "pending",
+    });
+
+    try {
+      let sendResult = null;
+      if (deviceTokens.length) {
+        sendResult = await NotificationServices.sendToMany(deviceTokens, {
+          title: notif.title,
+          body: notif.body,
+          data: notif.data,
+        });
+      } else if (recipients.length === 1) {
+        sendResult = await NotificationServices.sendToUser(recipients[0], {
+          title: notif.title,
+          body: notif.body,
+          data: notif.data,
+        });
+      } else {
+        sendResult = { warning: "no-targets" };
+      }
+
+      notif.status = "sent";
+      notif.result = sendResult;
+      notif.sentAt = new Date();
+      await notif.save();
+    } catch (sendErr) {
+      notif.status = "failed";
+      notif.result = { error: sendErr.message || String(sendErr) };
+      await notif.save();
+    }
+  } catch (e) {
+    console.error("Failed to create/send suspension notification:", e);
+  }
+
   return;
 }
 
@@ -581,6 +643,63 @@ async function unSuspendUser(userId, currentUser) {
     subject: "Your Account Has Been Reinstated",
     html: emailHtml,
   });
+
+  // Notify admins (roles 0 and 1) about un-suspension; include the user who
+  // was un-suspended so they receive the notification too.
+  try {
+    const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
+      "_id firstName lastName email",
+    );
+    const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
+
+    const tokens = await PushToken.find({
+      user: { $in: adminIds },
+      active: true,
+    }).select("token -_id");
+    const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+
+    const types = NotificationModel.notificationTypes || {};
+    const notif = await NotificationModel.create({
+      title: "Account reinstated",
+      body: `${user.firstName} ${user.lastName} has been un-suspended and can now access the system.`,
+      data: { userId: String(user._id), action: "unsuspended" },
+      type: types.ACCOUNT_UNSUSPENDED || "account_unsuspended",
+      authorId: null,
+      recipients: adminIds,
+      deviceTokens,
+      status: "pending",
+    });
+
+    try {
+      let sendResult = null;
+      if (deviceTokens.length) {
+        sendResult = await NotificationServices.sendToMany(deviceTokens, {
+          title: notif.title,
+          body: notif.body,
+          data: notif.data,
+        });
+      } else if (adminIds.length === 1) {
+        sendResult = await NotificationServices.sendToUser(adminIds[0], {
+          title: notif.title,
+          body: notif.body,
+          data: notif.data,
+        });
+      } else {
+        sendResult = { warning: "no-targets" };
+      }
+
+      notif.status = "sent";
+      notif.result = sendResult;
+      notif.sentAt = new Date();
+      await notif.save();
+    } catch (sendErr) {
+      notif.status = "failed";
+      notif.result = { error: sendErr.message || String(sendErr) };
+      await notif.save();
+    }
+  } catch (e) {
+    console.error("Failed to create/send un-suspension notification:", e);
+  }
 
   return;
 }

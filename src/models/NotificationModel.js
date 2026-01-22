@@ -121,8 +121,8 @@ notificationSchema.methods.markAsRead = async function (userId) {
  */
 const Notification = mongoose.model("Notification", notificationSchema);
 
-// Export both the model and the types constant for safe usage across the app
-module.exports = {
-  Notification,
-  notificationTypes,
-};
+// Export the model directly for backwards-compatibility with existing
+// controllers (they `require('../models/NotificationModel')` and call
+// model methods). Also attach the `notificationTypes` as a property.
+module.exports = Notification;
+module.exports.notificationTypes = notificationTypes;

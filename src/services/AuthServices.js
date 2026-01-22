@@ -7,8 +7,12 @@ const {
   hashPassword,
   comparePassword,
 } = require("../helpers/password/password-util");
+const NotificationModel = require("../models/NotificationModel");
+const PushToken = require("../models/PushToken");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
+
+const NotificationServices = require("./../services/NotificationServices");
 
 /**
  * Register a new user
@@ -30,7 +34,7 @@ async function registerUser(payload) {
 
   const hashed = await hashPassword(password);
 
-  await UserModel.create({
+  const newUser = await UserModel.create({
     firstName: firstName,
     lastName: lastName,
     email,
@@ -279,6 +283,69 @@ async function registerUser(payload) {
     subject: "🏠 Welcome to Property Inspector Pro - Registration Successful",
     html: emailHtml,
   });
+
+  // If this is an inspector registration (role 2), notify admins (role 0 and 1)
+  try {
+    if (role === 2) {
+      // find admin users
+      const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
+        "_id firstName lastName email",
+      );
+      const adminIds = (admins || []).map((a) => a._id);
+
+      // resolve device tokens for admins
+      const tokens = await PushToken.find({
+        user: { $in: adminIds },
+        active: true,
+      }).select("token -_id");
+      const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+
+      // create notification record
+      const types = NotificationModel.notificationTypes || {};
+      const notif = await NotificationModel.create({
+        title: "New inspector registration",
+        body: `${firstName} ${lastName} has registered as an inspector and is awaiting approval.`,
+        data: { userId: String(newUser._id), role: 2 },
+        type: types.REGISTERED_AS_INSPECTOR || "registered_as_inspector",
+        authorId: newUser._id,
+        recipients: adminIds,
+        deviceTokens,
+        status: "pending",
+      });
+
+      // attempt to send push notifications
+      try {
+        let sendResult = null;
+        if (deviceTokens.length) {
+          sendResult = await NotificationServices.sendToMany(deviceTokens, {
+            title: notif.title,
+            body: notif.body,
+            data: notif.data,
+          });
+        } else if (adminIds.length === 1) {
+          sendResult = await NotificationServices.sendToUser(adminIds[0], {
+            title: notif.title,
+            body: notif.body,
+            data: notif.data,
+          });
+        } else {
+          sendResult = { warning: "no-targets" };
+        }
+
+        notif.status = "sent";
+        notif.result = sendResult;
+        notif.sentAt = new Date();
+        await notif.save();
+      } catch (sendErr) {
+        notif.status = "failed";
+        notif.result = { error: sendErr.message || String(sendErr) };
+        await notif.save();
+      }
+    }
+  } catch (e) {
+    // swallow notification errors to avoid blocking registration
+    console.error("Notification send error:", e);
+  }
 
   return;
 }

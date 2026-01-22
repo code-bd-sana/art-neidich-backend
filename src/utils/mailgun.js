@@ -48,11 +48,18 @@ function mailgunRequest(path, postData) {
       ? new URL(MAILGUN_BASE_URL)
       : new URL("https://api.mailgun.net");
 
+    // Build path taking into account if baseUrl already contains /v3
+    const basePath = (baseUrl.pathname || "").replace(/\/$/, "");
+    const usePath =
+      basePath && basePath.includes("/v3")
+        ? `${basePath}/${MAILGUN_DOMAIN}${path}`
+        : `/v3/${MAILGUN_DOMAIN}${path}`;
+
     const options = {
       protocol: baseUrl.protocol,
       hostname: baseUrl.hostname,
       method: "POST",
-      path: `/v3/${MAILGUN_DOMAIN}${path}`,
+      path: usePath,
       headers: {
         Authorization: `Basic ${auth}`,
         "Content-Type": "application/x-www-form-urlencoded",
@@ -77,6 +84,11 @@ function mailgunRequest(path, postData) {
           const err = new Error("Mailgun request failed");
           err.status = status;
           err.body = data;
+          try {
+            logError(err, { path: options.path, status, body: data });
+          } catch (logErr) {
+            // ignore logging failures
+          }
           reject(err);
         }
       });
