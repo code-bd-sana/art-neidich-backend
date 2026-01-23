@@ -122,7 +122,7 @@ async function createReport(payload) {
           url: uploaded.Location,
           key: uploaded.Key,
           fileName: orig.fileName || path.basename(uploaded.Key),
-          alt: orig.alt || "",
+          alt: labelStr,
           uploadedBy: payload.inspector,
           mimeType: orig.mimeType || "application/octet-stream",
           size: orig.size || 0,
