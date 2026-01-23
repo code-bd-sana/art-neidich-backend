@@ -33,27 +33,48 @@ const s3Client = new S3Client({
 
 function sanitizeKey(key) {
   if (!key) return "";
+  // Remove leading/trailing slashes, prevent path traversal
   return key.replace(/^\/+/, "").replace(/\.\.+/g, "").replace(/\\/g, "/");
 }
 
-function generateKey(originalName = "") {
+/**
+ * Generate unique object key with optional jobId prefix (folder)
+ * @param {string} [originalName=""] - Original filename to preserve extension
+ * @param {string} [jobId=""] - If provided, prefix key with jobId/
+ * @returns {string} e.g. "507f191e810c19729de860ea/uuid.jpg"
+ */
+function generateKey(originalName = "", folderPrefix = "") {
   const ext = path.extname(originalName || "") || "";
-  return `${uuidv4()}${ext}`;
+  const uniquePart = `${uuidv4()}${ext}`;
+
+  if (folderPrefix) {
+    const cleanPrefix = sanitizeKey(folderPrefix);
+    return cleanPrefix ? `${cleanPrefix}/${uniquePart}` : uniquePart;
+  }
+  return uniquePart;
 }
 
 // ────────────────────────────────────────────────
 // SINGLE FILE FUNCTIONS
 // ────────────────────────────────────────────────
 
-async function uploadBuffer(buffer, key, contentType) {
+/**
+ * Upload buffer with optional jobId folder
+ * @param {Buffer} buffer
+ * @param {string} [key] - Custom key (overrides auto-generated)
+ * @param {string} [contentType]
+ * @param {string} [jobId] - If provided & no custom key, uses jobId/ prefix
+ */
+async function uploadBuffer(buffer, key, contentType, folderPrefix = "") {
   if (!bucket) throw new Error("S3 bucket not configured");
-  const safeKey = sanitizeKey(key || generateKey());
+
+  const finalKey = key ? sanitizeKey(key) : generateKey("", folderPrefix);
 
   const upload = new Upload({
     client: s3Client,
     params: {
       Bucket: bucket,
-      Key: safeKey,
+      Key: finalKey,
       Body: buffer,
       ContentType: contentType || "application/octet-stream",
     },
@@ -63,21 +84,26 @@ async function uploadBuffer(buffer, key, contentType) {
 
   return {
     Bucket: bucket,
-    Key: safeKey,
+    Key: finalKey,
     ETag: result.ETag,
-    Location: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(safeKey)}`,
+    Location: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(finalKey)}`,
   };
 }
 
-async function uploadStream(stream, key, contentType) {
+/**
+ * Upload stream with optional jobId folder
+ * Same logic as uploadBuffer
+ */
+async function uploadStream(stream, key, contentType, folderPrefix = "") {
   if (!bucket) throw new Error("S3 bucket not configured");
-  const safeKey = sanitizeKey(key || generateKey());
+
+  const finalKey = key ? sanitizeKey(key) : generateKey("", folderPrefix);
 
   const upload = new Upload({
     client: s3Client,
     params: {
       Bucket: bucket,
-      Key: safeKey,
+      Key: finalKey,
       Body: stream,
       ContentType: contentType || "application/octet-stream",
     },
@@ -87,9 +113,9 @@ async function uploadStream(stream, key, contentType) {
 
   return {
     Bucket: bucket,
-    Key: safeKey,
+    Key: finalKey,
     ETag: result.ETag,
-    Location: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(safeKey)}`,
+    Location: `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(finalKey)}`,
   };
 }
 
@@ -120,10 +146,8 @@ async function getSignedDownloadUrl(key, expiresIn = 900) {
 // ────────────────────────────────────────────────
 
 /**
- * Upload multiple buffers concurrently
- * @param {Array<{ buffer: Buffer, key?: string, contentType?: string, originalName?: string }>} items
- * @param {number} [concurrency=5]
- * @returns {Promise<Array<{ status: "fulfilled"|"rejected", value?: object, reason?: Error }>>}
+ * Upload multiple buffers – now supports jobId per item
+ * @param {Array<{ buffer: Buffer, key?: string, contentType?: string, originalName?: string, jobId?: string }>} items
  */
 async function uploadBuffers(items, concurrency = 5) {
   if (!bucket) throw new Error("S3 bucket not configured");
@@ -137,7 +161,8 @@ async function uploadBuffers(items, concurrency = 5) {
       const { item, ix } = queue.shift();
       try {
         const safeKey = sanitizeKey(
-          item.key || generateKey(item.originalName || ""),
+          item.key ||
+            generateKey(item.originalName || "", item.folderPrefix || ""),
         );
         const upload = new Upload({
           client: s3Client,
@@ -176,10 +201,7 @@ async function uploadBuffers(items, concurrency = 5) {
 }
 
 /**
- * Upload multiple streams concurrently
- * @param {Array<{ stream: Readable, key?: string, contentType?: string, originalName?: string }>} items
- * @param {number} [concurrency=5]
- * @returns {Promise<Array<{ status: "fulfilled"|"rejected", value?: object, reason?: Error }>>}
+ * Upload multiple streams – supports jobId per item
  */
 async function uploadStreams(items, concurrency = 5) {
   if (!bucket) throw new Error("S3 bucket not configured");
@@ -193,7 +215,8 @@ async function uploadStreams(items, concurrency = 5) {
       const { item, ix } = queue.shift();
       try {
         const safeKey = sanitizeKey(
-          item.key || generateKey(item.originalName || ""),
+          item.key ||
+            generateKey(item.originalName || "", item.folderPrefix || ""),
         );
         const upload = new Upload({
           client: s3Client,
@@ -232,9 +255,7 @@ async function uploadStreams(items, concurrency = 5) {
 }
 
 /**
- * Delete multiple objects (batched, max 1000 per call)
- * @param {string[]} keys
- * @returns {Promise<{ Deleted: Array, Errors: Array }>}
+ * Delete multiple objects (batched)
  */
 async function deleteObjects(keys) {
   if (!bucket) throw new Error("S3 bucket not configured");
@@ -273,7 +294,7 @@ module.exports = {
   uploadBuffer,
   uploadBuffers,
   uploadStream,
-  uploadStreams, // ← now implemented
+  uploadStreams,
   deleteObject,
   deleteObjects,
   getObjectStream,

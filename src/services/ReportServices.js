@@ -44,122 +44,126 @@ async function createReport(payload) {
     throw err;
   }
 
-  // 3. Collect all unique imageLabel IDs
+  // 3. Fetch labels (optimized single query)
   const labelIds = [...new Set(imagesInput.map((img) => img.imageLabel))];
-  console.log("Fetching labels for IDs:", labelIds);
-
-  // Single DB query – optimized
-  const labels = await ImageLabelModel.find({
-    _id: { $in: labelIds },
-  })
+  const labels = await ImageLabelModel.find({ _id: { $in: labelIds } })
     .select("label")
     .lean();
-
   const labelMap = new Map(labels.map((l) => [l._id.toString(), l.label]));
 
-  // 4. Validate labels & prepare upload list
-  const toUpload = [];
-  for (const img of imagesInput) {
+  // 4. Prepare images with string label
+  const finalImagesPlaceholder = imagesInput.map((img) => {
     const labelStr = labelMap.get(img.imageLabel);
     if (!labelStr) {
-      const err = new Error(`Invalid imageLabel ID: ${img.imageLabel}`);
-      err.status = 400;
-      throw err;
+      throw new Error(`Invalid imageLabel ID: ${img.imageLabel}`);
     }
+    return {
+      imageLabel: labelStr,
+      url: "", // will be filled after upload
+      key: "", // will be filled after upload
+      fileName: img.fileName || "image",
+      alt: img.alt || "",
+      uploadedBy: payload.inspector,
+      mimeType: img.mimeType || "application/octet-stream",
+      size: img.size || 0,
+      noteForAdmin: img.noteForAdmin || "",
+      buffer: img.buffer, // temporary, only for upload
+    };
+  });
 
-    toUpload.push({
+  // 5. Create report document FIRST (to get _id)
+  const report = new ReportModel({
+    ...payload,
+    job: jobId,
+    inspector: payload.inspector,
+    images: finalImagesPlaceholder.map((img) => ({
       ...img,
-      imageLabel: labelStr, // ID → string
-    });
-  }
+      url: "pending", // temporary placeholder
+      key: "pending",
+    })),
+  });
+
+  await report.save();
+  console.log("Report document created with _id:", report._id.toString());
+
+  // 6. Now upload images using report._id as folder prefix
+  const folderPrefix = `reports/${report._id.toString()}`;
 
   let uploadedResults = [];
-
   try {
-    // 5. Upload images if any
-    if (toUpload.length > 0) {
-      console.log(`Uploading ${toUpload.length} images...`);
+    const toUpload = finalImagesPlaceholder.filter((img) => img.buffer);
 
-      const uploadItems = toUpload.map((img) => ({
+    if (toUpload.length > 0) {
+      console.log(
+        `Uploading ${toUpload.length} images to folder: ${folderPrefix}`,
+      );
+
+      const uploadItems = toUpload.map((img, index) => ({
         stream: Readable.from(img.buffer),
-        originalName: img.fileName || "image",
-        contentType: img.mimeType || "application/octet-stream",
+        originalName: img.fileName,
+        contentType: img.mimeType,
+        folderPrefix, // ← key change: pass folder prefix
       }));
 
       uploadedResults = await uploadStreams(uploadItems);
 
-      // Check for failures
       const failed = uploadedResults.filter((r) => r.status === "rejected");
       if (failed.length > 0) {
         const keysToDelete = uploadedResults
           .filter((r) => r.status === "fulfilled")
-          .map((r) => r.value?.Key)
-          .filter(Boolean);
+          .map((r) => r.value.Key);
 
-        if (keysToDelete.length) {
-          console.log("Cleaning up partial uploads:", keysToDelete);
-          await deleteObjects(keysToDelete);
-        }
-
-        throw failed[0].reason || new Error("One or more image uploads failed");
+        if (keysToDelete.length) await deleteObjects(keysToDelete);
+        throw failed[0].reason || new Error("Image upload failed");
       }
 
       uploadedResults = uploadedResults.map((r) => r.value);
-      console.log("All uploads successful");
     }
 
-    // 6. Build final images array
+    // 7. Update report with real S3 data
     const finalImages = [];
     let uploadIndex = 0;
 
-    for (const orig of imagesInput) {
-      const labelStr = labelMap.get(orig.imageLabel);
-
+    for (const orig of finalImagesPlaceholder) {
       if (orig.buffer) {
         const uploaded = uploadedResults[uploadIndex++];
         finalImages.push({
-          imageLabel: labelStr,
+          imageLabel: orig.imageLabel,
           url: uploaded.Location,
           key: uploaded.Key,
           fileName: orig.fileName || path.basename(uploaded.Key),
-          alt: labelStr,
+          alt: orig.alt || "",
           uploadedBy: payload.inspector,
-          mimeType: orig.mimeType || "application/octet-stream",
-          size: orig.size || 0,
+          mimeType: orig.mimeType,
+          size: orig.size,
           noteForAdmin: orig.noteForAdmin || "",
         });
       } else {
-        // existing image (if any)
+        // If you support existing images (without buffer)
         finalImages.push({
           ...orig,
-          imageLabel: labelStr,
-          uploadedBy: orig.uploadedBy || payload.inspector,
+          buffer: undefined,
         });
       }
     }
 
-    // 7. Save report
-    const report = new ReportModel({
-      ...payload,
-      job: jobId,
-      inspector: payload.inspector,
-      images: finalImages,
-    });
-
+    // Update the report document with final image data
+    report.images = finalImages;
     await report.save();
-    console.log("Report saved successfully:", report._id.toString());
 
-    // Optional: return populated report
-    return getReportById(report._id);
+    console.log("Report fully updated with S3 URLs");
+
+    return await getReportById(report._id);
   } catch (err) {
-    // Cleanup on error
+    // Cleanup images if report was created but upload failed
     if (uploadedResults.length > 0) {
       const keys = uploadedResults.map((u) => u?.Key).filter(Boolean);
-      if (keys.length > 0) {
-        console.log("Cleanup triggered for keys:", keys);
-        await deleteObjects(keys).catch(console.error);
-      }
+      if (keys.length) await deleteObjects(keys).catch(console.error);
     }
+
+    // Optional: delete the incomplete report document
+    await ReportModel.deleteOne({ _id: report._id }).catch(console.error);
+
     throw err;
   }
 }
