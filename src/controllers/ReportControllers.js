@@ -20,6 +20,10 @@ async function createReportController(req, res, next) {
   try {
     const payload = req.validated;
 
+    // Use the new field name
+    payload.images = payload.imageEntries || [];
+    delete payload.imageEntries;
+
     payload.inspector = new mongoose.Types.ObjectId(req.user._id);
     payload.job = new mongoose.Types.ObjectId(payload.job);
 
@@ -35,12 +39,6 @@ async function createReportController(req, res, next) {
     next(err);
   }
 }
-
-// ... other controllers remain unchanged
-module.exports = {
-  createReportController,
-  // ... export others
-};
 
 /**
  * Get all reports with optional search and pagination

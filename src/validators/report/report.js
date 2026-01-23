@@ -3,45 +3,33 @@ const { z } = require("zod");
 const { mongoIdSchema } = require("../common/mongoId");
 
 /**
- * Validation schema for creating a Report
- * Accepts either newly uploaded images (buffer/stream) or existing image objects
- * Minimum 1 image, Maximum 2 images
+ * Validation schema for creating a report
+ *
+ * The schema expects:
+ * - job: a valid MongoDB ObjectId as a string
+ * - imageEntries: an array of objects, each containing:
+ *    - imageLabel: a valid MongoDB ObjectId as a string
+ *    - fileName: optional string for the image file name
+ *    - mimeType: optional string for the image MIME type
+ *    - size: optional number for the image file size
+ *    - buffer: optional any type for the image file buffer
+ *
+ * The array must contain at least 1 .
  */
-const uploadedImageSchema = z
-  .object({
-    imageLabel: z.string().min(1, "imageLabel is required"),
-    fileName: z.string().min(1).optional(),
-    alt: z.string().optional(),
-    mimeType: z.string().min(1).optional(),
-    size: z.number().int().nonnegative().optional(),
-    noteForAdmin: z.string().optional(),
-    buffer: z.any().optional(),
-    stream: z.any().optional(),
-  })
-  .refine((o) => !!(o.buffer || o.stream), {
-    message: "Uploaded image must include buffer or stream",
-  });
-
-const existingImageSchema = z.object({
-  imageLabel: z.string().min(1, "imageLabel is required"),
-  url: z.string().url({ message: "Invalid URL" }),
-  key: z.string().min(1),
-  fileName: z.string().min(1),
-  alt: z.string().optional(),
-  mimeType: z.string().min(1),
-  size: z.number().int().nonnegative(),
-  noteForAdmin: z.string().optional(),
-});
-
-const imageEntrySchema = z.union([uploadedImageSchema, existingImageSchema]);
-
 const createReportSchema = z
   .object({
     job: mongoIdSchema.shape.id,
-    images: z
-      .array(imageEntrySchema)
-      .min(1, "At least 1 image is required")
-      .max(30, "Maximum 30 images allowed per report"),
+    imageEntries: z
+      .array(
+        z.object({
+          imageLabel: mongoIdSchema.shape.id,
+          fileName: z.string().min(1).optional(),
+          mimeType: z.string().optional(),
+          size: z.number().optional(),
+          buffer: z.any().optional(),
+        }),
+      )
+      .min(1, "At least 1 image required"),
   })
   .strict();
 
