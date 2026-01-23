@@ -1,3 +1,4 @@
+const path = require("path");
 const { Readable } = require("stream");
 
 const mongoose = require("mongoose");
@@ -5,7 +6,7 @@ const mongoose = require("mongoose");
 const ImageLabelModel = require("../models/ImageLabelModel");
 const JobModel = require("../models/JobModel");
 const ReportModel = require("../models/ReportModel");
-const { uploadMultiple, deleteMultiple } = require("../utils/s3");
+const { uploadStreams, deleteObjects } = require("../utils/s3");
 
 /**
  * Create a new report
@@ -18,115 +19,146 @@ const { uploadMultiple, deleteMultiple } = require("../utils/s3");
  * @returns {Promise<Object>} - Created report
  */
 async function createReport(payload) {
-  // Check the job for this report exists
-  const jobExists = await JobModel.exists({
-    _id: new mongoose.Types.ObjectId(payload.job),
-  });
+  const jobId = new mongoose.Types.ObjectId(payload.job);
 
-  if (!jobExists) {
+  console.log("createReport started for job:", jobId.toString());
+
+  // 1. Job existence check
+  if (!(await JobModel.exists({ _id: jobId }))) {
     const err = new Error("Associated job not found");
     err.status = 404;
-    err.code = "JOB_NOT_FOUND";
     throw err;
   }
 
-  // Check any report exists for this job already
-  const reportExists = await ReportModel.exists({
-    job: new mongoose.Types.ObjectId(payload.job),
-  });
-
-  if (reportExists) {
-    const err = new Error("A report for this job already exists.");
+  // 2. Duplicate report check
+  if (await ReportModel.exists({ job: jobId })) {
+    const err = new Error("A report already exists for this job");
     err.status = 400;
-    err.code = "REPORT_ALREADY_EXISTS";
     throw err;
   }
 
-  const images = Array.isArray(payload.images) ? payload.images : [];
-  // Minimum 1, Maximum 2 images
-  if (images.length < 1 || images.length > 2) {
-    const err = new Error("You must provide at least 1 and maximum 2 images.");
+  const imagesInput = Array.isArray(payload.images) ? payload.images : [];
+  if (imagesInput.length < 1) {
+    const err = new Error("At least 1 image is required");
     err.status = 400;
-    err.code = "INVALID_IMAGE_COUNT";
     throw err;
   }
 
+  // 3. Collect all unique imageLabel IDs
+  const labelIds = [...new Set(imagesInput.map((img) => img.imageLabel))];
+  console.log("Fetching labels for IDs:", labelIds);
+
+  // Single DB query – optimized
+  const labels = await ImageLabelModel.find({
+    _id: { $in: labelIds },
+  })
+    .select("label")
+    .lean();
+
+  const labelMap = new Map(labels.map((l) => [l._id.toString(), l.label]));
+
+  // 4. Validate labels & prepare upload list
   const toUpload = [];
-  const existing = [];
+  for (const img of imagesInput) {
+    const labelStr = labelMap.get(img.imageLabel);
+    if (!labelStr) {
+      const err = new Error(`Invalid imageLabel ID: ${img.imageLabel}`);
+      err.status = 400;
+      throw err;
+    }
 
-  // Separate images needing upload vs already uploaded
-  for (const img of images) {
-    if (img && (img.stream || img.buffer)) toUpload.push(img);
-    else existing.push(img);
+    toUpload.push({
+      ...img,
+      imageLabel: labelStr, // ID → string
+    });
   }
 
-  let uploadResults = [];
+  let uploadedResults = [];
+
   try {
-    // 1. Upload new images to AWS
+    // 5. Upload images if any
     if (toUpload.length > 0) {
-      const params = toUpload.map((i) => ({
-        stream: i.stream || (i.buffer ? Readable.from(i.buffer) : null),
-        filename: i.fileName || i.filename || "file",
-        contentType: i.mimeType || "application/octet-stream",
+      console.log(`Uploading ${toUpload.length} images...`);
+
+      const uploadItems = toUpload.map((img) => ({
+        stream: Readable.from(img.buffer),
+        originalName: img.fileName || "image",
+        contentType: img.mimeType || "application/octet-stream",
       }));
 
-      uploadResults = await uploadMultiple(params);
-    }
+      uploadedResults = await uploadStreams(uploadItems);
 
-    // Collect all imageLabel IDs (from both uploaded and existing images)
-    const labelIds = [
-      ...toUpload.map((i) => i.imageLabel),
-      ...existing.map((i) => i.imageLabel),
-    ]
-      .filter(Boolean)
-      .map((id) => new mongoose.Types.ObjectId(id));
-    //  Fetch all labels in a single query
-    const labelsMap = {};
-    if (labelIds.length) {
-      const labels = await ImageLabelModel.find({
-        _id: { $in: labelIds },
-      }).select("label");
-      for (const lbl of labels) labelsMap[lbl._id.toString()] = lbl.label;
-    }
+      // Check for failures
+      const failed = uploadedResults.filter((r) => r.status === "rejected");
+      if (failed.length > 0) {
+        const keysToDelete = uploadedResults
+          .filter((r) => r.status === "fulfilled")
+          .map((r) => r.value?.Key)
+          .filter(Boolean);
 
-    // Build final images array
-    const finalImages = [];
-    // Uploaded images
-    for (let idx = 0; idx < toUpload.length; idx++) {
-      const orig = toUpload[idx];
-      const res = uploadResults[idx];
-      finalImages.push({
-        imageLabel: labelsMap[orig.imageLabel?.toString()] || "",
-        url: res.Location,
-        key: res.Key,
-        fileName: orig.fileName || res.Key,
-        alt: orig.alt || "",
-        uploadedBy: payload.inspector,
-        mimeType: orig.mimeType || "application/octet-stream",
-        size: orig.size || 0,
-        noteForAdmin: orig.noteForAdmin || "",
-      });
-    }
-    // Existing images
-    for (const e of existing) {
-      finalImages.push({
-        ...e,
-        imageLabel: labelsMap[e.imageLabel?.toString()] || "",
-      });
-    }
-    // 5. Create report
-    const reportPayload = { ...payload, images: finalImages };
-    const report = new ReportModel(reportPayload);
-    await report.save();
-    return report;
-  } catch (err) {
-    try {
-      if (uploadResults.length) {
-        const keys = uploadResults.map((u) => u.Key).filter(Boolean);
-        if (keys.length) await deleteMultiple(keys);
+        if (keysToDelete.length) {
+          console.log("Cleaning up partial uploads:", keysToDelete);
+          await deleteObjects(keysToDelete);
+        }
+
+        throw failed[0].reason || new Error("One or more image uploads failed");
       }
-    } catch (cleanupErr) {
-      console.error("Error cleaning up AWS uploads:", cleanupErr);
+
+      uploadedResults = uploadedResults.map((r) => r.value);
+      console.log("All uploads successful");
+    }
+
+    // 6. Build final images array
+    const finalImages = [];
+    let uploadIndex = 0;
+
+    for (const orig of imagesInput) {
+      const labelStr = labelMap.get(orig.imageLabel);
+
+      if (orig.buffer) {
+        const uploaded = uploadedResults[uploadIndex++];
+        finalImages.push({
+          imageLabel: labelStr,
+          url: uploaded.Location,
+          key: uploaded.Key,
+          fileName: orig.fileName || path.basename(uploaded.Key),
+          alt: labelStr,
+          uploadedBy: payload.inspector,
+          mimeType: orig.mimeType || "application/octet-stream",
+          size: orig.size || 0,
+          noteForAdmin: orig.noteForAdmin || "",
+        });
+      } else {
+        // existing image (if any)
+        finalImages.push({
+          ...orig,
+          imageLabel: labelStr,
+          uploadedBy: orig.uploadedBy || payload.inspector,
+        });
+      }
+    }
+
+    // 7. Save report
+    const report = new ReportModel({
+      ...payload,
+      job: jobId,
+      inspector: payload.inspector,
+      images: finalImages,
+    });
+
+    await report.save();
+    console.log("Report saved successfully:", report._id.toString());
+
+    // Optional: return populated report
+    return getReportById(report._id);
+  } catch (err) {
+    // Cleanup on error
+    if (uploadedResults.length > 0) {
+      const keys = uploadedResults.map((u) => u?.Key).filter(Boolean);
+      if (keys.length > 0) {
+        console.log("Cleanup triggered for keys:", keys);
+        await deleteObjects(keys).catch(console.error);
+      }
     }
     throw err;
   }

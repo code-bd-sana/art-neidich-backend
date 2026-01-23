@@ -20,6 +20,7 @@ const {
   updateReportStatusSchema,
   reportStatusSchema,
   reportPaginationSchema,
+  handleGroupedImages,
 } = require("../validators/report/report");
 
 // Multer setup for in-memory upload
@@ -28,19 +29,6 @@ const upload = multer({ storage });
 
 // All report routes require authentication
 router.use(authenticate);
-
-// Merge multer files into req.body.images before validation
-const mergeFilesWithBody = (req, res, next) => {
-  if (req.files) {
-    req.body.images = req.files.map((file) => ({
-      fileName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      buffer: file.buffer,
-    }));
-  }
-  next();
-};
 
 /**
  * Create a new report
@@ -54,11 +42,12 @@ const mergeFilesWithBody = (req, res, next) => {
  */
 router.post(
   "/",
+  authenticate,
   authorizeRoles(2),
-  upload.array("images"), // no limit on number of images
-  mergeFilesWithBody,
+  upload.array("images"),
+  handleGroupedImages,
   validate(createReportSchema, { target: "body" }),
-  createReportController
+  createReportController,
 );
 
 /**
@@ -75,7 +64,7 @@ router.get(
   "/",
   authorizeRoles(0, 1),
   validate(reportPaginationSchema, { target: "query" }),
-  getReportsController
+  getReportsController,
 );
 
 /**
@@ -92,7 +81,7 @@ router.get(
   "/:id",
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
-  getReportByIdController
+  getReportByIdController,
 );
 
 // Stream PDF for a report
@@ -100,7 +89,7 @@ router.get(
   "/:id/pdf",
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
-  getReportPdfController
+  getReportPdfController,
 );
 
 /**
@@ -114,7 +103,7 @@ router.patch(
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
   validate(updateReportStatusSchema, { target: "body" }),
-  updateReportStatusController
+  updateReportStatusController,
 );
 
 /**
@@ -131,7 +120,7 @@ router.delete(
   "/:id",
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
-  deleteReportController
+  deleteReportController,
 );
 
 module.exports = router;

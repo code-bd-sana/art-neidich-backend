@@ -19,10 +19,16 @@ const {
 async function createReportController(req, res, next) {
   try {
     const payload = req.validated;
-    payload.inspector = new mongoose.Types.ObjectId(req.user?._id);
-    // job should come from the validated payload (body)
+
+    // Use the new field name
+    payload.images = payload.imageEntries || [];
+    delete payload.imageEntries;
+
+    payload.inspector = new mongoose.Types.ObjectId(req.user._id);
     payload.job = new mongoose.Types.ObjectId(payload.job);
+
     const report = await createReport(payload);
+
     return res.status(201).json({
       success: true,
       message: "Report created successfully",
@@ -30,7 +36,7 @@ async function createReportController(req, res, next) {
       code: 201,
     });
   } catch (err) {
-    return next(err);
+    next(err);
   }
 }
 
