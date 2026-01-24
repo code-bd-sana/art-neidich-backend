@@ -408,7 +408,7 @@ async function getReportById(id) {
             size: "$images.size",
           },
         },
-        noteForAdmin: { $first: "$noteForAdmin" },
+        noteForAdmin: "$noteForAdmin",
       },
     },
 
