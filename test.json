@@ -1,0 +1,107 @@
+{
+  "job": "jobid",
+  "images": [
+    "garden-1.jpg",
+    "garden-2.jpg",
+    "bathroom.jpg",
+    "roof-1.jpg",
+    "roof-2.jpg"
+  ],
+  "imagesMeta": [
+    {
+      "imageLabel": "garden"
+    },
+    {
+      "imageLabel": "garden"
+    },
+    {
+      "imageLabel": "bathroom"
+    },
+    {
+      "imageLabel": "roof"
+    },
+    {
+      "imageLabel": "roof"
+    }
+  ]
+}
+
+
+[
+  6,
+  2,
+  3,
+  1,
+  5,
+  4
+]
+
+
+
+{
+  "job": "jobid",
+  "images": [
+    {
+      "imageLabel": "garden",
+      "images": [
+        "garden-1.jpg",
+        "garden-2.jpg"
+      ]
+    },
+    {
+      "imageLabel": "bathroom",
+      "images": [
+        "bathroom.jpg"
+      ]
+    },
+    {
+      "imageLabel": "roof",
+      "images": [
+        "roof-1.jpg",
+        "roof-2.jpg"
+      ]
+    }
+  ],
+}
+
+[
+  {
+    "name": "Joy",
+    "age": 30
+  },
+  {
+    "name": "Sam",
+    "age": 25
+  },
+  {
+    "name": "Alex",
+    "age": 30
+  },
+  {
+    "name": "Taylor",
+    "age": 25
+  }
+]
+
+{
+  25: [
+    {
+      "name": "Sam",
+      "age": 25
+    },
+    {
+      "name": "Taylor",
+      "age": 25
+    }
+  ],
+  30: [
+    {
+      "name": "Joy",
+      "age": 30
+    },
+    {
+      "name": "Alex",
+      "age": 30
+    }
+  ]
+}
