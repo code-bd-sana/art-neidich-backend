@@ -396,8 +396,7 @@ async function getReportById(id) {
         jobCreatedBy: { $first: "$job.createdBy" },
         jobLastUpdatedBy: { $first: "$job.lastUpdatedBy" },
         status: { $first: "$status" },
-        createdAt: { $first: "$createdAt" },
-        updatedAt: { $first: "$updatedAt" },
+        noteForAdmin: { $first: "$noteForAdmin" },
         images: {
           $push: {
             fileName: "$images.fileName",
@@ -408,7 +407,8 @@ async function getReportById(id) {
             size: "$images.size",
           },
         },
-        noteForAdmin: "$noteForAdmin",
+        createdAt: { $first: "$createdAt" },
+        updatedAt: { $first: "$updatedAt" },
       },
     },
 
@@ -421,6 +421,7 @@ async function getReportById(id) {
         jobCreatedBy: { $first: "$jobCreatedBy" },
         jobLastUpdatedBy: { $first: "$jobLastUpdatedBy" },
         status: { $first: "$status" },
+        noteForAdmin: { $first: "$noteForAdmin" },
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
         images: {
@@ -505,6 +506,7 @@ async function getReportById(id) {
           },
         },
         status: 1,
+        noteForAdmin: 1,
         createdAt: 1,
         updatedAt: 1,
         images: 1,
