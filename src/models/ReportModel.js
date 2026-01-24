@@ -30,7 +30,6 @@ const reportSchema = new mongoose.Schema(
         },
         mimeType: { type: String, required: true },
         size: { type: Number, required: true },
-        noteForAdmin: { type: String, default: "" },
       },
     ],
     status: {
@@ -38,6 +37,7 @@ const reportSchema = new mongoose.Schema(
       enum: ["submitted", "completed", "rejected"],
       default: "submitted",
     },
+    noteForAdmin: { type: String, default: "" },
   },
   { timestamps: true, versionKey: false },
 );
