@@ -61,7 +61,7 @@ function validateModels() {
       const path = mdl.schema.path(p);
       if (!path) {
         throw new Error(
-          `Model ${c.model} is missing expected schema path: ${p}`
+          `Model ${c.model} is missing expected schema path: ${p}`,
         );
       }
     }
@@ -86,7 +86,7 @@ async function seed() {
     console.log("Validating models before seeding...");
     validateModels();
     console.log(
-      "Clearing existing collections (ImageLabel, Report, Job, User)..."
+      "Clearing existing collections (ImageLabel, Report, Job, User)...",
     );
     await clearCollections();
 
@@ -192,7 +192,7 @@ async function seed() {
     const creatorId = creator?._id;
 
     console.log(
-      `Preparing to insert ${imageLabelDocs.length} image label docs (creator: ${creatorId})...`
+      `Preparing to insert ${imageLabelDocs.length} image label docs (creator: ${creatorId})...`,
     );
     let createdLabels = [];
     try {
@@ -281,7 +281,6 @@ async function seed() {
           uploadedBy: inspectorId,
           mimeType: "image/jpeg",
           size: randInt(10000, 5000000),
-          noteForAdmin: "",
         });
       }
 
@@ -295,6 +294,7 @@ async function seed() {
         inspector: inspectorId,
         job: job._id,
         images,
+        noteForAdmin: "",
         status,
       });
     }

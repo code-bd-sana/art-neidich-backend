@@ -13,6 +13,7 @@ const { mongoIdSchema } = require("../common/mongoId");
  *    - mimeType: optional string for the image MIME type
  *    - size: optional number for the image file size
  *    - buffer: optional any type for the image file buffer
+ * - noteForAdmin: optional string with a maximum length of 250 characters
  *
  * The array must contain at least 1 .
  */
@@ -30,6 +31,7 @@ const createReportSchema = z
         }),
       )
       .min(1, "At least 1 image required"),
+    noteForAdmin: z.string().max(250).optional(),
   })
   .strict();
 

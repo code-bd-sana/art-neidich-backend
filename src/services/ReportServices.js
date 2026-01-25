@@ -21,8 +21,6 @@ const { uploadStreams, deleteObjects } = require("../utils/s3");
 async function createReport(payload) {
   const jobId = new mongoose.Types.ObjectId(payload.job);
 
-  console.log("createReport started for job:", jobId.toString());
-
   // 1. Job existence check
   if (!(await JobModel.exists({ _id: jobId }))) {
     const err = new Error("Associated job not found");
@@ -66,7 +64,6 @@ async function createReport(payload) {
       uploadedBy: payload.inspector,
       mimeType: img.mimeType || "application/octet-stream",
       size: img.size || 0,
-      noteForAdmin: img.noteForAdmin || "",
       buffer: img.buffer, // temporary, only for upload
     };
   });
@@ -81,6 +78,7 @@ async function createReport(payload) {
       url: "pending", // temporary placeholder
       key: "pending",
     })),
+    noteForAdmin: payload.noteForAdmin || "",
   });
 
   await report.save();
@@ -136,7 +134,6 @@ async function createReport(payload) {
           uploadedBy: payload.inspector,
           mimeType: orig.mimeType,
           size: orig.size,
-          noteForAdmin: orig.noteForAdmin || "",
         });
       } else {
         // If you support existing images (without buffer)
@@ -399,8 +396,7 @@ async function getReportById(id) {
         jobCreatedBy: { $first: "$job.createdBy" },
         jobLastUpdatedBy: { $first: "$job.lastUpdatedBy" },
         status: { $first: "$status" },
-        createdAt: { $first: "$createdAt" },
-        updatedAt: { $first: "$updatedAt" },
+        noteForAdmin: { $first: "$noteForAdmin" },
         images: {
           $push: {
             fileName: "$images.fileName",
@@ -409,9 +405,10 @@ async function getReportById(id) {
             alt: "$images.alt",
             mimeType: "$images.mimeType",
             size: "$images.size",
-            noteForAdmin: "$images.noteForAdmin",
           },
         },
+        createdAt: { $first: "$createdAt" },
+        updatedAt: { $first: "$updatedAt" },
       },
     },
 
@@ -424,6 +421,7 @@ async function getReportById(id) {
         jobCreatedBy: { $first: "$jobCreatedBy" },
         jobLastUpdatedBy: { $first: "$jobLastUpdatedBy" },
         status: { $first: "$status" },
+        noteForAdmin: { $first: "$noteForAdmin" },
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
         images: {
@@ -508,6 +506,7 @@ async function getReportById(id) {
           },
         },
         status: 1,
+        noteForAdmin: 1,
         createdAt: 1,
         updatedAt: 1,
         images: 1,

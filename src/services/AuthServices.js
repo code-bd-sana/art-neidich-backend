@@ -278,11 +278,21 @@ async function registerUser(payload) {
   `;
 
   // Send the welcome email
-  await sendMail({
+  const sendResult = await sendMail({
     to: email,
     subject: "🏠 Welcome to Property Inspector Pro - Registration Successful",
     html: emailHtml,
   });
+
+  if (!sendResult || !sendResult.messageId) {
+    await UserModel.findByIdAndDelete(newUser._id);
+    const err = new Error(
+      "Failed to send welcome email. Registration aborted.",
+    );
+    err.status = 500;
+    err.code = "WELCOME_EMAIL_FAILED";
+    throw err;
+  }
 
   // If this is an inspector registration (role 2), notify admins (role 0 and 1)
   try {
