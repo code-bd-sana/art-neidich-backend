@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Security middleware initialization
-app.use(cors());
+app.use(cors("*"));
 app.use(helmet());
 // Only sanitize req.body and req.params, not req.query (Express v5 compatibility)
 // Custom sanitize middleware: only sanitize req.body and req.params (not req.query)
