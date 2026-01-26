@@ -24,6 +24,7 @@ router.post("/single-upload", async (req, res, next) => {
   try {
     // prefer explicit field name 'image' for single upload
     function getFilesFromReq(req) {
+      console.log(req.file);
       // If multer.single('image') used -> req.file
       if (req.file) return [req.file];
 
