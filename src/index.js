@@ -15,6 +15,7 @@ const server = app.listen(process.env.PORT, async () => {
       console.log("Database connected successfully");
     })
     .catch((err) => {
+      console.log(err);
       // log silently and show minimal message
       logError(err, { context: "mongoose.connect" });
       console.log("Database connection failed");

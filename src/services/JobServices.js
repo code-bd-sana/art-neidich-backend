@@ -622,6 +622,8 @@ async function getMyJobs(query = {}, userId) {
       siteContactPhone: 1,
       siteContactEmail: 1,
       dueDate: 1,
+      specialNotesForInspector: 1,
+      specialNoteForApOrAr: 1,
       createdAt: 1,
       updatedAt: 1,
       hasReport: 1,
