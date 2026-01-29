@@ -32,6 +32,7 @@ const {
  */
 router.get(
   "/",
+  authenticate,
   validate(notificationPaginationSchema, { target: "query" }),
   listNotifications,
 );
@@ -48,6 +49,7 @@ router.get(
  */
 router.get(
   "/:id",
+  authenticate,
   validate(mongoIdSchema, { target: "params" }),
   getNotification,
 );
