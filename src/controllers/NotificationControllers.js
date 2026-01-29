@@ -39,9 +39,9 @@ const listNotifications = async (req, res, next) => {
       message: "Notification list fetched successfully",
       data: docs,
       metaData: {
-        page,
-        limit,
-        totalNotifications,
+        page: Number(page),
+        limit: Number(limit),
+        totalNotifications: Number(totalNotifications),
         totalPage: Math.ceil(totalNotifications / limit),
       },
       code: 200,
