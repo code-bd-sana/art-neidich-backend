@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const JobModel = require("../models/JobModel");
 const NotificationModel = require("../models/NotificationModel");
 const PushToken = require("../models/PushToken");
+const ReportModel = require("../models/ReportModel");
 const UserModel = require("../models/UserModel");
 
 const NotificationServices = require("./../services/NotificationServices");
@@ -1146,6 +1147,18 @@ async function getJobs(query = {}) {
  * @returns {Promise<Object>}
  */
 async function updateJob(id, payload) {
+  // If any report exists for the job, prevent changing
+  const reportExists = await ReportModel.exists({
+    job: new mongoose.Types.ObjectId(id),
+  });
+
+  if (reportExists) {
+    const err = new Error("Cannot update job with existing report");
+    err.status = 400;
+    err.code = "JOB_UPDATE_NOT_ALLOWED";
+    throw err;
+  }
+
   // Update the document
   const result = await JobModel.updateOne(
     { _id: id },
