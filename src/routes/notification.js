@@ -20,9 +20,6 @@ const {
   deactivatePushTokenSchema,
 } = require("../validators/notification/notification");
 
-// Apply authentication middleware to ALL routes in this router
-router.use(authenticate);
-
 /**
  * Get notifications list
  *
