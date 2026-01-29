@@ -101,7 +101,7 @@ const getNotification = async (req, res, next) => {
 const registerPushToken = async (req, res, next) => {
   try {
     // Extract token details from validated request body
-    const { token, platform, deviceId, deviceInfo } = req.validated;
+    const { token, platform, deviceId, deviceName } = req.validated;
 
     // Get user ID from authenticated request
     const userId = req.user._id;
@@ -112,7 +112,7 @@ const registerPushToken = async (req, res, next) => {
       token,
       platform,
       deviceId,
-      deviceInfo,
+      deviceName,
     );
 
     res.json({

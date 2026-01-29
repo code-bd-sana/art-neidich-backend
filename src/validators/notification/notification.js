@@ -64,11 +64,11 @@ const registerPushTokenSchema = z
       })
       .max(100, { message: "Device ID must not exceed 100 characters" })
       .trim(),
-    deviceInfo: z
+    deviceName: z
       .string({
-        invalid_type_error: "Device info must be a string",
+        invalid_type_error: "Device name must be a string",
       })
-      .max(200, { message: "Device info must not exceed 200 characters" })
+      .max(200, { message: "Device name must not exceed 200 characters" })
       .trim()
       .optional(),
   })

@@ -141,14 +141,14 @@ function buildMulticast(tokens, payload) {
  * @param {string} userId User ID
  * @param {string} token FCM device token
  * @param {string} platform Platform: "android", "ios", or "web"
- * @param {string} deviceInfo Optional device information
+ * @param {string} deviceName Optional device information
  */
 async function registerToken(
   userId,
   token,
   platform,
   deviceId,
-  deviceInfo = null,
+  deviceName = null,
 ) {
   const result = await PushToken.findOneAndUpdate(
     { deviceId }, // Find by deviceId
@@ -157,7 +157,7 @@ async function registerToken(
         user: new mongoose.Types.ObjectId(userId),
         platform,
         deviceId,
-        deviceInfo,
+        deviceName,
         active: true,
         lastUsed: new Date(),
       },

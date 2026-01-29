@@ -18,7 +18,7 @@ const NotificationServices = require("./../services/NotificationServices");
 /**
  * Register a new user
  *
- * @param {{firstName: string, lastName: string, email: string, password: string, role: number, pushToken?: string, platform?: "android" | "ios", deviceInfo?: string}} payload
+ * @param {{firstName: string, lastName: string, email: string, password: string, role: number, pushToken?: string, platform?: "android" | "ios", deviceName?: string}} payload
  * @returns {Promise<void>}
  */
 async function registerUser(payload) {
