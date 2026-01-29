@@ -101,7 +101,7 @@ const getNotification = async (req, res, next) => {
 const registerPushToken = async (req, res, next) => {
   try {
     // Extract token details from validated request body
-    const { token, platform, deviceInfo } = req.validated;
+    const { token, platform, deviceId, deviceInfo } = req.validated;
 
     // Get user ID from authenticated request
     const userId = req.user._id;
@@ -111,6 +111,7 @@ const registerPushToken = async (req, res, next) => {
       userId,
       token,
       platform,
+      deviceId,
       deviceInfo,
     );
 
@@ -126,16 +127,15 @@ const registerPushToken = async (req, res, next) => {
 };
 
 /**
- * Active or Inactive a specific push token
+ * Active or Inactive a specific push notification for a device
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-const activeOrInactivePushToken = async (req, res, next) => {
+const activeOrInactivePushNotification = async (req, res, next) => {
   try {
-    const { token } = req.validated;
+    const { deviceId } = req.validated;
 
-    await NotificationServices.activeOrInactivePushToken(token);
-
+    await NotificationServices.activeOrInactivePushNotification(deviceId);
     res.json({
       success: true,
       message: "Push notification active state toggled successfully",
@@ -173,6 +173,6 @@ module.exports = {
   listNotifications,
   getNotification,
   registerPushToken,
-  activeOrInactivePushToken,
+  activeOrInactivePushNotification,
   getUserPushTokens,
 };

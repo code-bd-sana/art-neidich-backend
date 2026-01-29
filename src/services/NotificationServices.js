@@ -143,13 +143,20 @@ function buildMulticast(tokens, payload) {
  * @param {string} platform Platform: "android", "ios", or "web"
  * @param {string} deviceInfo Optional device information
  */
-async function registerToken(userId, token, platform, deviceInfo = null) {
+async function registerToken(
+  userId,
+  token,
+  platform,
+  deviceId,
+  deviceInfo = null,
+) {
   const result = await PushToken.findOneAndUpdate(
-    { token }, // Find by token
+    { deviceId }, // Find by deviceId
     {
       $set: {
         user: new mongoose.Types.ObjectId(userId),
         platform,
+        deviceId,
         deviceInfo,
         active: true,
         lastUsed: new Date(),
@@ -169,11 +176,11 @@ async function registerToken(userId, token, platform, deviceInfo = null) {
 }
 
 /**
- * Active or Inactive a specific push token
- * @param {string} token FCM device token
+ * Active or Inactive a specific push notification for a device
+ * @param {string} deviceId Device ID
  */
-async function activeOrInactivePushToken(token) {
-  const currentToken = await PushToken.findOne({ token });
+async function activeOrInactivePushNotification(deviceId) {
+  const currentToken = await PushToken.findOne({ deviceId });
   if (!currentToken) {
     const err = new Error("Push token not found");
     err.status = 404;
@@ -182,7 +189,7 @@ async function activeOrInactivePushToken(token) {
   }
   const currentActiveState = currentToken.active;
   const result = await PushToken.findOneAndUpdate(
-    { token },
+    { deviceId },
     { $set: { active: !currentActiveState } },
     { new: true },
   );
@@ -205,6 +212,6 @@ module.exports = {
   sendToMany,
   sendToUser,
   registerToken,
-  activeOrInactivePushToken,
+  activeOrInactivePushNotification,
   getUserTokens,
 };

@@ -58,6 +58,12 @@ const registerPushTokenSchema = z
       required_error: "Platform is required",
       invalid_type_error: "Platform must be android, ios, or web",
     }),
+    deviceId: z
+      .string({
+        invalid_type_error: "Device ID must be a string",
+      })
+      .max(100, { message: "Device ID must not exceed 100 characters" })
+      .trim(),
     deviceInfo: z
       .string({
         invalid_type_error: "Device info must be a string",
@@ -68,14 +74,13 @@ const registerPushTokenSchema = z
   })
   .strict();
 
-const activeOrInactivePushTokenSchema = z
+const activeOrInactivePushNotificationSchema = z
   .object({
-    token: z
+    deviceId: z
       .string({
-        required_error: "Token is required",
-        invalid_type_error: "Token must be a string",
+        invalid_type_error: "Device ID must be a string",
       })
-      .min(1, { message: "Token is required" })
+      .max(100, { message: "Device ID must not exceed 100 characters" })
       .trim(),
   })
   .strict();
@@ -84,5 +89,5 @@ module.exports = {
   notificationSchema,
   notificationPaginationSchema,
   registerPushTokenSchema,
-  activeOrInactivePushTokenSchema,
+  activeOrInactivePushNotificationSchema,
 };
