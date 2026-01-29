@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const JobModel = require("../models/JobModel");
+const NotificationModel = require("../models/NotificationModel");
+const PushToken = require("../models/PushToken");
+const UserModel = require("../models/UserModel");
+
+const NotificationServices = require("./../services/NotificationServices");
 
 /**
  * Create a new job
@@ -11,6 +16,116 @@ const JobModel = require("../models/JobModel");
 async function createJob(payload) {
   // Create job
   const created = await JobModel.create(payload);
+
+  // If created successfully, then notify the all admin users (role: 0 and 1) about new job assignment and send only that inspector too
+  if (created && created._id) {
+    try {
+      const inspectorId = created.inspector || null;
+      // Create/send notification for inspector (single recipient)
+      if (inspectorId) {
+        const inspectorTokenDocs = await PushToken.find({
+          user: inspectorId,
+          active: true,
+        }).select("token -_id");
+        const inspectorTokens = (inspectorTokenDocs || [])
+          .map((t) => t.token)
+          .filter(Boolean);
+        const types = NotificationModel.notificationTypes || {};
+        const inspectorNotif = await NotificationModel.create({
+          title: "You have a new job assigned",
+          body: `${created.orderId || created.streetAddress || "A new job"} has been assigned to you.`,
+          data: { jobId: String(created._id), action: "job_assigned" },
+          type: types.JOB_ASSIGNED || "job_assigned",
+          authorId: created.createdBy || null,
+          recipient: inspectorId,
+          deviceTokens: inspectorTokens,
+          status: "pending",
+        });
+        try {
+          let sendResult = null;
+          if (inspectorTokens.length) {
+            sendResult = await NotificationServices.sendToMany(
+              inspectorTokens,
+              {
+                title: inspectorNotif.title,
+                body: inspectorNotif.body,
+                data: inspectorNotif.data,
+              },
+            );
+          } else {
+            sendResult = await NotificationServices.sendToUser(inspectorId, {
+              title: inspectorNotif.title,
+              body: inspectorNotif.body,
+              data: inspectorNotif.data,
+            });
+          }
+          inspectorNotif.status = "sent";
+          inspectorNotif.result = sendResult;
+          inspectorNotif.sentAt = new Date();
+          await inspectorNotif.save();
+        } catch (sendErr) {
+          inspectorNotif.status = "failed";
+          inspectorNotif.result = { error: sendErr.message || String(sendErr) };
+          await inspectorNotif.save();
+        }
+      }
+      // Notify all admin users (role: 0 and 1) about new job assignment
+      const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
+        "_id firstName lastName email",
+      );
+      const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
+      const adminTokenDocs = await PushToken.find({
+        user: { $in: adminIds },
+        active: true,
+      }).select("token -_id");
+      const adminDeviceTokens = (adminTokenDocs || [])
+        .map((t) => t.token)
+        .filter(Boolean);
+      const types = NotificationModel.notificationTypes || {};
+      // Create notification for admins
+      const adminNotif = await NotificationModel.create({
+        title: "New job created",
+        body: `${created.orderId || created.streetAddress || "A new job"} has been created.`,
+        data: { jobId: String(created._id), action: "job_created" },
+        type: types.JOB_ASSIGNED || "job_assigned",
+        authorId: created.createdBy || null,
+        recipients: adminIds,
+        deviceTokens: adminDeviceTokens,
+        status: "pending",
+      });
+      try {
+        let sendResult = null;
+        if (adminDeviceTokens.length) {
+          sendResult = await NotificationServices.sendToMany(
+            adminDeviceTokens,
+            {
+              title: adminNotif.title,
+              body: adminNotif.body,
+              data: adminNotif.data,
+            },
+          );
+        } else if (adminIds.length === 1) {
+          sendResult = await NotificationServices.sendToUser(adminIds[0], {
+            title: adminNotif.title,
+            body: adminNotif.body,
+            data: adminNotif.data,
+          });
+        } else {
+          sendResult = { warning: "no-targets" };
+        }
+        adminNotif.status = "sent";
+        adminNotif.result = sendResult;
+        adminNotif.sentAt = new Date();
+        await adminNotif.save();
+      } catch (sendErr) {
+        adminNotif.status = "failed";
+        adminNotif.result = { error: sendErr.message || String(sendErr) };
+        await adminNotif.save();
+      }
+    } catch (e) {
+      console.error("Failed to create/send job notifications:", e);
+    }
+  }
 
   // Aggregate with createdBy and lastUpdatedBy
   const result = await JobModel.aggregate([

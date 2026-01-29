@@ -376,6 +376,52 @@ async function approveUser(userId) {
     html: emailHtml,
   });
 
+  // If this is an inspector or administrator gets approved (role - 1, 2), notify admins (role 0 and 1)
+  if (user.role === 1 || user.role === 2) {
+    try {
+      const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
+        "_id firstName lastName email",
+      );
+      const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
+      const tokens = await PushToken.find({
+        user: { $in: adminIds },
+        active: true,
+      }).select("token -_id");
+      const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+      const types = NotificationModel.notificationTypes || {};
+      const notif = await NotificationModel.create({
+        title: "User approved",
+        body: `${user.firstName} ${user.lastName} has been approved and can now access the system.`,
+        data: { userId: String(user._id), action: "approved" },
+        type: types.USER_APPROVED || "user_approved",
+        authorId: null,
+        recipients: adminIds,
+        deviceTokens,
+        status: "pending",
+      });
+      try {
+        let sendResult = null;
+        if (deviceTokens.length) {
+          sendResult = await NotificationServices.sendToMany(deviceTokens, {
+            title: notif.title,
+            body: notif.body,
+            data: notif.data,
+          });
+        } else if (adminIds.length === 1) {
+          sendResult = await NotificationServices.sendToUser(adminIds[0], {
+            title: notif.title,
+            body: notif.body,
+            data: notif.data,
+          });
+        }
+      } catch (error) {
+        console.error("Error sending notification:", error);
+      }
+    } catch (error) {
+      console.error("Error notifying admins about user approval:", error);
+    }
+  }
+
   return;
 }
 
@@ -644,32 +690,30 @@ async function unSuspendUser(userId, currentUser) {
     html: emailHtml,
   });
 
-  // Notify admins (roles 0 and 1) about un-suspension; include the user who
-  // was un-suspended so they receive the notification too.
+  // Notify other admins (roles 0 and 1) about this un-suspension, but
+  // exclude the user being un-suspended from recipients.
   try {
     const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
       "_id firstName lastName email",
     );
     const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
-
+    const recipients = adminIds.filter((id) => String(id) !== String(user._id));
     const tokens = await PushToken.find({
-      user: { $in: adminIds },
+      user: { $in: recipients },
       active: true,
     }).select("token -_id");
     const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
-
     const types = NotificationModel.notificationTypes || {};
     const notif = await NotificationModel.create({
       title: "Account reinstated",
-      body: `${user.firstName} ${user.lastName} has been un-suspended and can now access the system.`,
-      data: { userId: String(user._id), action: "unsuspended" },
-      type: types.ACCOUNT_UNSUSPENDED || "account_unsuspended",
+      body: `${user.firstName} ${user.lastName} has been reinstated by an administrator.`,
+      data: { userId: String(user._id), action: "reinstated" },
+      type: types.ACCOUNT_REINSTATED || "account_reinstated",
       authorId: null,
-      recipients: adminIds,
+      recipients,
       deviceTokens,
       status: "pending",
     });
-
     try {
       let sendResult = null;
       if (deviceTokens.length) {
@@ -678,16 +722,13 @@ async function unSuspendUser(userId, currentUser) {
           body: notif.body,
           data: notif.data,
         });
-      } else if (adminIds.length === 1) {
-        sendResult = await NotificationServices.sendToUser(adminIds[0], {
+      } else if (recipients.length === 1) {
+        sendResult = await NotificationServices.sendToUser(recipients[0], {
           title: notif.title,
           body: notif.body,
           data: notif.data,
         });
-      } else {
-        sendResult = { warning: "no-targets" };
       }
-
       notif.status = "sent";
       notif.result = sendResult;
       notif.sentAt = new Date();
