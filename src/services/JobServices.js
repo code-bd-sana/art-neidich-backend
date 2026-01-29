@@ -78,9 +78,11 @@ async function createJob(payload) {
         }
       }
       // Notify all admin users (role: 0 and 1) about new job assignment
-      const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
-        "_id firstName lastName email",
-      );
+      const admins = await UserModel.find({
+        role: { $in: [0, 1] },
+        isSuspended: false,
+        isApproved: true,
+      }).select("_id firstName lastName email");
 
       // Fetch active device tokens for admins
       const adminIds = (admins || [])

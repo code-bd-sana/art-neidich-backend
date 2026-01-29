@@ -299,9 +299,11 @@ async function registerUser(payload) {
   try {
     if (role === 2) {
       // find admin users
-      const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
-        "_id firstName lastName email",
-      );
+      const admins = await UserModel.find({
+        role: { $in: [0, 1] },
+        isSuspended: false,
+        isApproved: true,
+      }).select("_id firstName lastName email");
 
       // extract admin IDs
       const adminIds = (admins || []).map(

@@ -161,9 +161,11 @@ async function createReport(payload) {
     // If the report is created and images uploaded successfully, then send the notifications to the admin users - (roles 0 and 1)
     try {
       // Fetch all admin users
-      const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
-        "_id firstName lastName email",
-      );
+      const admins = await UserModel.find({
+        role: { $in: [0, 1] },
+        isSuspended: false,
+        isApproved: true,
+      }).select("_id firstName lastName email");
 
       // Get their active push tokens
       const adminIds = (admins || [])
@@ -649,9 +651,11 @@ async function updateReportStatus(id, updateData) {
   // If the report status updated successfully, then send the notifications to the admin users - (roles 0 and 1)
   try {
     // Fetch all admin users
-    const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
-      "_id firstName lastName email",
-    );
+    const admins = await UserModel.find({
+      role: { $in: [0, 1] },
+      isSuspended: false,
+      isApproved: true,
+    }).select("_id firstName lastName email");
     // Get their active push tokens
     const adminIds = (admins || [])
       .map((a) => new mongoose.Types.ObjectId(a._id))

@@ -380,9 +380,11 @@ async function approveUser(userId) {
   if (user.role === 1 || user.role === 2) {
     try {
       // Notify other admins (roles 0 and 1) about this approval.
-      const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
-        "_id firstName lastName email",
-      );
+      const admins = await UserModel.find({
+        role: { $in: [0, 1] },
+        isSuspended: false,
+        isApproved: true,
+      }).select("_id firstName lastName email");
 
       // Get admin IDs as ObjectId instances
       const adminIds = (admins || [])
@@ -549,9 +551,11 @@ async function suspendUser(userId, currentUser) {
   // exclude the user being suspended from recipients.
   try {
     // Get admin IDs as ObjectId instances
-    const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
-      "_id firstName lastName email",
-    );
+    const admins = await UserModel.find({
+      role: { $in: [0, 1] },
+      isSuspended: false,
+      isApproved: true,
+    }).select("_id firstName lastName email");
 
     // Convert admin IDs to ObjectId instances
     const adminIds = (admins || [])
@@ -732,9 +736,11 @@ async function unSuspendUser(userId, currentUser) {
   // exclude the user being un-suspended from recipients.
   try {
     // Get admin IDs as ObjectId instances
-    const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
-      "_id firstName lastName email",
-    );
+    const admins = await UserModel.find({
+      role: { $in: [0, 1] },
+      isSuspended: false,
+      isApproved: true,
+    }).select("_id firstName lastName email");
 
     // Convert admin IDs to ObjectId instances
     const adminIds = (admins || [])
