@@ -48,7 +48,11 @@ async function createReport(payload) {
   }
 
   // 3. Fetch labels (optimized single query)
-  const labelIds = [...new Set(imagesInput.map((img) => img.imageLabel))];
+  const labelIds = [
+    ...new Set(
+      imagesInput.map((img) => new mongoose.Types.ObjectId(img.imageLabel)),
+    ),
+  ];
   const labels = await ImageLabelModel.find({ _id: { $in: labelIds } })
     .select("label")
     .lean();

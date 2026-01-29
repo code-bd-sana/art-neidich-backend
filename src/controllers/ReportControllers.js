@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 
-const { generateReportPdf } = require("../services/ReportPdfService");
 const {
   createReport,
   getReportById,
@@ -84,24 +83,6 @@ async function getReportByIdController(req, res, next) {
 }
 
 /**
- * Stream a PDF version of the report
- */
-async function getReportPdfController(req, res, next) {
-  try {
-    const report = await getReportById(req.params.id);
-    const pdfBuffer = await generateReportPdf(report);
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="report-${report._id}.pdf"`,
-    );
-    return res.send(pdfBuffer);
-  } catch (err) {
-    return next(err);
-  }
-}
-
-/**
  * Update only the status of a report
  *
  * @param {import('express').Request} req
@@ -150,5 +131,4 @@ module.exports = {
   getReportByIdController,
   deleteReportController,
   updateReportStatusController,
-  getReportPdfController,
 };

@@ -379,20 +379,35 @@ async function approveUser(userId) {
   // If this is an inspector or administrator gets approved (role - 1, 2), notify admins (role 0 and 1)
   if (user.role === 1 || user.role === 2) {
     try {
+      // Notify other admins (roles 0 and 1) about this approval.
       const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
         "_id firstName lastName email",
       );
-      const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
+
+      // Get admin IDs as ObjectId instances
+      const adminIds = (admins || [])
+        .map((a) => new mongoose.Types.ObjectId(a._id))
+        .filter(Boolean);
+
+      // Fetch active device tokens for these admins
       const tokens = await PushToken.find({
         user: { $in: adminIds },
         active: true,
       }).select("token -_id");
+
+      // Extract token strings
       const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+
+      // Create and send notification
       const types = NotificationModel.notificationTypes || {};
+
       const notif = await NotificationModel.create({
         title: "User approved",
         body: `${user.firstName} ${user.lastName} has been approved and can now access the system.`,
-        data: { userId: String(user._id), action: "approved" },
+        data: {
+          userId: new mongoose.Types.ObjectId(user._id),
+          action: "approved",
+        },
         type: types.USER_APPROVED || "user_approved",
         authorId: null,
         recipients: adminIds,
@@ -400,14 +415,17 @@ async function approveUser(userId) {
         status: "pending",
       });
       try {
+        // Send notification to device tokens or fallback to single user
         let sendResult = null;
         if (deviceTokens.length) {
+          // Send notification to multiple device tokens
           sendResult = await NotificationServices.sendToMany(deviceTokens, {
             title: notif.title,
             body: notif.body,
             data: notif.data,
           });
         } else if (adminIds.length === 1) {
+          // Fallback: send to single admin user
           sendResult = await NotificationServices.sendToUser(adminIds[0], {
             title: notif.title,
             body: notif.body,
@@ -530,23 +548,37 @@ async function suspendUser(userId, currentUser) {
   // Notify other admins (roles 0 and 1) about this suspension, but
   // exclude the user being suspended from recipients.
   try {
+    // Get admin IDs as ObjectId instances
     const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
       "_id firstName lastName email",
     );
-    const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
+
+    // Convert admin IDs to ObjectId instances
+    const adminIds = (admins || [])
+      .map((a) => new mongoose.Types.ObjectId(a._id))
+      .filter(Boolean);
+
     const recipients = adminIds.filter((id) => String(id) !== String(user._id));
 
+    // Fetch active device tokens for these admins
     const tokens = await PushToken.find({
       user: { $in: recipients },
       active: true,
     }).select("token -_id");
+
+    // Extract token strings
     const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
 
+    // Create and send notification
     const types = NotificationModel.notificationTypes || {};
+
     const notif = await NotificationModel.create({
       title: "Account suspended",
       body: `${user.firstName} ${user.lastName} has been suspended by an administrator.`,
-      data: { userId: String(user._id), action: "suspended" },
+      data: {
+        userId: new mongoose.Types.ObjectId(user._id),
+        action: "suspended",
+      },
       type: types.ACCOUNT_SUSPENDED || "account_suspended",
       authorId: null,
       recipients,
@@ -555,14 +587,18 @@ async function suspendUser(userId, currentUser) {
     });
 
     try {
+      //  Send notification to device tokens or fallback to single user
       let sendResult = null;
       if (deviceTokens.length) {
+        // Send notification to multiple device tokens
         sendResult = await NotificationServices.sendToMany(deviceTokens, {
           title: notif.title,
           body: notif.body,
           data: notif.data,
         });
-      } else if (recipients.length === 1) {
+      }
+      // Fallback: send to single admin user
+      else if (recipients.length === 1) {
         sendResult = await NotificationServices.sendToUser(recipients[0], {
           title: notif.title,
           body: notif.body,
@@ -575,10 +611,12 @@ async function suspendUser(userId, currentUser) {
       notif.status = "sent";
       notif.result = sendResult;
       notif.sentAt = new Date();
+      // Save notification status update
       await notif.save();
     } catch (sendErr) {
       notif.status = "failed";
       notif.result = { error: sendErr.message || String(sendErr) };
+      // Save notification status update
       await notif.save();
     }
   } catch (e) {
@@ -693,21 +731,35 @@ async function unSuspendUser(userId, currentUser) {
   // Notify other admins (roles 0 and 1) about this un-suspension, but
   // exclude the user being un-suspended from recipients.
   try {
+    // Get admin IDs as ObjectId instances
     const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
       "_id firstName lastName email",
     );
-    const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
+
+    // Convert admin IDs to ObjectId instances
+    const adminIds = (admins || [])
+      .map((a) => new mongoose.Types.ObjectId(a._id))
+      .filter(Boolean);
     const recipients = adminIds.filter((id) => String(id) !== String(user._id));
+
+    // Fetch active device tokens for these admins
     const tokens = await PushToken.find({
       user: { $in: recipients },
       active: true,
     }).select("token -_id");
+
+    // Extract token strings
     const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+
+    // Create and send notification
     const types = NotificationModel.notificationTypes || {};
     const notif = await NotificationModel.create({
       title: "Account reinstated",
       body: `${user.firstName} ${user.lastName} has been reinstated by an administrator.`,
-      data: { userId: String(user._id), action: "reinstated" },
+      data: {
+        userId: new mongoose.Types.ObjectId(user._id),
+        action: "reinstated",
+      },
       type: types.ACCOUNT_REINSTATED || "account_reinstated",
       authorId: null,
       recipients,
@@ -715,14 +767,18 @@ async function unSuspendUser(userId, currentUser) {
       status: "pending",
     });
     try {
+      // Send notification to device tokens or fallback to single user
       let sendResult = null;
       if (deviceTokens.length) {
+        // Send notification to multiple device tokens
         sendResult = await NotificationServices.sendToMany(deviceTokens, {
           title: notif.title,
           body: notif.body,
           data: notif.data,
         });
-      } else if (recipients.length === 1) {
+      }
+      // Fallback: send to single admin user
+      else if (recipients.length === 1) {
         sendResult = await NotificationServices.sendToUser(recipients[0], {
           title: notif.title,
           body: notif.body,
@@ -732,10 +788,12 @@ async function unSuspendUser(userId, currentUser) {
       notif.status = "sent";
       notif.result = sendResult;
       notif.sentAt = new Date();
+      // Save notification status update
       await notif.save();
     } catch (sendErr) {
       notif.status = "failed";
       notif.result = { error: sendErr.message || String(sendErr) };
+      // Save notification status update
       await notif.save();
     }
   } catch (e) {

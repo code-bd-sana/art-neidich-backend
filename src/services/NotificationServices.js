@@ -1,6 +1,7 @@
 const path = require("path");
 
 const admin = require("firebase-admin");
+const mongoose = require("mongoose");
 
 const PushToken = require("../models/PushToken");
 
@@ -81,9 +82,10 @@ async function sendToMany(deviceTokens = [], payload = {}) {
 async function sendToUser(userId, payload = {}) {
   if (!userId) throw new Error("userId is required");
   // find active tokens for user
-  const docs = await PushToken.find({ user: userId, active: true }).select(
-    "token -_id",
-  );
+  const docs = await PushToken.find({
+    user: new mongoose.Types.ObjectId(userId),
+    active: true,
+  }).select("token -_id");
   const tokens = (docs || []).map((d) => d.token).filter(Boolean);
   if (!tokens.length) return { warning: "no-tokens-for-user" };
   return sendToMany(tokens, payload);

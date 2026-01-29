@@ -310,23 +310,30 @@ async function registerUser(payload) {
       const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
         "_id firstName lastName email",
       );
-      const adminIds = (admins || []).map((a) => a._id);
+
+      // extract admin IDs
+      const adminIds = (admins || []).map(
+        (a) => new mongoose.Types.ObjectId(a._id),
+      );
 
       // resolve device tokens for admins
       const tokens = await PushToken.find({
         user: { $in: adminIds },
         active: true,
       }).select("token -_id");
+
+      // extract token strings
       const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
 
       // create notification record
       const types = NotificationModel.notificationTypes || {};
+
       const notif = await NotificationModel.create({
         title: "New inspector registration",
         body: `${firstName} ${lastName} has registered as an inspector and is awaiting approval.`,
-        data: { userId: String(newUser._id), role: 2 },
+        data: { userId: new mongoose.Types.ObjectId(newUser._id), role: 2 },
         type: types.REGISTERED_AS_INSPECTOR || "registered_as_inspector",
-        authorId: newUser._id,
+        authorId: new mongoose.Types.ObjectId(newUser._id),
         recipients: adminIds,
         deviceTokens,
         status: "pending",
@@ -334,14 +341,19 @@ async function registerUser(payload) {
 
       // attempt to send push notifications
       try {
+        // Send notifications to device tokens or individual admins
         let sendResult = null;
         if (deviceTokens.length) {
+          // send to many
           sendResult = await NotificationServices.sendToMany(deviceTokens, {
             title: notif.title,
             body: notif.body,
             data: notif.data,
           });
-        } else if (adminIds.length === 1) {
+        }
+
+        // send to single user
+        else if (adminIds.length === 1) {
           sendResult = await NotificationServices.sendToUser(adminIds[0], {
             title: notif.title,
             body: notif.body,
@@ -354,6 +366,7 @@ async function registerUser(payload) {
         notif.status = "sent";
         notif.result = sendResult;
         notif.sentAt = new Date();
+        // save notification result
         await notif.save();
       } catch (sendErr) {
         notif.status = "failed";

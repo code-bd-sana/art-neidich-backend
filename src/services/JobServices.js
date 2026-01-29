@@ -23,21 +23,29 @@ async function createJob(payload) {
       const inspectorId = created.inspector || null;
       // Create/send notification for inspector (single recipient)
       if (inspectorId) {
+        // Fetch active device tokens for the inspector
         const inspectorTokenDocs = await PushToken.find({
-          user: inspectorId,
+          user: new mongoose.Types.ObjectId(inspectorId),
           active: true,
         }).select("token -_id");
+
+        // Extract tokens
         const inspectorTokens = (inspectorTokenDocs || [])
           .map((t) => t.token)
           .filter(Boolean);
+
+        // Create notification for inspector
         const types = NotificationModel.notificationTypes || {};
         const inspectorNotif = await NotificationModel.create({
           title: "You have a new job assigned",
           body: `${created.orderId || created.streetAddress || "A new job"} has been assigned to you.`,
-          data: { jobId: String(created._id), action: "job_assigned" },
+          data: {
+            jobId: new mongoose.Types.ObjectId(created._id),
+            action: "job_assigned",
+          },
           type: types.JOB_ASSIGNED || "job_assigned",
-          authorId: created.createdBy || null,
-          recipient: inspectorId,
+          authorId: new mongoose.Types.ObjectId(created.createdBy) || null,
+          recipient: new mongoose.Types.ObjectId(inspectorId),
           deviceTokens: inspectorTokens,
           status: "pending",
         });
@@ -73,28 +81,44 @@ async function createJob(payload) {
       const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
         "_id firstName lastName email",
       );
-      const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
+
+      // Fetch active device tokens for admins
+      const adminIds = (admins || [])
+        .map((a) => new mongoose.Types.ObjectId(a._id))
+        .filter(Boolean);
+
+      // Fetch active device tokens for admins
       const adminTokenDocs = await PushToken.find({
         user: { $in: adminIds },
         active: true,
       }).select("token -_id");
+
+      // Extract tokens
       const adminDeviceTokens = (adminTokenDocs || [])
         .map((t) => t.token)
         .filter(Boolean);
+
+      // Create notification for admins
       const types = NotificationModel.notificationTypes || {};
+
       // Create notification for admins
       const adminNotif = await NotificationModel.create({
         title: "New job created",
         body: `${created.orderId || created.streetAddress || "A new job"} has been created.`,
-        data: { jobId: String(created._id), action: "job_created" },
+        data: {
+          jobId: new mongoose.Types.ObjectId(created._id),
+          action: "job_created",
+        },
         type: types.JOB_ASSIGNED || "job_assigned",
-        authorId: created.createdBy || null,
+        authorId: new mongoose.Types.ObjectId(created.createdBy) || null,
         recipients: adminIds,
         deviceTokens: adminDeviceTokens,
         status: "pending",
       });
       try {
+        // Send notification to all admin device tokens or fallback to individual users
         let sendResult = null;
+        // Send to all admin device tokens if available
         if (adminDeviceTokens.length) {
           sendResult = await NotificationServices.sendToMany(
             adminDeviceTokens,
@@ -104,22 +128,28 @@ async function createJob(payload) {
               data: adminNotif.data,
             },
           );
-        } else if (adminIds.length === 1) {
+        }
+        // Fallback to sending individually to each admin user
+        else if (adminIds.length === 1) {
           sendResult = await NotificationServices.sendToUser(adminIds[0], {
             title: adminNotif.title,
             body: adminNotif.body,
             data: adminNotif.data,
           });
-        } else {
+        }
+        // Multiple admins but no tokens found
+        else {
           sendResult = { warning: "no-targets" };
         }
         adminNotif.status = "sent";
         adminNotif.result = sendResult;
         adminNotif.sentAt = new Date();
+        // Save notification
         await adminNotif.save();
       } catch (sendErr) {
         adminNotif.status = "failed";
         adminNotif.result = { error: sendErr.message || String(sendErr) };
+        // Save notification
         await adminNotif.save();
       }
     } catch (e) {
