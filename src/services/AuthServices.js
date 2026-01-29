@@ -35,20 +35,22 @@ async function registerUser(payload) {
 
   const hashed = await hashPassword(password);
 
-  const newUser = await UserModel.create({
-    firstName: firstName,
-    lastName: lastName,
-    email,
-    password: hashed,
-    role,
-  });
+  let newUser;
+  try {
+    newUser = await UserModel.create({
+      firstName: firstName,
+      lastName: lastName,
+      email,
+      password: hashed,
+      role,
+    });
 
-  const roleNames = {
-    1: "Administrator",
-    2: "Inspector",
-  };
+    const roleNames = {
+      1: "Administrator",
+      2: "Inspector",
+    };
 
-  const emailHtml = `
+    const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -278,102 +280,126 @@ async function registerUser(payload) {
 </html>
   `;
 
-  // Send the welcome email
-  const sendResult = await sendMail({
-    to: email,
-    subject: "🏠 Welcome to Property Inspector Pro - Registration Successful",
-    html: emailHtml,
-  });
+    // Send the welcome email
+    const sendResult = await sendMail({
+      to: email,
+      subject: "🏠 Welcome to Property Inspector Pro - Registration Successful",
+      html: emailHtml,
+    });
 
-  if (!sendResult || !sendResult.messageId) {
-    await UserModel.findByIdAndDelete(newUser._id);
-    const err = new Error(
-      "Failed to send welcome email. Registration aborted.",
-    );
-    err.status = 500;
-    err.code = "WELCOME_EMAIL_FAILED";
-    throw err;
-  }
-
-  // If this is an inspector registration (role 2), notify admins (role 0 and 1)
-  try {
-    if (role === 2) {
-      // find admin users
-      const admins = await UserModel.find({
-        role: { $in: [0, 1] },
-        isSuspended: false,
-        isApproved: true,
-      }).select("_id firstName lastName email");
-
-      // extract admin IDs
-      const adminIds = (admins || []).map(
-        (a) => new mongoose.Types.ObjectId(a._id),
+    if (!sendResult || !sendResult.messageId) {
+      const err = new Error(
+        "Failed to send welcome email. Registration aborted.",
       );
+      err.status = 500;
+      err.code = "WELCOME_EMAIL_FAILED";
+      throw err;
+    }
 
-      // resolve device tokens for admins
-      const tokens = await PushToken.find({
-        user: { $in: adminIds },
-        active: true,
-      }).select("token -_id");
+    // If this is an inspector registration (role 2), notify admins (role 0 and 1)
+    try {
+      if (role === 2) {
+        // find admin users
+        const admins = await UserModel.find({
+          role: { $in: [0, 1] },
+          isSuspended: false,
+          isApproved: true,
+        }).select("_id firstName lastName email");
 
-      // extract token strings
-      const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+        // extract admin IDs
+        const adminIds = (admins || []).map(
+          (a) => new mongoose.Types.ObjectId(a._id),
+        );
 
-      // create notification record
-      const types = NotificationModel.notificationTypes || {};
+        // resolve device tokens for admins
+        const tokens = await PushToken.find({
+          user: { $in: adminIds },
+          active: true,
+        }).select("token -_id");
 
-      const notif = await NotificationModel.create({
-        title: "New inspector registration",
-        body: `${firstName} ${lastName} has registered as an inspector and is awaiting approval.`,
-        data: { userId: new mongoose.Types.ObjectId(newUser._id), role: 2 },
-        type: types.REGISTERED_AS_INSPECTOR || "registered_as_inspector",
-        authorId: new mongoose.Types.ObjectId(newUser._id),
-        recipients: adminIds,
-        deviceTokens,
-        status: "pending",
-      });
+        // extract token strings
+        const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
 
-      // attempt to send push notifications
+        // create notification record
+        const types = NotificationModel.notificationTypes || {};
+
+        const notif = await NotificationModel.create({
+          title: "New inspector registration",
+          body: `${firstName} ${lastName} has registered as an inspector and is awaiting approval.`,
+          data: { userId: new mongoose.Types.ObjectId(newUser._id), role: 2 },
+          type: types.REGISTERED_AS_INSPECTOR || "registered_as_inspector",
+          authorId: new mongoose.Types.ObjectId(newUser._id),
+          recipients: adminIds,
+          deviceTokens,
+          status: "pending",
+        });
+
+        // attempt to send push notifications
+        try {
+          // Send notifications to device tokens or individual admins
+          let sendResult = null;
+          if (deviceTokens.length) {
+            // send to many
+            sendResult = await NotificationServices.sendToMany(deviceTokens, {
+              title: notif.title,
+              body: notif.body,
+              data: notif.data,
+            });
+          }
+
+          // send to single user
+          else if (adminIds.length === 1) {
+            sendResult = await NotificationServices.sendToUser(adminIds[0], {
+              title: notif.title,
+              body: notif.body,
+              data: notif.data,
+            });
+          } else {
+            sendResult = { warning: "no-targets" };
+          }
+
+          notif.status = "sent";
+          notif.result = sendResult;
+          notif.sentAt = new Date();
+          // save notification result
+          await notif.save();
+        } catch (sendErr) {
+          notif.status = "failed";
+          notif.result = { error: sendErr.message || String(sendErr) };
+          await notif.save();
+        }
+      }
+    } catch (e) {
+      // swallow notification errors to avoid blocking registration
+      console.error("Notification send error:", e);
+    }
+
+    return {
+      _id: newUser._id,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      email: newUser.email,
+      role: newUser.role,
+    };
+  } catch (error) {
+    // If anything fails after user creation (email, notifications, etc), delete the user
+    if (newUser && newUser._id) {
       try {
-        // Send notifications to device tokens or individual admins
-        let sendResult = null;
-        if (deviceTokens.length) {
-          // send to many
-          sendResult = await NotificationServices.sendToMany(deviceTokens, {
-            title: notif.title,
-            body: notif.body,
-            data: notif.data,
-          });
-        }
-
-        // send to single user
-        else if (adminIds.length === 1) {
-          sendResult = await NotificationServices.sendToUser(adminIds[0], {
-            title: notif.title,
-            body: notif.body,
-            data: notif.data,
-          });
-        } else {
-          sendResult = { warning: "no-targets" };
-        }
-
-        notif.status = "sent";
-        notif.result = sendResult;
-        notif.sentAt = new Date();
-        // save notification result
-        await notif.save();
-      } catch (sendErr) {
-        notif.status = "failed";
-        notif.result = { error: sendErr.message || String(sendErr) };
-        await notif.save();
+        await UserModel.findByIdAndDelete(newUser._id);
+        console.error(
+          `User ${newUser._id} deleted due to registration failure:`,
+          error.message,
+        );
+      } catch (deleteError) {
+        console.error(
+          `Failed to delete user ${newUser._id} after registration error:`,
+          deleteError.message,
+        );
       }
     }
-  } catch (e) {
-    // swallow notification errors to avoid blocking registration
-    console.error("Notification send error:", e);
+    // Re-throw the original error so the controller can handle it
+    throw error;
   }
-
-  return;
 }
 
 /**

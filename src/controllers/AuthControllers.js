@@ -17,7 +17,7 @@ const {
 async function register(req, res, next) {
   try {
     const payload = req.validated;
-    await registerUser(payload);
+    const newUser = await registerUser(payload);
     return res.status(201).json({
       success: true,
       message:
