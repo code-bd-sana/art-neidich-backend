@@ -24,10 +24,12 @@ const registerSchema = z
       z.literal("ios"),
       z.literal("web"),
     ]),
-    deviceInfo: z.string({
-      message:
-        'Device information must be a string.(e.g, Samsung Galaxy S23", "iPhone 15 Pro", etc.)',
-    }),
+    deviceInfo: z
+      .string({
+        message:
+          'Device information must be a string.(e.g, Samsung Galaxy S23", "iPhone 15 Pro", etc.)',
+      })
+      .optional(),
   })
   .strict();
 
