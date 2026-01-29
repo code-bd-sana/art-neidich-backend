@@ -126,19 +126,19 @@ const registerPushToken = async (req, res, next) => {
 };
 
 /**
- * Deactivate a specific push token
+ * Active or Inactive a specific push token
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-const deactivatePushToken = async (req, res, next) => {
+const activeOrInactivePushToken = async (req, res, next) => {
   try {
     const { token } = req.validated;
 
-    await NotificationServices.deactivateToken(token);
+    await NotificationServices.activeOrInactivePushToken(token);
 
     res.json({
       success: true,
-      message: "Push token deactivated successfully",
+      message: "Push notification active state toggled successfully",
       code: 200,
     });
   } catch (err) {
@@ -173,6 +173,6 @@ module.exports = {
   listNotifications,
   getNotification,
   registerPushToken,
-  deactivatePushToken,
+  activeOrInactivePushToken,
   getUserPushTokens,
 };

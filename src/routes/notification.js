@@ -7,7 +7,7 @@ const {
   listNotifications,
   getNotification,
   registerPushToken,
-  deactivatePushToken,
+  activeOrInactivePushToken,
   getUserPushTokens,
 } = require("../controllers/NotificationControllers");
 const { authenticate } = require("../middleware/auth");
@@ -17,7 +17,7 @@ const {
   notificationSchema,
   notificationPaginationSchema,
   registerPushTokenSchema,
-  deactivatePushTokenSchema,
+  activeOrInactivePushTokenSchema,
 } = require("../validators/notification/notification");
 
 /**
@@ -69,10 +69,10 @@ router.post(
 );
 
 /**
- * Deactivate a push token
+ * Active or Inactive a push token
  *
  * @route PUT /api/v1/notification/token
- * Private route to deactivate a push token
+ * Private route to active and inactivate a push token
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -80,8 +80,8 @@ router.post(
  */
 router.put(
   "/token",
-  validate(deactivatePushTokenSchema, { target: "body" }),
-  deactivatePushToken,
+  validate(activeOrInactivePushTokenSchema, { target: "body" }),
+  activeOrInactivePushToken,
 );
 
 /**

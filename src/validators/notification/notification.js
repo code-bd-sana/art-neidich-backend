@@ -68,7 +68,7 @@ const registerPushTokenSchema = z
   })
   .strict();
 
-const deactivatePushTokenSchema = z
+const activeOrInactivePushTokenSchema = z
   .object({
     token: z
       .string({
@@ -84,5 +84,5 @@ module.exports = {
   notificationSchema,
   notificationPaginationSchema,
   registerPushTokenSchema,
-  deactivatePushTokenSchema,
+  activeOrInactivePushTokenSchema,
 };

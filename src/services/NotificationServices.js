@@ -169,13 +169,21 @@ async function registerToken(userId, token, platform, deviceInfo = null) {
 }
 
 /**
- * Deactivate a specific push token
+ * Active or Inactive a specific push token
  * @param {string} token FCM device token
  */
-async function deactivateToken(token) {
+async function activeOrInactivePushToken(token) {
+  const currentToken = await PushToken.findOne({ token });
+  if (!currentToken) {
+    const err = new Error("Push token not found");
+    err.status = 404;
+    err.code = "PUSH_TOKEN_NOT_FOUND";
+    throw err;
+  }
+  const currentActiveState = currentToken.active;
   const result = await PushToken.findOneAndUpdate(
     { token },
-    { $set: { active: false } },
+    { $set: { active: !currentActiveState } },
     { new: true },
   );
   return result;
@@ -197,6 +205,6 @@ module.exports = {
   sendToMany,
   sendToUser,
   registerToken,
-  deactivateToken,
+  activeOrInactivePushToken,
   getUserTokens,
 };
