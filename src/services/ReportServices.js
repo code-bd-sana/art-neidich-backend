@@ -5,8 +5,13 @@ const mongoose = require("mongoose");
 
 const ImageLabelModel = require("../models/ImageLabelModel");
 const JobModel = require("../models/JobModel");
+const NotificationModel = require("../models/NotificationModel");
+const PushToken = require("../models/PushToken");
 const ReportModel = require("../models/ReportModel");
+const UserModel = require("../models/UserModel");
 const { uploadStreams, deleteObjects } = require("../utils/s3");
+
+const NotificationServices = require("./../services/NotificationServices");
 
 /**
  * Create a new report
@@ -82,7 +87,6 @@ async function createReport(payload) {
   });
 
   await report.save();
-  console.log("Report document created with _id:", report._id.toString());
 
   // 6. Now upload images using report._id as folder prefix
   const folderPrefix = `reports/${report._id.toString()}`;
@@ -150,6 +154,89 @@ async function createReport(payload) {
 
     console.log("Report fully updated with S3 URLs");
 
+    // If the report is created and images uploaded successfully, then send the notifications to the admin users - (roles 0 and 1)
+    try {
+      // Fetch all admin users
+      const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
+        "_id firstName lastName email",
+      );
+
+      // Get their active push tokens
+      const adminIds = (admins || [])
+        .map((a) => new mongoose.Types.ObjectId(a._id))
+        .filter(Boolean);
+
+      // Fetch active push tokens for admins
+      const adminTokenDocs = await PushToken.find({
+        user: { $in: adminIds },
+        active: true,
+      }).select("token -_id");
+
+      // Extract tokens
+      const adminDeviceTokens = (adminTokenDocs || [])
+        .map((t) => t.token)
+        .filter(Boolean);
+
+      // Determine notification type
+      const types = NotificationModel.notificationTypes || {};
+
+      // Create notification for admins
+      const adminNotif = await NotificationModel.create({
+        type: types.NEW_REPORT || "new_report",
+        title: "New Report Submitted",
+        body: `A new report has been submitted by ${payload.inspectorName || "an inspector"}.`,
+        data: {
+          reportId: new mongoose.Types.ObjectId(report._id),
+          jobId: new mongoose.Types.ObjectId(jobId),
+          action: "view_report",
+        },
+        recipients: adminIds,
+        authorId: new mongoose.Types.ObjectId(payload.inspector),
+        status: "pending",
+      });
+      try {
+        // Send notifications
+        let sendResult = null;
+        // Send to multiple or single based on tokens
+        if (adminDeviceTokens.length) {
+          sendResult = await NotificationServices.sendToMany(
+            adminDeviceTokens,
+            {
+              title: adminNotif.title,
+              body: adminNotif.body,
+              data: adminNotif.data,
+            },
+          );
+        }
+        // If no tokens but single admin, send to that user
+        else if (adminIds.length === 1) {
+          sendResult = await NotificationServices.sendToUser(adminIds[0], {
+            title: adminNotif.title,
+            body: adminNotif.body,
+            data: adminNotif.data,
+          });
+        }
+        // If no targets, note that
+        else {
+          sendResult = { warning: "no-targets" };
+        }
+        adminNotif.status = "sent";
+        adminNotif.result = sendResult;
+        adminNotif.sentAt = new Date();
+
+        // Save notification status
+        await adminNotif.save();
+      } catch (sendErr) {
+        adminNotif.status = "failed";
+        adminNotif.result = { error: sendErr.message || String(sendErr) };
+        // Save notification failure
+        await adminNotif.save();
+      }
+    } catch (e) {
+      console.error("Failed to create/send job report notifications:", e);
+    }
+
+    // 8. Return the complete report
     return await getReportById(report._id);
   } catch (err) {
     // Cleanup images if report was created but upload failed
@@ -534,6 +621,7 @@ async function getReportById(id) {
 async function updateReportStatus(id, updateData) {
   const { status, lastUpdatedBy } = updateData;
 
+  // Update the report status
   const updated = await ReportModel.findByIdAndUpdate(
     id,
     {
@@ -546,11 +634,89 @@ async function updateReportStatus(id, updateData) {
     { new: true },
   );
 
+  // If no report found to update
   if (!updated) {
     const err = new Error("Report not found");
     err.status = 404;
     err.code = "REPORT_NOT_FOUND";
     throw err;
+  }
+
+  // If the report status updated successfully, then send the notifications to the admin users - (roles 0 and 1)
+  try {
+    // Fetch all admin users
+    const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
+      "_id firstName lastName email",
+    );
+    // Get their active push tokens
+    const adminIds = (admins || [])
+      .map((a) => new mongoose.Types.ObjectId(a._id))
+      .filter(Boolean);
+
+    // Fetch active push tokens for admins
+    const adminTokenDocs = await PushToken.find({
+      user: { $in: adminIds },
+      active: true,
+    }).select("token -_id");
+
+    // Extract tokens
+    const adminDeviceTokens = (adminTokenDocs || [])
+      .map((t) => t.token)
+      .filter(Boolean);
+
+    // Determine notification type
+    const types = NotificationModel.notificationTypes || {};
+
+    // Create notification for admins
+    const adminNotif = await NotificationModel.create({
+      type: types.REPORT_STATUS_UPDATED || "report_status_updated",
+      title: "Report Status Updated",
+      body: `The status of a report has been updated to "${status}".`,
+      data: {
+        reportId: new mongoose.Types.ObjectId(id),
+        action: "view_report",
+      },
+      recipients: adminIds,
+      authorId: new mongoose.Types.ObjectId(lastUpdatedBy),
+      status: "pending",
+    });
+    try {
+      // Send notifications
+      let sendResult = null;
+      // Send to multiple or single based on tokens
+      if (adminDeviceTokens.length) {
+        sendResult = await NotificationServices.sendToMany(adminDeviceTokens, {
+          title: adminNotif.title,
+          body: adminNotif.body,
+          data: adminNotif.data,
+        });
+      }
+      // If no tokens but single admin, send to that user
+      else if (adminIds.length === 1) {
+        sendResult = await NotificationServices.sendToUser(adminIds[0], {
+          title: adminNotif.title,
+          body: adminNotif.body,
+          data: adminNotif.data,
+        });
+      }
+      // If no targets, note that
+      else {
+        sendResult = { warning: "no-targets" };
+      }
+      adminNotif.status = "sent";
+      adminNotif.result = sendResult;
+      adminNotif.sentAt = new Date();
+
+      // Save notification status
+      await adminNotif.save();
+    } catch (sendErr) {
+      adminNotif.status = "failed";
+      adminNotif.result = { error: sendErr.message || String(sendErr) };
+      // Save notification failure
+      await adminNotif.save();
+    }
+  } catch (error) {
+    console.error("Error sending notification to admins:", error);
   }
 
   // Return EXACT SAME response as GET BY ID
