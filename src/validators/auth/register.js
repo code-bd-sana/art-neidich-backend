@@ -17,6 +17,13 @@ const registerSchema = z
           "Role must be one of the following values: 1 (admin), 2 (inspector)",
       }),
     }),
+    // push notification token (optional)
+    pushToken: z.string(),
+    platform: z.union([z.literal("android"), z.literal("ios")]),
+    deviceInfo: z.string({
+      message:
+        'Device information must be a string.(e.g, Samsung Galaxy S23", "iPhone 15 Pro", etc.)',
+    }),
   })
   .strict();
 

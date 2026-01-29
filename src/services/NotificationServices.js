@@ -12,7 +12,7 @@ function initFirebase() {
     // Try to load local service account JSON in repo root
     const saPath = path.resolve(
       process.cwd(),
-      "testing-project-20a99-firebase-adminsdk-fbsvc-17c0fcd65c.json",
+      "fhainspectorapp-61618-firebase-adminsdk-fbsvc-1765c68fb5.json",
     );
     const serviceAccount = require(saPath);
     admin.initializeApp({
@@ -32,12 +32,22 @@ function initFirebase() {
 
 initFirebase();
 
+/**
+ * Send a push notification to a single device
+ * @param {string} deviceToken FCM device token
+ * @param {object} payload Notification payload
+ */
 async function sendToDevice(deviceToken, payload = {}) {
   if (!deviceToken) throw new Error("deviceToken is required");
   const message = buildMessage(deviceToken, payload);
   return admin.messaging().send(message);
 }
 
+/**
+ * Send a push notification to multiple devices
+ * @param {string[]} deviceTokens Array of FCM device tokens
+ * @param {object} payload Notification payload
+ */
 async function sendToMany(deviceTokens = [], payload = {}) {
   if (!Array.isArray(deviceTokens)) deviceTokens = [deviceTokens];
   const tokens = deviceTokens.filter(Boolean);
@@ -63,6 +73,11 @@ async function sendToMany(deviceTokens = [], payload = {}) {
   return results;
 }
 
+/**
+ * Send a push notification to all active devices for a user
+ * @param {string} userId User ID
+ * @param {object} payload Notification payload
+ */
 async function sendToUser(userId, payload = {}) {
   if (!userId) throw new Error("userId is required");
   // find active tokens for user
@@ -74,6 +89,11 @@ async function sendToUser(userId, payload = {}) {
   return sendToMany(tokens, payload);
 }
 
+/**
+ * Build a message object for a single device
+ * @param {string} deviceToken FCM device token
+ * @param {object} payload Notification payload
+ */
 function buildMessage(deviceToken, payload) {
   const { title, body, data } = payload || {};
   const message = {
@@ -91,6 +111,11 @@ function buildMessage(deviceToken, payload) {
   return message;
 }
 
+/**
+ * Build a multicast message object for multiple devices
+ * @param {string[]} tokens Array of FCM device tokens
+ * @param {object} payload Notification payload
+ */
 function buildMulticast(tokens, payload) {
   const { title, body, data } = payload || {};
   const message = {

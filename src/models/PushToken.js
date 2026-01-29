@@ -24,7 +24,7 @@ const pushTokenSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    lastUsed: Date,
+    lastUsed: Date, // track last usage
     createdAt: {
       type: Date,
       default: Date.now,

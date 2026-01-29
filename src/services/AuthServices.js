@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 
+const mongoose = require("mongoose");
 const { v4 } = require("uuid");
 
 const { generateToken } = require("../helpers/jwt/jwt-utils");
@@ -17,7 +18,7 @@ const NotificationServices = require("./../services/NotificationServices");
 /**
  * Register a new user
  *
- * @param {{firstName: string, lastName: string, email: string, password: string, role: number}} payload
+ * @param {{firstName: string, lastName: string, email: string, password: string, role: number, pushToken?: string, platform?: "android" | "ios", deviceInfo?: string}} payload
  * @returns {Promise<void>}
  */
 async function registerUser(payload) {
@@ -40,6 +41,14 @@ async function registerUser(payload) {
     email,
     password: hashed,
     role,
+  });
+
+  // If push token info is provided, save it
+  await PushToken.create({
+    user: new mongoose.Types.ObjectId(newUser._id),
+    token: payload.pushToken,
+    platform: payload.platform,
+    deviceInfo: payload.deviceInfo || "",
   });
 
   const roleNames = {
