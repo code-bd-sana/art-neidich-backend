@@ -74,14 +74,14 @@ router.post(
 /**
  * Deactivate a push token
  *
- * @route DELETE /api/v1/notification/token
+ * @route PUT /api/v1/notification/token
  * Private route to deactivate a push token
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-router.delete(
+router.put(
   "/token",
   validate(deactivatePushTokenSchema, { target: "body" }),
   deactivatePushToken,
