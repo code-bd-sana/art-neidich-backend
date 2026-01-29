@@ -16,7 +16,7 @@ const pushTokenSchema = new mongoose.Schema(
     },
     platform: {
       type: String,
-      enum: ["android", "ios"],
+      enum: ["android", "ios", "web"],
       required: true,
     },
     deviceInfo: String, // optional: "Samsung Galaxy S23", "iPhone 15 Pro", etc.

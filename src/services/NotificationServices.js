@@ -12,7 +12,7 @@ function initFirebase() {
     // Try to load local service account JSON in repo root
     const saPath = path.resolve(
       process.cwd(),
-      "fhainspectorapp-61618-firebase-adminsdk-fbsvc-1765c68fb5.json",
+      "fhainspectorapp-61618-firebase-adminsdk-fbsvc-9ae5d44b88.json",
     );
     const serviceAccount = require(saPath);
     admin.initializeApp({
