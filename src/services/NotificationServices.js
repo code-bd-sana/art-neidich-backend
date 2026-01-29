@@ -3,6 +3,7 @@ const path = require("path");
 const admin = require("firebase-admin");
 const mongoose = require("mongoose");
 
+const NotificationToken = require("../models/NotificationTokenModel");
 const PushToken = require("../models/PushToken");
 
 // Initialize firebase-admin once
@@ -134,8 +135,68 @@ function buildMulticast(tokens, payload) {
   return message;
 }
 
+/**
+ * Register or update a push token for a user
+ * Handles multiple devices per user by using upsert logic
+ * @param {string} userId User ID
+ * @param {string} token FCM device token
+ * @param {string} platform Platform: "android", "ios", or "web"
+ * @param {string} deviceInfo Optional device information
+ */
+async function registerToken(userId, token, platform, deviceInfo = null) {
+  const result = await PushToken.findOneAndUpdate(
+    { token }, // Find by token
+    {
+      $set: {
+        user: new mongoose.Types.ObjectId(userId),
+        platform,
+        deviceInfo,
+        active: true,
+        lastUsed: new Date(),
+      },
+      $setOnInsert: {
+        createdAt: new Date(),
+      },
+    },
+    {
+      upsert: true, // Create if doesn't exist
+      new: true, // Return updated document
+      runValidators: true,
+    },
+  );
+
+  return result;
+}
+
+/**
+ * Deactivate a specific push token
+ * @param {string} token FCM device token
+ */
+async function deactivateToken(token) {
+  const result = await PushToken.findOneAndUpdate(
+    { token },
+    { $set: { active: false } },
+    { new: true },
+  );
+  return result;
+}
+
+/**
+ * Get all active tokens for a user
+ * @param {string} userId User ID
+ */
+async function getUserTokens(userId) {
+  return await PushToken.find({
+    user: new mongoose.Types.ObjectId(userId),
+    active: true,
+  });
+}
+
 module.exports = {
   sendToDevice,
   sendToMany,
   sendToUser,
+  registerToken,
+  deactivateToken,
+  getUserTokens,
 };

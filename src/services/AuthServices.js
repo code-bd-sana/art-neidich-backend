@@ -43,14 +43,6 @@ async function registerUser(payload) {
     role,
   });
 
-  // If push token info is provided, save it
-  await PushToken.create({
-    user: new mongoose.Types.ObjectId(newUser._id),
-    token: payload.pushToken,
-    platform: payload.platform,
-    deviceInfo: payload.deviceInfo || "",
-  });
-
   const roleNames = {
     1: "Administrator",
     2: "Inspector",

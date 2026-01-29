@@ -3,46 +3,6 @@ const mongoose = require("mongoose");
 const NotificationModel = require("../models/NotificationModel");
 const NotificationToken = require("../models/NotificationTokenModel");
 const NotificationServices = require("../services/NotificationServices");
-/**
- * Toggle notification preference for a user
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
-const notificationToggle = async (req, res, next) => {
-  try {
-    // Extract enable flag from validated request body
-    const { enable } = req.validated;
-
-    // Get user ID from authenticated request
-    const userId = req.user._id;
-
-    // Update or create notification token document
-    let tokenDoc = await NotificationToken.findOne({
-      user: new mongoose.Types.ObjectId(userId),
-    });
-
-    // If no document exists, create a new one
-    if (!tokenDoc) {
-      // Create a new notification token document for the user
-      tokenDoc = new NotificationToken({
-        user: new mongoose.Types.ObjectId(userId),
-        enable,
-      });
-    } else {
-      // Update the existing document's enable field
-      tokenDoc.enable = enable;
-    }
-
-    // Save the document
-    await tokenDoc.save();
-
-    res
-      .status(200)
-      .json({ success: true, message: "Notification preference updated" });
-  } catch (err) {
-    next(err);
-  }
-};
 
 /**
  * List notifications with optional filtering
@@ -56,9 +16,6 @@ const listNotifications = async (req, res, next) => {
 
     // Get user ID from authenticated request
     const userId = req.user._id;
-
-    // Validate user ID presence
-    if (!userId) return res.status(400).json({ message: "userId is required" });
 
     // Build query to fetch notifications for the user
     const q = {
@@ -77,15 +34,17 @@ const listNotifications = async (req, res, next) => {
     // Get total count for pagination metadata
     const totalNotifications = await NotificationModel.countDocuments(q);
 
-    res.status(200).json({
+    res.json({
       success: true,
-      notifications: docs,
+      message: "Notification list fetched successfully",
+      data: docs,
       metaData: {
         page,
         limit,
         totalNotifications,
         totalPage: Math.ceil(totalNotifications / limit),
       },
+      code: 200,
     });
   } catch (err) {
     next(err);
@@ -115,16 +74,105 @@ const getNotification = async (req, res, next) => {
     });
 
     // If not found, return 404
-    if (!doc) return res.status(404).json({ message: "not found" });
+    if (!doc) {
+      const err = new Error("Notification not found");
+      err.status = 400;
+      err.code = "NOTIFICATION_NOT_FOUND";
+      throw err;
+    }
 
-    res.status(200).json({ success: true, notification: doc });
+    res.json({
+      success: true,
+      message: "Notification fetched successfully",
+      data: doc,
+      code: 200,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Register a push token for the authenticated user
+ * Supports multiple devices per user
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const registerPushToken = async (req, res, next) => {
+  try {
+    // Extract token details from validated request body
+    const { token, platform, deviceInfo } = req.validated;
+
+    // Get user ID from authenticated request
+    const userId = req.user._id;
+
+    // Register or update the token
+    const result = await NotificationServices.registerToken(
+      userId,
+      token,
+      platform,
+      deviceInfo,
+    );
+
+    res.json({
+      success: true,
+      message: "Push token registered successfully",
+      data: result,
+      code: 200,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Deactivate a specific push token
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const deactivatePushToken = async (req, res, next) => {
+  try {
+    const { token } = req.validated;
+
+    await NotificationServices.deactivateToken(token);
+
+    res.json({
+      success: true,
+      message: "Push token deactivated successfully",
+      code: 200,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get all active tokens for the authenticated user
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+const getUserPushTokens = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    const tokens = await NotificationServices.getUserTokens(userId);
+
+    res.json({
+      success: true,
+      message: "User push tokens fetched successfully",
+      data: tokens,
+      count: tokens.length,
+      code: 200,
+    });
   } catch (err) {
     next(err);
   }
 };
 
 module.exports = {
-  notificationToggle,
   listNotifications,
   getNotification,
+  registerPushToken,
+  deactivatePushToken,
+  getUserPushTokens,
 };
