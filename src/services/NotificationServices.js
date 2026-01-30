@@ -157,7 +157,6 @@ async function listNotifications(query = {}, userId) {
     ],
   };
 
-  console.log(query, userId, q);
   // Fetch notifications with pagination
   const notifications = await NotificationModel.find(q)
     .sort({ createdAt: -1 })
