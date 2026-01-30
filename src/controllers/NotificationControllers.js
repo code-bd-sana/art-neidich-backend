@@ -2,7 +2,13 @@ const mongoose = require("mongoose");
 
 const NotificationModel = require("../models/NotificationModel");
 const NotificationToken = require("../models/NotificationTokenModel");
-const NotificationServices = require("../services/NotificationServices");
+const {
+  listNotifications: notifications,
+  getNotificationById,
+  registerToken,
+  activeOrInactivePushNotification: onOrOffPushNotification,
+  getUserTokens,
+} = require("../services/NotificationServices");
 
 /**
  * List notifications with optional filtering
@@ -18,8 +24,7 @@ const listNotifications = async (req, res, next) => {
     const userId = req.user._id;
 
     // Call service
-    const { notifications, metaData } =
-      await NotificationServices.listNotifications(req.query, userId);
+    const { notifications, metaData } = await notifications(req.query, userId);
 
     res.json({
       success: true,
@@ -47,10 +52,7 @@ const getNotification = async (req, res, next) => {
     const userId = req.user._id;
 
     // Call service
-    const notification = await NotificationServices.getNotificationById(
-      id,
-      userId,
-    );
+    const notification = await getNotificationById(id, userId);
 
     res.json({
       success: true,
@@ -80,7 +82,7 @@ const registerPushToken = async (req, res, next) => {
     console.log(userId, token, platform, deviceId, deviceName);
 
     // Call service
-    const result = await NotificationServices.registerToken(
+    const result = await registerToken(
       userId,
       token,
       platform,
@@ -110,7 +112,7 @@ const activeOrInactivePushNotification = async (req, res, next) => {
     const { deviceId } = req.validated;
 
     // Call service
-    await NotificationServices.activeOrInactivePushNotification(deviceId);
+    await onOrOffPushNotification(deviceId);
 
     res.json({
       success: true,
@@ -133,7 +135,7 @@ const getUserPushTokens = async (req, res, next) => {
     const userId = req.user._id;
 
     // Call service
-    const tokens = await NotificationServices.getUserTokens(userId);
+    const tokens = await getUserTokens(userId);
 
     res.json({
       success: true,

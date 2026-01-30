@@ -11,7 +11,10 @@ const ReportModel = require("../models/ReportModel");
 const UserModel = require("../models/UserModel");
 const { uploadStreams, deleteObjects } = require("../utils/s3");
 
-const NotificationServices = require("./../services/NotificationServices");
+const {
+  sendToMany,
+  sendToUser,
+} = require("./../services/NotificationServices");
 
 /**
  * Create a new report
@@ -229,8 +232,8 @@ async function createReport(payload) {
         let sendResult = null;
 
         // Send to multiple or single based on tokens
-        if (adminDeviceTokens.length) {
-          sendResult = await NotificationServices.sendToMany(
+        if (adminDeviceTokens.length > 0) {
+          sendResult = await sendToMany(
             adminDeviceTokens,
             {
               title: adminNotif.title,
@@ -242,7 +245,7 @@ async function createReport(payload) {
 
         // If no tokens but single admin, send to that user
         else if (adminIds.length === 1) {
-          sendResult = await NotificationServices.sendToUser(adminIds[0], {
+          sendResult = await sendToUser(adminIds[0], {
             title: adminNotif.title,
             body: adminNotif.body,
             data: adminNotif.data,
@@ -738,8 +741,8 @@ async function updateReportStatus(id, updateData) {
       let sendResult = null;
 
       // Send to multiple or single based on tokens
-      if (adminDeviceTokens.length) {
-        sendResult = await NotificationServices.sendToMany(adminDeviceTokens, {
+      if (adminDeviceTokens.length > 0) {
+        sendResult = await sendToMany(adminDeviceTokens, {
           title: adminNotif.title,
           body: adminNotif.body,
           data: adminNotif.data,
@@ -747,7 +750,7 @@ async function updateReportStatus(id, updateData) {
       }
       // If no tokens but single admin, send to that user
       else if (adminIds.length === 1) {
-        sendResult = await NotificationServices.sendToUser(adminIds[0], {
+        sendResult = await sendToUser(adminIds[0], {
           title: adminNotif.title,
           body: adminNotif.body,
           data: adminNotif.data,

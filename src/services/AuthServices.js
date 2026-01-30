@@ -13,7 +13,7 @@ const PushToken = require("../models/PushToken");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
 
-const NotificationServices = require("./../services/NotificationServices");
+const { sendToMany, sendToUser } = require("./NotificationServices");
 
 /**
  * Register a new user
@@ -355,9 +355,9 @@ async function registerUser(payload) {
         try {
           // Send notifications to device tokens or individual admins
           let sendResult = null;
-          if (deviceTokens.length) {
+          if (deviceTokens.length > 0) {
             // send to many
-            sendResult = await NotificationServices.sendToMany(deviceTokens, {
+            sendResult = await sendToMany(deviceTokens, {
               title: notif.title,
               body: notif.body,
               data: notif.data,
@@ -368,7 +368,7 @@ async function registerUser(payload) {
 
           // send to single user
           else if (adminIds.length === 1) {
-            sendResult = await NotificationServices.sendToUser(adminIds[0], {
+            sendResult = await sendToUser(adminIds[0], {
               title: notif.title,
               body: notif.body,
               data: notif.data,

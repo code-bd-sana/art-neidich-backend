@@ -5,7 +5,10 @@ const PushToken = require("../models/PushToken");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
 
-const NotificationServices = require("./../services/NotificationServices");
+const {
+  sendToMany,
+  sendToUser,
+} = require("./../services/NotificationServices");
 
 /**
  * Get user profile
@@ -420,16 +423,16 @@ async function approveUser(userId) {
       try {
         // Send notification to device tokens or fallback to single user
         let sendResult = null;
-        if (deviceTokens.length) {
+        if (deviceTokens.length > 0) {
           // Send notification to multiple device tokens
-          sendResult = await NotificationServices.sendToMany(deviceTokens, {
+          sendResult = await sendToMany(deviceTokens, {
             title: notif.title,
             body: notif.body,
             data: notif.data,
           });
         } else if (adminIds.length === 1) {
           // Fallback: send to single admin user
-          sendResult = await NotificationServices.sendToUser(adminIds[0], {
+          sendResult = await sendToUser(adminIds[0], {
             title: notif.title,
             body: notif.body,
             data: notif.data,
@@ -609,9 +612,9 @@ async function suspendUser(userId, currentUser) {
     //  Send notification to device tokens or fallback to single user
     try {
       let sendResult = null;
-      if (deviceTokens.length) {
+      if (deviceTokens.length > 0) {
         // Send notification to multiple device tokens
-        sendResult = await NotificationServices.sendToMany(deviceTokens, {
+        sendResult = await sendToMany(deviceTokens, {
           title: notif.title,
           body: notif.body,
           data: notif.data,
@@ -619,7 +622,7 @@ async function suspendUser(userId, currentUser) {
       }
       // Fallback: send to single admin user
       else if (recipients.length === 1) {
-        sendResult = await NotificationServices.sendToUser(recipients[0], {
+        sendResult = await sendToUser(recipients[0], {
           title: notif.title,
           body: notif.body,
           data: notif.data,
@@ -808,9 +811,9 @@ async function unSuspendUser(userId, currentUser) {
     // Send notification to device tokens or fallback to single user
     try {
       let sendResult = null;
-      if (deviceTokens.length) {
+      if (deviceTokens.length > 0) {
         // Send notification to multiple device tokens
-        sendResult = await NotificationServices.sendToMany(deviceTokens, {
+        sendResult = await sendToMany(deviceTokens, {
           title: notif.title,
           body: notif.body,
           data: notif.data,
@@ -818,7 +821,7 @@ async function unSuspendUser(userId, currentUser) {
       }
       // Fallback: send to single admin user
       else if (recipients.length === 1) {
-        sendResult = await NotificationServices.sendToUser(recipients[0], {
+        sendResult = await sendToUser(recipients[0], {
           title: notif.title,
           body: notif.body,
           data: notif.data,

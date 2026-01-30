@@ -6,7 +6,10 @@ const PushToken = require("../models/PushToken");
 const ReportModel = require("../models/ReportModel");
 const UserModel = require("../models/UserModel");
 
-const NotificationServices = require("./../services/NotificationServices");
+const {
+  sendToMany,
+  sendToUser,
+} = require("./../services/NotificationServices");
 
 /**
  * Create a new job
@@ -58,19 +61,16 @@ async function createJob(payload) {
           let sendResult = null;
 
           // Send to all inspector device tokens if available
-          if (inspectorTokens.length) {
+          if (inspectorTokens.length > 0) {
             // Send notification to all inspector device tokens
-            sendResult = await NotificationServices.sendToMany(
-              inspectorTokens,
-              {
-                title: inspectorNotif.title,
-                body: inspectorNotif.body,
-                data: inspectorNotif.data,
-              },
-            );
+            sendResult = await sendToMany(inspectorTokens, {
+              title: inspectorNotif.title,
+              body: inspectorNotif.body,
+              data: inspectorNotif.data,
+            });
           } else {
             // Fallback to sending individually to the inspector user
-            sendResult = await NotificationServices.sendToUser(inspectorId, {
+            sendResult = await sendToUser(inspectorId, {
               title: inspectorNotif.title,
               body: inspectorNotif.body,
               data: inspectorNotif.data,
@@ -137,21 +137,18 @@ async function createJob(payload) {
         // Send notification to all admin device tokens or fallback to individual users
         let sendResult = null;
         // Send to all admin device tokens if available
-        if (adminDeviceTokens.length) {
+        if (adminDeviceTokens.length > 0) {
           // Send notification to all admin device tokens
-          sendResult = await NotificationServices.sendToMany(
-            adminDeviceTokens,
-            {
-              title: adminNotif.title,
-              body: adminNotif.body,
-              data: adminNotif.data,
-            },
-          );
+          sendResult = await sendToMany(adminDeviceTokens, {
+            title: adminNotif.title,
+            body: adminNotif.body,
+            data: adminNotif.data,
+          });
         }
         // Fallback to sending individually to each admin user
         else if (adminIds.length === 1) {
           // Send to single admin
-          sendResult = await NotificationServices.sendToUser(adminIds[0], {
+          sendResult = await sendToUser(adminIds[0], {
             title: adminNotif.title,
             body: adminNotif.body,
             data: adminNotif.data,

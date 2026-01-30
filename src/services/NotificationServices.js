@@ -11,23 +11,34 @@ const PushToken = require("../models/PushToken");
 let initialized = false;
 function initFirebase() {
   if (initialized) return;
+  console.log("[NotificationService] initFirebase: starting initialization");
   try {
     // Try to load local service account JSON in repo root
-    const saPath = path.resolve(
-      process.cwd(),
-      "fhainspectorapp-61618-firebase-adminsdk-fbsvc-9ae5d44b88.json",
-    );
+    const saPath = path.resolve(process.cwd(), "fhainspectorapp.json");
     const serviceAccount = require(saPath);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
     initialized = true;
+    console.log(
+      "[NotificationService] initFirebase: initialized with service account",
+    );
   } catch (err) {
+    console.warn(
+      "[NotificationService] initFirebase: service account not found, trying default credentials",
+    );
     // Fallback: initialize with default credentials (if hosting provides them)
     try {
       admin.initializeApp();
       initialized = true;
+      console.log(
+        "[NotificationService] initFirebase: initialized with default credentials",
+      );
     } catch (e) {
+      console.error(
+        "[NotificationService] initFirebase: failed to initialize firebase",
+        e && e.message ? e.message : e,
+      );
       // swallow; callers will get errors when trying to send
     }
   }
@@ -35,27 +46,51 @@ function initFirebase() {
 
 initFirebase();
 
+// Simple prefixed log helpers to keep console output consistent
+const LOG_PREFIX = "[NotificationService]";
+const log = (...args) => console.log(LOG_PREFIX, ...args);
+const debug = (...args) => {
+  if (process.env.DEBUG) console.debug(LOG_PREFIX, ...args);
+};
+const logError = (...args) => console.error(LOG_PREFIX, ...args);
+
 /**
  * Send a push notification to a single device
  * @param {string} deviceToken FCM device token
  * @param {object} payload Notification payload
  */
 async function sendToDevice(deviceToken, payload = {}) {
+  log("sendToDevice: called", { hasToken: !!deviceToken });
+
   // Validate input
   if (!deviceToken) {
     const err = new Error("Device token is required");
     err.status = 404;
     err.code = "DEVICE_TOKEN_NOT_FOUND";
+    logError("sendToDevice: missing deviceToken");
     throw err;
   }
 
   // Build message
   const message = buildMessage(deviceToken, payload);
 
-  console.log("Send to the device notification sending............");
+  debug("sendToDevice: built message", {
+    title: payload && payload.title,
+    bodyLength: payload && payload.body ? payload.body.length : 0,
+  });
 
   // Send message
-  return admin.messaging().send(message);
+  try {
+    const res = await admin.messaging().send(message);
+    log("sendToDevice: send success", res);
+    return res;
+  } catch (err) {
+    logError(
+      "sendToDevice: send failed",
+      err && err.message ? err.message : err,
+    );
+    throw err;
+  }
 }
 
 /**
@@ -64,6 +99,9 @@ async function sendToDevice(deviceToken, payload = {}) {
  * @param {object} payload Notification payload
  */
 async function sendToMany(deviceTokens = [], payload = {}) {
+  log("sendToMany: called", {
+    tokensReceived: Array.isArray(deviceTokens) ? deviceTokens.length : 1,
+  });
   // Validate input
   if (!Array.isArray(deviceTokens)) deviceTokens = [deviceTokens];
 
@@ -71,7 +109,10 @@ async function sendToMany(deviceTokens = [], payload = {}) {
   const tokens = deviceTokens.filter(Boolean);
 
   // Return warning if no valid tokens
-  if (!tokens.length) return { warning: "no-tokens" };
+  if (!tokens.length) {
+    log("sendToMany: no valid tokens provided");
+    return { warning: "no-tokens" };
+  }
 
   // FCM sendMulticast supports up to 500 tokens per request
   const chunkSize = 500;
@@ -86,14 +127,33 @@ async function sendToMany(deviceTokens = [], payload = {}) {
   for (let i = 0; i < tokens.length; i += chunkSize) {
     const chunk = tokens.slice(i, i + chunkSize);
     const multicast = buildMulticast(chunk, payload);
-    const resp = await admin.messaging().sendMulticast(multicast);
-
-    console.log("Notifications: ", resp);
-    results.successCount += resp.successCount || 0;
-    results.failureCount += resp.failureCount || 0;
-    results.responses.push(resp);
+    try {
+      const resp = await admin.messaging().sendMulticast(multicast);
+      log("sendToMany: chunk sent", {
+        chunkIndex: i / chunkSize,
+        chunkSize: chunk.length,
+        successCount: resp.successCount,
+        failureCount: resp.failureCount,
+      });
+      results.successCount += resp.successCount || 0;
+      results.failureCount += resp.failureCount || 0;
+      results.responses.push(resp);
+    } catch (err) {
+      logError("sendToMany: chunk send failed", {
+        chunkIndex: i / chunkSize,
+        error: err && err.message ? err.message : err,
+      });
+      // Push an error-like response to keep response array shape
+      results.responses.push({ error: err });
+      results.failureCount += chunk.length;
+    }
   }
 
+  log("sendToMany: finished", {
+    total: tokens.length,
+    successCount: results.successCount,
+    failureCount: results.failureCount,
+  });
   return results;
 }
 
@@ -103,11 +163,14 @@ async function sendToMany(deviceTokens = [], payload = {}) {
  * @param {object} payload Notification payload
  */
 async function sendToUser(userId, payload = {}) {
+  log("sendToUser: called", { userId });
+
   // Validate input
   if (!userId) {
     const err = new Error("User ID is required");
     err.status = 400;
     err.code = "USER_ID_REQUIRED";
+    logError("sendToUser: missing userId");
     throw err;
   }
 
@@ -120,11 +183,35 @@ async function sendToUser(userId, payload = {}) {
   // Extract tokens
   const tokens = (docs || []).map((d) => d.token).filter(Boolean);
 
+  log("sendToUser: tokens found for user", {
+    userId,
+    tokenCount: tokens.length,
+  });
+
   // Return warning if no tokens
-  if (!tokens.length) return { warning: "no-tokens-for-user" };
+  if (!tokens.length) {
+    log("sendToUser: no-tokens-for-user", { userId });
+    return { warning: "no-tokens-for-user" };
+  }
 
   // Send to all tokens
-  return await sendToMany(tokens, payload);
+  try {
+    const result = await sendToMany(tokens, payload);
+    log("sendToUser: sendToMany result", {
+      userId,
+      resultSummary: {
+        success: result.successCount,
+        failure: result.failureCount,
+      },
+    });
+    return result;
+  } catch (err) {
+    logError(
+      "sendToUser: sendToMany failed",
+      err && err.message ? err.message : err,
+    );
+    throw err;
+  }
 }
 
 /**
@@ -153,6 +240,11 @@ function buildMessage(deviceToken, payload) {
   }
 
   // Return the built message object
+  debug("buildMessage: returning message", {
+    title,
+    bodyLength: body ? body.length : 0,
+    dataKeys: data && typeof data === "object" ? Object.keys(data) : [],
+  });
   return message;
 }
 
@@ -181,6 +273,11 @@ function buildMulticast(tokens, payload) {
   }
 
   // Return the built multicast message object
+  debug("buildMulticast: returning multicast", {
+    tokenCount: Array.isArray(tokens) ? tokens.length : 0,
+    title,
+    bodyLength: body ? body.length : 0,
+  });
   return message;
 }
 
@@ -197,6 +294,8 @@ async function listNotifications(query = {}, userId) {
   // Pagination params
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
+
+  log("listNotifications: called", { query, userId });
 
   // Build query to fetch notifications for the user
   const q = {
@@ -215,6 +314,11 @@ async function listNotifications(query = {}, userId) {
 
   // Get total count for pagination metadata
   const totalNotifications = await NotificationModel.countDocuments(q);
+
+  log("listNotifications: fetched", {
+    returned: notifications.length,
+    totalNotifications,
+  });
 
   return {
     notifications,
@@ -235,6 +339,8 @@ async function listNotifications(query = {}, userId) {
  * @returns {object} Notification document
  */
 async function getNotificationById(notificationId, userId) {
+  log("getNotificationById: called", { notificationId, userId });
+
   // Fetch notification ensuring the user is either a recipient or the author
   const notification = await NotificationModel.findOne({
     _id: new mongoose.Types.ObjectId(notificationId),
@@ -246,12 +352,14 @@ async function getNotificationById(notificationId, userId) {
 
   // If not found, throw error
   if (!notification) {
+    logError("getNotificationById: not found", { notificationId, userId });
     const err = new Error("Notification not found");
     err.status = 404;
     err.code = "NOTIFICATION_NOT_FOUND";
     throw err;
   }
 
+  log("getNotificationById: found", { notificationId });
   return notification;
 }
 
@@ -270,31 +378,44 @@ async function registerToken(
   deviceId,
   deviceName = null,
 ) {
-  // Upsert the push details
-  const result = await PushToken.findOneAndUpdate(
-    { deviceId }, // Find by deviceId
-    {
-      $set: {
-        user: new mongoose.Types.ObjectId(userId),
-        platform,
-        token,
-        deviceId,
-        deviceName,
-        active: true,
-        lastUsed: new Date(),
+  log("registerToken: called", { userId, platform, deviceId, deviceName });
+  try {
+    // Upsert the push details
+    const result = await PushToken.findOneAndUpdate(
+      { deviceId }, // Find by deviceId
+      {
+        $set: {
+          user: new mongoose.Types.ObjectId(userId),
+          platform,
+          token,
+          deviceId,
+          deviceName,
+          active: true,
+          lastUsed: new Date(),
+        },
+        $setOnInsert: {
+          createdAt: new Date(),
+        },
       },
-      $setOnInsert: {
-        createdAt: new Date(),
+      {
+        upsert: true, // Create if doesn't exist
+        new: true, // Return updated document
+        runValidators: true,
       },
-    },
-    {
-      upsert: true, // Create if doesn't exist
-      new: true, // Return updated document
-      runValidators: true,
-    },
-  );
+    );
 
-  return result;
+    log("registerToken: upsert successful", {
+      deviceId,
+      id: result && result._id,
+    });
+    return result;
+  } catch (err) {
+    logError(
+      "registerToken: upsert failed",
+      err && err.message ? err.message : err,
+    );
+    throw err;
+  }
 }
 
 /**
@@ -302,11 +423,14 @@ async function registerToken(
  * @param {string} deviceId Device ID
  */
 async function activeOrInactivePushNotification(deviceId) {
+  log("activeOrInactivePushNotification: called", { deviceId });
+
   // Find the token by deviceId
   const currentToken = await PushToken.findOne({ deviceId });
 
   // If not found, throw error
   if (!currentToken) {
+    logError("activeOrInactivePushNotification: not found", { deviceId });
     const err = new Error("Push token not found");
     err.status = 404;
     err.code = "PUSH_TOKEN_NOT_FOUND";
@@ -323,6 +447,11 @@ async function activeOrInactivePushNotification(deviceId) {
     { new: true },
   );
 
+  log("activeOrInactivePushNotification: toggled", {
+    deviceId,
+    previous: currentActiveState,
+    now: result.active,
+  });
   return result;
 }
 
@@ -331,11 +460,14 @@ async function activeOrInactivePushNotification(deviceId) {
  * @param {string} userId User ID
  */
 async function getUserTokens(userId) {
+  log("getUserTokens: called", { userId });
   // Find active tokens for user
-  return await PushToken.find({
+  const tokens = await PushToken.find({
     user: new mongoose.Types.ObjectId(userId),
     active: true,
   });
+  log("getUserTokens: found", { userId, count: tokens.length });
+  return tokens;
 }
 
 module.exports = {
