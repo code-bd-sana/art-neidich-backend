@@ -124,7 +124,7 @@ async function sendToUser(userId, payload = {}) {
   if (!tokens.length) return { warning: "no-tokens-for-user" };
 
   // Send to all tokens
-  return sendToMany(tokens, payload);
+  return await sendToMany(tokens, payload);
 }
 
 /**
