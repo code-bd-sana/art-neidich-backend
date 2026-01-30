@@ -314,8 +314,6 @@ async function allNotifications(query = {}, userId) {
  * @returns {object} Notification document
  */
 async function getNotificationById(notificationId, userId) {
-  log("getNotificationById: called", { notificationId, userId });
-
   // Fetch notification ensuring the user is either a recipient or the author
   const notification = await NotificationModel.findOne({
     _id: new mongoose.Types.ObjectId(notificationId),
@@ -334,7 +332,6 @@ async function getNotificationById(notificationId, userId) {
     throw err;
   }
 
-  log("getNotificationById: found", { notificationId });
   return notification;
 }
 
@@ -353,7 +350,6 @@ async function registerToken(
   deviceId,
   deviceName = null,
 ) {
-  log("registerToken: called", { userId, platform, deviceId, deviceName });
   try {
     // Upsert the push details
     const result = await PushToken.findOneAndUpdate(
@@ -379,10 +375,6 @@ async function registerToken(
       },
     );
 
-    log("registerToken: upsert successful", {
-      deviceId,
-      id: result && result._id,
-    });
     return result;
   } catch (err) {
     logError(
@@ -398,8 +390,6 @@ async function registerToken(
  * @param {string} deviceId Device ID
  */
 async function activeOrInactivePushNotification(deviceId) {
-  log("activeOrInactivePushNotification: called", { deviceId });
-
   // Find the token by deviceId
   const currentToken = await PushToken.findOne({ deviceId });
 
@@ -422,11 +412,6 @@ async function activeOrInactivePushNotification(deviceId) {
     { new: true },
   );
 
-  log("activeOrInactivePushNotification: toggled", {
-    deviceId,
-    previous: currentActiveState,
-    now: result.active,
-  });
   return result;
 }
 
@@ -435,13 +420,11 @@ async function activeOrInactivePushNotification(deviceId) {
  * @param {string} userId User ID
  */
 async function getUserTokens(userId) {
-  log("getUserTokens: called", { userId });
   // Find active tokens for user
   const tokens = await PushToken.find({
     user: new mongoose.Types.ObjectId(userId),
     active: true,
   });
-  log("getUserTokens: found", { userId, count: tokens.length });
   return tokens;
 }
 
