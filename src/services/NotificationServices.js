@@ -128,7 +128,18 @@ async function sendToMany(deviceTokens = [], payload = {}) {
     const chunk = tokens.slice(i, i + chunkSize);
     const multicast = buildMulticast(chunk, payload);
     try {
-      const resp = await admin.messaging().sendMulticast(multicast);
+      const messaging = admin.messaging();
+      let resp;
+      if (typeof messaging.sendMulticast === "function") {
+        // Preferred: send a multicast message when available
+        resp = await messaging.sendMulticast(multicast);
+      } else {
+        // Fallback: some admin SDK versions don't expose sendMulticast.
+        // Use sendAll by mapping tokens to individual messages.
+        const messages = chunk.map((t) => buildMessage(t, payload));
+        resp = await messaging.sendAll(messages);
+      }
+
       log("sendToMany: chunk sent", {
         chunkIndex: i / chunkSize,
         chunkSize: chunk.length,
@@ -143,7 +154,6 @@ async function sendToMany(deviceTokens = [], payload = {}) {
         chunkIndex: i / chunkSize,
         error: err && err.message ? err.message : err,
       });
-      // Push an error-like response to keep response array shape
       results.responses.push({ error: err });
       results.failureCount += chunk.length;
     }
