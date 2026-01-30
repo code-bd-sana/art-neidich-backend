@@ -35,7 +35,6 @@ router.use(authenticate);
  */
 router.get(
   "/",
-
   validate(notificationPaginationSchema, { target: "query" }),
   listNotifications,
 );
@@ -52,7 +51,6 @@ router.get(
  */
 router.get(
   "/:id",
-
   validate(mongoIdSchema, { target: "params" }),
   getNotification,
 );
@@ -69,7 +67,6 @@ router.get(
  */
 router.post(
   "/token",
-
   validate(registerPushTokenSchema, { target: "body" }),
   registerPushToken,
 );
@@ -86,7 +83,6 @@ router.post(
  */
 router.put(
   "/:deviceId",
-
   validate(activeOrInactivePushNotificationSchema, { target: "params" }),
   activeOrInactivePushNotification,
 );

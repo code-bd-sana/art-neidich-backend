@@ -277,6 +277,7 @@ async function registerToken(
       $set: {
         user: new mongoose.Types.ObjectId(userId),
         platform,
+        token,
         deviceId,
         deviceName,
         active: true,
