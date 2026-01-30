@@ -12,7 +12,6 @@ const pushTokenSchema = new mongoose.Schema(
     token: {
       type: String,
       required: true,
-      unique: true, // prevent duplicates
     },
     platform: {
       type: String,

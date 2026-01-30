@@ -14,30 +14,43 @@ const UserModel = require("../models/UserModel");
  * @param {import('express').NextFunction} next
  */
 async function authenticate(req, res, next) {
+  // Get token from Authorization header
   const authHeader = req.headers["authorization"];
+
+  // Check if token is provided
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res
       .status(401)
       .json({ success: false, message: "No token provided" });
   }
+
+  // Extract token
   const token = authHeader.split(" ")[1];
   try {
+    // Verify token
     const secret = process.env.JWT_SECRET || "change_this_secret";
     const decoded = await verifyToken(token);
+
     // Optionally fetch user from DB for fresh data
     const user = await UserModel.findById(
       new mongoose.Types.ObjectId(decoded.id),
     ).select("-password");
+
+    // Check if user exists and is active
     if (!user) {
       return res
         .status(401)
         .json({ success: false, message: "User not found", code: 401 });
     }
+
+    // Check if user is suspended or not approved
     if (user.isSuspended) {
       return res
         .status(403)
         .json({ success: false, message: "You are suspended", code: 403 });
     }
+
+    //  Check if user is approved
     if (!user.isApproved) {
       return res.status(403).json({
         success: false,
@@ -45,6 +58,8 @@ async function authenticate(req, res, next) {
         code: 403,
       });
     }
+
+    // Attach user to request object
     req.user = user;
     next();
   } catch (err) {
