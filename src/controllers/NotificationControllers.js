@@ -17,7 +17,7 @@ const listNotifications = async (req, res, next) => {
     // Get user ID from authenticated request
     const userId = req.user._id;
 
-    // Fetch notifications using the service
+    // Call service
     const { notifications, metaData } =
       await NotificationServices.listNotifications(req.query, userId);
 
@@ -46,7 +46,7 @@ const getNotification = async (req, res, next) => {
     // Get user ID from authenticated request
     const userId = req.user._id;
 
-    // Fetch the notification document by ID
+    // Call service
     const notification = await NotificationServices.getNotificationById(
       id,
       userId,
@@ -77,7 +77,9 @@ const registerPushToken = async (req, res, next) => {
     // Get user ID from authenticated request
     const userId = req.user._id;
 
-    // Register or update the token
+    console.log(userId, token, platform, deviceId, deviceName);
+
+    // Call service
     const result = await NotificationServices.registerToken(
       userId,
       token,
@@ -104,9 +106,12 @@ const registerPushToken = async (req, res, next) => {
  */
 const activeOrInactivePushNotification = async (req, res, next) => {
   try {
+    // Extract device ID from validated request body
     const { deviceId } = req.validated;
 
+    // Call service
     await NotificationServices.activeOrInactivePushNotification(deviceId);
+
     res.json({
       success: true,
       message: "Push notification active state toggled successfully",
@@ -124,8 +129,10 @@ const activeOrInactivePushNotification = async (req, res, next) => {
  */
 const getUserPushTokens = async (req, res, next) => {
   try {
+    // Get user ID from authenticated request
     const userId = req.user._id;
 
+    // Call service
     const tokens = await NotificationServices.getUserTokens(userId);
 
     res.json({

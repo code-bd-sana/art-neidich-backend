@@ -102,6 +102,7 @@ async function resetPassword(req, res, next) {
 
     // Call service
     await resetUserPassword(payload);
+
     return res.status(200).json({
       success: true,
       message: "Password reset successfully",
@@ -126,6 +127,7 @@ async function verifyOtp(req, res, next) {
 
     // Call service
     await verifyOtpService(payload);
+
     return res
       .status(200)
       .json({ success: true, message: "OTP verified", code: 200 });
@@ -151,6 +153,7 @@ async function changePassword(req, res, next) {
 
     // Call service
     await changeUserPassword(userId, payload);
+
     return res.status(200).json({
       success: true,
       message: "Password changed successfully",

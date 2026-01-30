@@ -20,6 +20,9 @@ const {
   activeOrInactivePushNotificationSchema,
 } = require("../validators/notification/notification");
 
+// Apply authentication middleware to all routes in this router
+router.use(authenticate);
+
 /**
  * Get notifications list
  *
@@ -32,7 +35,7 @@ const {
  */
 router.get(
   "/",
-  authenticate,
+
   validate(notificationPaginationSchema, { target: "query" }),
   listNotifications,
 );
@@ -49,7 +52,7 @@ router.get(
  */
 router.get(
   "/:id",
-  authenticate,
+
   validate(mongoIdSchema, { target: "params" }),
   getNotification,
 );
@@ -66,6 +69,7 @@ router.get(
  */
 router.post(
   "/token",
+
   validate(registerPushTokenSchema, { target: "body" }),
   registerPushToken,
 );
@@ -82,6 +86,7 @@ router.post(
  */
 router.put(
   "/:deviceId",
+
   validate(activeOrInactivePushNotificationSchema, { target: "params" }),
   activeOrInactivePushNotification,
 );
@@ -96,6 +101,6 @@ router.put(
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-router.get("/tokens", getUserPushTokens);
+router.get("/tokens", authenticate, getUserPushTokens);
 
 module.exports = router;
