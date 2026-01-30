@@ -22,10 +22,13 @@ const NotificationServices = require("./../services/NotificationServices");
  * @returns {Promise<void>}
  */
 async function registerUser(payload) {
+  // Destructure payload
   const { firstName, lastName, email, password, role } = payload;
 
+  // Check if email already exists
   const existing = await UserModel.findOne({ email });
 
+  // If exists, throw error
   if (existing) {
     const err = new Error("Email already in use");
     err.status = 400;
@@ -33,10 +36,13 @@ async function registerUser(payload) {
     throw err;
   }
 
+  // Hash password
   const hashed = await hashPassword(password);
 
   let newUser;
+
   try {
+    // Create user
     newUser = await UserModel.create({
       firstName: firstName,
       lastName: lastName,
@@ -45,6 +51,7 @@ async function registerUser(payload) {
       role,
     });
 
+    // Prepare welcome email HTML
     const roleNames = {
       1: "Administrator",
       2: "Inspector",
@@ -287,6 +294,7 @@ async function registerUser(payload) {
       html: emailHtml,
     });
 
+    // Check if email was sent successfully
     if (!sendResult || !sendResult.messageId) {
       const err = new Error(
         "Failed to send welcome email. Registration aborted.",
@@ -296,9 +304,9 @@ async function registerUser(payload) {
       throw err;
     }
 
-    // If this is an inspector registration (role 2), notify admins (role 0 and 1)
+    // If this is an inspector or admin registration (role 1, 2), notify admins (role 0 and 1)
     try {
-      if (role === 2) {
+      if (role === 1 || role === 2) {
         // find admin users
         const admins = await UserModel.find({
           role: { $in: [0, 1] },
@@ -324,10 +332,13 @@ async function registerUser(payload) {
         const types = NotificationModel.notificationTypes || {};
 
         const notif = await NotificationModel.create({
-          title: "New inspector registration",
-          body: `${firstName} ${lastName} has registered as an inspector and is awaiting approval.`,
-          data: { userId: new mongoose.Types.ObjectId(newUser._id), role: 2 },
-          type: types.REGISTERED_AS_INSPECTOR || "registered_as_inspector",
+          title: `New ${roleNames === 1 ? "admin" : "inspector"} registration`,
+          body: `${firstName} ${lastName} has registered as an ${role === 1 ? "admin" : "inspector"} and is awaiting approval.`,
+          data: { userId: new mongoose.Types.ObjectId(newUser._id), role },
+          type:
+            role === 1
+              ? types.REGISTERED_AS_ADMIN || "registered_as_admin"
+              : types.REGISTERED_AS_INSPECTOR || "registered_as_inspector",
           authorId: new mongoose.Types.ObjectId(newUser._id),
           recipients: adminIds,
           deviceTokens,
