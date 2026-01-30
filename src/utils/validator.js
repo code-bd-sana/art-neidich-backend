@@ -25,7 +25,7 @@ const validate =
       });
     }
 
-    // ✅ Flat plain object
+    // Flat plain object
     req.validated = { ...result.data };
 
     return next();
