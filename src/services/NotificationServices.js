@@ -52,6 +52,8 @@ async function sendToDevice(deviceToken, payload = {}) {
   // Build message
   const message = buildMessage(deviceToken, payload);
 
+  console.log("Send to the device notification sending............");
+
   // Send message
   return admin.messaging().send(message);
 }
@@ -85,6 +87,8 @@ async function sendToMany(deviceTokens = [], payload = {}) {
     const chunk = tokens.slice(i, i + chunkSize);
     const multicast = buildMulticast(chunk, payload);
     const resp = await admin.messaging().sendMulticast(multicast);
+
+    console.log("Notifications: ", resp);
     results.successCount += resp.successCount || 0;
     results.failureCount += resp.failureCount || 0;
     results.responses.push(resp);
