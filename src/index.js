@@ -7,6 +7,7 @@ const { logError } = require("./helpers/logger");
 
 dotenv.config();
 
+// Start the server
 const server = app.listen(process.env.PORT, async () => {
   // Connect DB after server starts
   await mongoose
@@ -14,6 +15,8 @@ const server = app.listen(process.env.PORT, async () => {
     .then(() => {
       console.log("Database connected successfully");
     })
+
+    // catch errors
     .catch((err) => {
       console.log(err);
       // log silently and show minimal message

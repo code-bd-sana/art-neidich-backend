@@ -139,6 +139,7 @@ async function sendBulkMail(recipients = [], options = {}) {
   /** @type {Array<Object>} */
   const results = [];
 
+  // Process in batches
   for (let i = 0; i < recipients.length; i += batchSize) {
     const batch = recipients.slice(i, i + batchSize);
 
@@ -153,6 +154,7 @@ async function sendBulkMail(recipients = [], options = {}) {
         attachments: recipient.attachments || defaultAttachments,
       };
 
+      // Send individual email
       return sendMail(payload)
         .then((info) => ({
           status: "fulfilled",

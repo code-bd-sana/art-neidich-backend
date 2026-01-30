@@ -14,6 +14,7 @@ const NotificationServices = require("./../services/NotificationServices");
  * @returns {Promise<Object>}
  */
 async function getProfile(userId) {
+  // Get user by ID and exclude password
   const result = await UserModel.aggregate([
     {
       $match: {
@@ -52,13 +53,14 @@ async function getProfile(userId) {
  * @returns {Promise<Object>}
  */
 async function updateProfile(userId, updateData) {
-  // 1. Update the user
+  //  Update the user
   const updatedUser = await UserModel.findByIdAndUpdate(
     userId,
     { $set: updateData },
     { new: true }, // return the updated document
   );
 
+  // If user not found, throw error
   if (!updatedUser) {
     const err = new Error("User not found");
     err.status = 404;
@@ -66,7 +68,7 @@ async function updateProfile(userId, updateData) {
     throw err;
   }
 
-  // 2. Map role for output
+  // Map role for output
   let roleName;
   switch (updatedUser.role) {
     case 0:
@@ -82,8 +84,9 @@ async function updateProfile(userId, updateData) {
       roleName = "Unknown";
   }
 
-  // 3. Return safe output
+  // Return safe output
   const { password, ...rest } = updatedUser.toObject();
+
   return { ...rest, role: roleName };
 }
 
@@ -111,6 +114,7 @@ async function updateProfile(userId, updateData) {
  * }>}
  */
 async function getUsers(query = {}) {
+  // Pagination and filters
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -201,8 +205,10 @@ async function getUsers(query = {}) {
     },
   });
 
+  // Execute aggregation pipeline
   const result = await UserModel.aggregate(pipeline);
 
+  // Extract users and metadata
   const users = result[0]?.users || [];
   const totalUser = result[0]?.metaData[0]?.totalUser || 0;
 
@@ -224,6 +230,7 @@ async function getUsers(query = {}) {
  * @returns {Promise<Object>}
  */
 async function getUserById(userId) {
+  // Get user by ID and exclude password
   const result = await UserModel.aggregate([
     {
       $match: {
@@ -257,6 +264,7 @@ async function getUserById(userId) {
     },
   ]);
 
+  // If user not found, throw error
   if (!result || result.length === 0) {
     const err = new Error("User not found");
     err.status = 404;
@@ -274,8 +282,10 @@ async function getUserById(userId) {
  * @returns {Promise<Object>}
  */
 async function approveUser(userId) {
+  // Find user by ID
   const user = await UserModel.findById(userId);
 
+  // If user not found, throw error
   if (!user) {
     const err = new Error("User not found");
     err.status = 404;
@@ -444,13 +454,26 @@ async function approveUser(userId) {
  * @returns {Promise<Object>}
  */
 async function suspendUser(userId, currentUser) {
+  // Find user by ID
   const user = await UserModel.findById(userId);
+
+  // If user not found, throw error
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    err.code = "USER_NOT_FOUND";
+    throw err;
+  }
+
+  // Prevent suspending root users
   if (user.role === 0) {
     const err = new Error("Cannot suspend a root user");
     err.status = 400;
     err.code = "CANNOT_SUSPEND_ROOT";
     throw err;
   }
+
+  // Prevent suspending users with same role as current user
   if (user.role === currentUser.role) {
     const err = new Error("Cannot suspend a user with same role as yours");
     err.status = 400;
@@ -553,6 +576,7 @@ async function suspendUser(userId, currentUser) {
       .map((a) => new mongoose.Types.ObjectId(a._id))
       .filter(Boolean);
 
+    // Exclude the suspended user from recipients
     const recipients = adminIds.filter((id) => String(id) !== String(user._id));
 
     // Fetch active device tokens for these admins
@@ -567,6 +591,7 @@ async function suspendUser(userId, currentUser) {
     // Create and send notification
     const types = NotificationModel.notificationTypes || {};
 
+    // Create notification record
     const notif = await NotificationModel.create({
       title: "Account suspended",
       body: `${user.firstName} ${user.lastName} has been suspended by an administrator.`,
@@ -581,8 +606,8 @@ async function suspendUser(userId, currentUser) {
       status: "pending",
     });
 
+    //  Send notification to device tokens or fallback to single user
     try {
-      //  Send notification to device tokens or fallback to single user
       let sendResult = null;
       if (deviceTokens.length) {
         // Send notification to multiple device tokens
@@ -609,6 +634,7 @@ async function suspendUser(userId, currentUser) {
       // Save notification status update
       await notif.save();
     } catch (sendErr) {
+      // On error, update notification as failed
       notif.status = "failed";
       notif.result = { error: sendErr.message || String(sendErr) };
       // Save notification status update
@@ -629,13 +655,26 @@ async function suspendUser(userId, currentUser) {
  * @returns {Promise<Object>}
  */
 async function unSuspendUser(userId, currentUser) {
+  // Find user by ID
   const user = await UserModel.findById(userId);
+
+  // If user not found, throw error
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    err.code = "USER_NOT_FOUND";
+    throw err;
+  }
+
+  // Prevent un-suspending root users
   if (user.role === 0) {
     const err = new Error("Cannot un-suspend a root user");
     err.status = 400;
     err.code = "CANNOT_UNSUSPEND_ROOT";
     throw err;
   }
+
+  // Prevent un-suspending users with same role as current user
   if (user.role === currentUser.role) {
     const err = new Error("Cannot un-suspend a user with same role as yours");
     err.status = 400;
@@ -645,7 +684,7 @@ async function unSuspendUser(userId, currentUser) {
 
   // Update user suspension status
   user.isSuspended = false;
-  user.save();
+  await user.save();
 
   // Email template for account un-suspension notification
   const emailHtml = `<!DOCTYPE html>
@@ -750,6 +789,8 @@ async function unSuspendUser(userId, currentUser) {
 
     // Create and send notification
     const types = NotificationModel.notificationTypes || {};
+
+    // Create notification record
     const notif = await NotificationModel.create({
       title: "Account reinstated",
       body: `${user.firstName} ${user.lastName} has been reinstated by an administrator.`,
@@ -763,8 +804,9 @@ async function unSuspendUser(userId, currentUser) {
       deviceTokens,
       status: "pending",
     });
+
+    // Send notification to device tokens or fallback to single user
     try {
-      // Send notification to device tokens or fallback to single user
       let sendResult = null;
       if (deviceTokens.length) {
         // Send notification to multiple device tokens
@@ -782,14 +824,18 @@ async function unSuspendUser(userId, currentUser) {
           data: notif.data,
         });
       }
+      // Update notification status as sent
       notif.status = "sent";
       notif.result = sendResult;
       notif.sentAt = new Date();
+
       // Save notification status update
       await notif.save();
     } catch (sendErr) {
+      // On error, update notification as failed
       notif.status = "failed";
       notif.result = { error: sendErr.message || String(sendErr) };
+
       // Save notification status update
       await notif.save();
     }
@@ -808,18 +854,31 @@ async function unSuspendUser(userId, currentUser) {
  */
 async function deleteUser(userId, currentUser) {
   const user = await UserModel.findById(userId);
+  // If user not found, throw error
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    err.code = "USER_NOT_FOUND";
+    throw err;
+  }
+
+  // Prevent deleting root users
   if (user.role === 0) {
     const err = new Error("Cannot delete a root user");
     err.status = 400;
     err.code = "CANNOT_DELETE_ROOT";
     throw err;
   }
+
+  // Prevent deleting users with same role as current user
   if (user.role === currentUser.role) {
     const err = new Error("Cannot delete a user with same role as yours");
     err.status = 400;
     err.code = "CANNOT_DELETE_SAME_ROLE";
     throw err;
   }
+
+  // Delete the user
   await UserModel.findByIdAndDelete(userId);
 
   // Email template for account deletion notification

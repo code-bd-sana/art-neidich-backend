@@ -9,8 +9,10 @@ const { sendMail } = require("../utils/mailer");
  * @returns {Promise<void>}
  */
 async function emailSupport(payload) {
+  // Destructure payload
   const { inspector, message } = payload;
 
+  // Construct the HTML email content
   const emailHtml = `
 <!DOCTYPE html>
 <html>

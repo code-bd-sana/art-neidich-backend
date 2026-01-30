@@ -87,6 +87,11 @@ const registerPushTokenSchema = z
   })
   .strict();
 
+/**
+ * Validation schema for activating or deactivating push notifications
+ *
+ * @type {import("zod").ZodObject}
+ */
 const activeOrInactivePushNotificationSchema = z
   .object({
     deviceId: z

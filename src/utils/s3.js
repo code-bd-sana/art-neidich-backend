@@ -10,16 +10,21 @@ const { Upload } = require("@aws-sdk/lib-storage");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { v4: uuidv4 } = require("uuid");
 
+// ────────────────────────────────────────────────
+// S3 CLIENT SETUP
+// ────────────────────────────────────────────────
 const region =
   process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-west-1";
 const bucket = process.env.AWS_S3_BUCKET;
 
+// Warn if bucket not set
 if (!bucket) {
   console.warn(
     "AWS_S3_BUCKET is not set. S3 operations will fail until configured.",
   );
 }
 
+// Create S3 client
 const s3Client = new S3Client({
   region,
   credentials:
@@ -31,6 +36,9 @@ const s3Client = new S3Client({
       : undefined,
 });
 
+// ────────────────────────────────────────────────
+// UTILITY FUNCTIONS
+// ────────────────────────────────────────────────
 function sanitizeKey(key) {
   if (!key) return "";
   // Remove leading/trailing slashes, prevent path traversal

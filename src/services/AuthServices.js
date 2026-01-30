@@ -57,6 +57,7 @@ async function registerUser(payload) {
       2: "Inspector",
     };
 
+    // Welcome email HTML template
     const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -331,6 +332,7 @@ async function registerUser(payload) {
         // create notification record
         const types = NotificationModel.notificationTypes || {};
 
+        // create notification
         const notif = await NotificationModel.create({
           title: `New ${roleNames === 1 ? "admin" : "inspector"} registration`,
           body: `${firstName} ${lastName} has registered as an ${role === 1 ? "admin" : "inspector"} and is awaiting approval.`,
@@ -420,9 +422,13 @@ async function registerUser(payload) {
  * @returns {Promise<string>} JWT token
  */
 async function loginUser(payload) {
+  // Destructure payload
   const { email, password } = payload;
+
+  // Find user by email
   const user = await UserModel.findOne({ email });
 
+  // If user not found, throw error
   if (!user) {
     const err = new Error("Invalid email or password");
     err.status = 401;
@@ -438,6 +444,7 @@ async function loginUser(payload) {
     throw err;
   }
 
+  // Guard against missing hashed password
   if (
     !user.password ||
     typeof user.password !== "string" ||
@@ -456,6 +463,7 @@ async function loginUser(payload) {
     err.code = "USER_SUSPENDED";
     throw err;
   }
+
   // Check for approved users
   if (!user.isApproved) {
     const err = new Error("User account is not approved");
@@ -464,8 +472,10 @@ async function loginUser(payload) {
     throw err;
   }
 
+  // Compare passwords
   const match = await comparePassword(password, user.password);
 
+  // If passwords do not match, throw error
   if (!match) {
     const err = new Error("Invalid email or password");
     err.status = 401;
@@ -473,6 +483,7 @@ async function loginUser(payload) {
     throw err;
   }
 
+  // Generate JWT token
   const token = await generateToken({
     id: user._id,
     userId: user.userId,
@@ -482,6 +493,7 @@ async function loginUser(payload) {
     role: user.role,
   });
 
+  // Return user details and token
   const roleMap = {
     0: "Super Admin",
     1: "Admin",
@@ -506,8 +518,10 @@ async function loginUser(payload) {
  * @returns {Promise<void>}
  */
 async function initiateForgotPassword(payload) {
+  // Destructure payload
   const { email, webRequest, mobileRequest } = payload;
 
+  // Find user by email
   const user = await UserModel.findOne({ email });
 
   // Do not reveal whether the email exists. Return early so controller
@@ -861,6 +875,7 @@ async function initiateForgotPassword(payload) {
  * @returns {Promise<void>}
  */
 async function resetUserPassword(payload) {
+  // Destructure payload
   const { email, otp, token, newPassword } = payload;
 
   // Cases supported:
@@ -870,6 +885,7 @@ async function resetUserPassword(payload) {
 
   if (token) {
     const user = await UserModel.findOne({ email, resetToken: token });
+
     // Validate token and expiry
     if (!user) {
       const err = new Error("Invalid or expired reset token");
@@ -877,22 +893,33 @@ async function resetUserPassword(payload) {
       err.code = "INVALID_RESET_TOKEN";
       throw err;
     }
+
+    // Check expiry
     if (!user.resetTokenExpiry || Date.now() > user.resetTokenExpiry) {
       const err = new Error("Reset token has expired");
       err.status = 400;
       err.code = "RESET_TOKEN_EXPIRED";
       throw err;
     }
+
+    // Update password
     const hashed = await hashPassword(newPassword);
+
     user.password = hashed;
     user.resetToken = null;
     user.resetTokenExpiry = null;
+    user.resetPasswordOTP = null;
+    user.resetPasswordOTPExpiry = null;
+    user.resetPasswordVerified = null;
+    user.resetPasswordVerifiedExpiry = null;
+
     await user.save();
     return;
   }
 
   if (otp) {
     const user = await UserModel.findOne({ email, resetPasswordOTP: otp });
+
     // Validate OTP and expiry
     if (!user) {
       const err = new Error("Invalid or expired OTP");
@@ -900,6 +927,8 @@ async function resetUserPassword(payload) {
       err.code = "INVALID_OTP";
       throw err;
     }
+
+    // Check expiry
     if (
       !user.resetPasswordOTPExpiry ||
       Date.now() > user.resetPasswordOTPExpiry
@@ -909,10 +938,16 @@ async function resetUserPassword(payload) {
       err.code = "OTP_EXPIRED";
       throw err;
     }
+
+    // Update password
     const hashed = await hashPassword(newPassword);
+
     user.password = hashed;
     user.resetPasswordOTP = null;
     user.resetPasswordOTPExpiry = null;
+    user.resetPasswordVerified = null;
+    user.resetPasswordVerifiedExpiry = null;
+
     await user.save();
     return;
   }
@@ -927,6 +962,7 @@ async function resetUserPassword(payload) {
     throw err;
   }
 
+  // Check expiry of verified flag
   if (
     !user.resetPasswordVerifiedExpiry ||
     Date.now() > user.resetPasswordVerifiedExpiry
@@ -937,13 +973,16 @@ async function resetUserPassword(payload) {
     throw err;
   }
 
+  // Update password
   const hashed = await hashPassword(newPassword);
+
   user.password = hashed;
-  user.resetPasswordVerified = false;
+  user.resetPasswordVerified = null;
   user.resetPasswordVerifiedExpiry = null;
   // ensure any lingering OTP fields are cleared
   user.resetPasswordOTP = null;
   user.resetPasswordOTPExpiry = null;
+
   await user.save();
   return;
 }
@@ -955,21 +994,31 @@ async function resetUserPassword(payload) {
  * @returns {Promise<void>}
  */
 async function changeUserPassword(userId, payload) {
+  // Destructure payload
   const { currentPassword, newPassword } = payload;
+
+  // Find user by ID
   const user = await UserModel.findById(userId);
+
+  // If user not found, throw error
   if (!user) {
     const err = new Error("User not found");
     err.status = 404;
     err.code = "USER_NOT_FOUND";
     throw err;
   }
+
+  // Compare current password
   const match = await comparePassword(currentPassword, user.password);
+
+  // If passwords do not match, throw error
   if (!match) {
     const err = new Error("Current password is incorrect");
     err.status = 400;
     err.code = "INCORRECT_CURRENT_PASSWORD";
     throw err;
   }
+
   // Old password cannot be the same as new password
   if (currentPassword === newPassword) {
     const err = new Error(
@@ -979,8 +1028,11 @@ async function changeUserPassword(userId, payload) {
     err.code = "SAME_PASSWORD";
     throw err;
   }
+
+  // Update password
   const hashed = await hashPassword(newPassword);
   user.password = hashed;
+
   await user.save();
   return;
 }
@@ -992,8 +1044,10 @@ async function changeUserPassword(userId, payload) {
  * @returns {Promise<void>}
  */
 async function verifyOtp(payload) {
+  // Destructure payload
   const { email, otp } = payload;
 
+  // Find user by email
   const user = await UserModel.findOne({ email });
 
   const err = new Error("Invalid or expired OTP");
@@ -1008,10 +1062,12 @@ async function verifyOtp(payload) {
     throw err;
   }
 
+  // Check OTP match and expiry
   if (String(user.resetPasswordOTP) !== String(otp)) {
     throw err;
   }
 
+  // Check expiry
   if (new Date(user.resetPasswordOTPExpiry) < new Date()) {
     throw err;
   }

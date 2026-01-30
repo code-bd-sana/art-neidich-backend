@@ -90,6 +90,7 @@ const userSchema = new mongoose.Schema(
     resetPasswordVerified: {
       type: Boolean,
       default: false,
+      nullable: true,
     },
     resetPasswordVerifiedExpiry: {
       type: Date,

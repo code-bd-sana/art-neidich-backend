@@ -41,8 +41,18 @@ initFirebase();
  * @param {object} payload Notification payload
  */
 async function sendToDevice(deviceToken, payload = {}) {
-  if (!deviceToken) throw new Error("deviceToken is required");
+  // Validate input
+  if (!deviceToken) {
+    const err = new Error("Device token is required");
+    err.status = 404;
+    err.code = "DEVICE_TOKEN_NOT_FOUND";
+    throw err;
+  }
+
+  // Build message
   const message = buildMessage(deviceToken, payload);
+
+  // Send message
   return admin.messaging().send(message);
 }
 
@@ -52,18 +62,25 @@ async function sendToDevice(deviceToken, payload = {}) {
  * @param {object} payload Notification payload
  */
 async function sendToMany(deviceTokens = [], payload = {}) {
+  // Validate input
   if (!Array.isArray(deviceTokens)) deviceTokens = [deviceTokens];
+
+  // Filter out invalid tokens
   const tokens = deviceTokens.filter(Boolean);
+
+  // Return warning if no valid tokens
   if (!tokens.length) return { warning: "no-tokens" };
 
   // FCM sendMulticast supports up to 500 tokens per request
   const chunkSize = 500;
+
   const results = {
     successCount: 0,
     failureCount: 0,
     responses: [],
   };
 
+  // Send in chunks
   for (let i = 0; i < tokens.length; i += chunkSize) {
     const chunk = tokens.slice(i, i + chunkSize);
     const multicast = buildMulticast(chunk, payload);
@@ -82,14 +99,27 @@ async function sendToMany(deviceTokens = [], payload = {}) {
  * @param {object} payload Notification payload
  */
 async function sendToUser(userId, payload = {}) {
-  if (!userId) throw new Error("userId is required");
+  // Validate input
+  if (!userId) {
+    const err = new Error("User ID is required");
+    err.status = 400;
+    err.code = "USER_ID_REQUIRED";
+    throw err;
+  }
+
   // find active tokens for user
   const docs = await PushToken.find({
     user: new mongoose.Types.ObjectId(userId),
     active: true,
   }).select("token -_id");
+
+  // Extract tokens
   const tokens = (docs || []).map((d) => d.token).filter(Boolean);
+
+  // Return warning if no tokens
   if (!tokens.length) return { warning: "no-tokens-for-user" };
+
+  // Send to all tokens
   return sendToMany(tokens, payload);
 }
 
@@ -99,11 +129,16 @@ async function sendToUser(userId, payload = {}) {
  * @param {object} payload Notification payload
  */
 function buildMessage(deviceToken, payload) {
+  // Destructure payload
   const { title, body, data } = payload || {};
+
+  // Build message
   const message = {
     token: deviceToken,
     notification: {},
   };
+
+  // Add title and body if provided
   if (title) message.notification.title = title;
   if (body) message.notification.body = body;
   if (data && typeof data === "object") {
@@ -112,6 +147,8 @@ function buildMessage(deviceToken, payload) {
       Object.entries(data).map(([k, v]) => [k, String(v)]),
     );
   }
+
+  // Return the built message object
   return message;
 }
 
@@ -121,11 +158,16 @@ function buildMessage(deviceToken, payload) {
  * @param {object} payload Notification payload
  */
 function buildMulticast(tokens, payload) {
+  // Destructure payload
   const { title, body, data } = payload || {};
+
+  // Build message
   const message = {
     tokens,
     notification: {},
   };
+
+  // Add title and body if provided
   if (title) message.notification.title = title;
   if (body) message.notification.body = body;
   if (data && typeof data === "object") {
@@ -133,6 +175,8 @@ function buildMulticast(tokens, payload) {
       Object.entries(data).map(([k, v]) => [k, String(v)]),
     );
   }
+
+  // Return the built multicast message object
   return message;
 }
 
@@ -146,6 +190,7 @@ function buildMulticast(tokens, payload) {
  * @returns {object} Object containing notifications array and metaData
  */
 async function listNotifications(query = {}, userId) {
+  // Pagination params
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
 
@@ -186,20 +231,24 @@ async function listNotifications(query = {}, userId) {
  * @returns {object} Notification document
  */
 async function getNotificationById(notificationId, userId) {
-  const doc = await NotificationModel.findOne({
+  // Fetch notification ensuring the user is either a recipient or the author
+  const notification = await NotificationModel.findOne({
     _id: new mongoose.Types.ObjectId(notificationId),
     $or: [
       { recipients: new mongoose.Types.ObjectId(userId) },
       { authorId: new mongoose.Types.ObjectId(userId) },
     ],
   }).select("_id title body type data createdAt");
-  if (!doc) {
+
+  // If not found, throw error
+  if (!notification) {
     const err = new Error("Notification not found");
     err.status = 404;
     err.code = "NOTIFICATION_NOT_FOUND";
     throw err;
   }
-  return doc;
+
+  return notification;
 }
 
 /**
@@ -217,6 +266,7 @@ async function registerToken(
   deviceId,
   deviceName = null,
 ) {
+  // Upsert the push details
   const result = await PushToken.findOneAndUpdate(
     { deviceId }, // Find by deviceId
     {
@@ -247,19 +297,27 @@ async function registerToken(
  * @param {string} deviceId Device ID
  */
 async function activeOrInactivePushNotification(deviceId) {
+  // Find the token by deviceId
   const currentToken = await PushToken.findOne({ deviceId });
+
+  // If not found, throw error
   if (!currentToken) {
     const err = new Error("Push token not found");
     err.status = 404;
     err.code = "PUSH_TOKEN_NOT_FOUND";
     throw err;
   }
+
+  // Toggle the active state
   const currentActiveState = currentToken.active;
+
+  // Update the active state
   const result = await PushToken.findOneAndUpdate(
     { deviceId },
     { $set: { active: !currentActiveState } },
     { new: true },
   );
+
   return result;
 }
 
@@ -268,6 +326,7 @@ async function activeOrInactivePushNotification(deviceId) {
  * @param {string} userId User ID
  */
 async function getUserTokens(userId) {
+  // Find active tokens for user
   return await PushToken.find({
     user: new mongoose.Types.ObjectId(userId),
     active: true,

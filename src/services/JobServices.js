@@ -37,6 +37,8 @@ async function createJob(payload) {
 
         // Create notification for inspector
         const types = NotificationModel.notificationTypes || {};
+
+        // Create notification for inspector
         const inspectorNotif = await NotificationModel.create({
           title: "You have a new job assigned",
           body: `${created.orderId || created.streetAddress || "A new job"} has been assigned to you.`,
@@ -50,9 +52,14 @@ async function createJob(payload) {
           deviceTokens: inspectorTokens,
           status: "pending",
         });
+
+        // Create notification for inspector
         try {
           let sendResult = null;
+
+          // Send to all inspector device tokens if available
           if (inspectorTokens.length) {
+            // Send notification to all inspector device tokens
             sendResult = await NotificationServices.sendToMany(
               inspectorTokens,
               {
@@ -62,19 +69,26 @@ async function createJob(payload) {
               },
             );
           } else {
+            // Fallback to sending individually to the inspector user
             sendResult = await NotificationServices.sendToUser(inspectorId, {
               title: inspectorNotif.title,
               body: inspectorNotif.body,
               data: inspectorNotif.data,
             });
           }
+          // Update notification status
           inspectorNotif.status = "sent";
           inspectorNotif.result = sendResult;
           inspectorNotif.sentAt = new Date();
+
+          // Save notification
           await inspectorNotif.save();
         } catch (sendErr) {
+          // Update notification status
           inspectorNotif.status = "failed";
           inspectorNotif.result = { error: sendErr.message || String(sendErr) };
+
+          // Save notification
           await inspectorNotif.save();
         }
       }
@@ -118,11 +132,13 @@ async function createJob(payload) {
         deviceTokens: adminDeviceTokens,
         status: "pending",
       });
+
       try {
         // Send notification to all admin device tokens or fallback to individual users
         let sendResult = null;
         // Send to all admin device tokens if available
         if (adminDeviceTokens.length) {
+          // Send notification to all admin device tokens
           sendResult = await NotificationServices.sendToMany(
             adminDeviceTokens,
             {
@@ -134,6 +150,7 @@ async function createJob(payload) {
         }
         // Fallback to sending individually to each admin user
         else if (adminIds.length === 1) {
+          // Send to single admin
           sendResult = await NotificationServices.sendToUser(adminIds[0], {
             title: adminNotif.title,
             body: adminNotif.body,
@@ -144,14 +161,18 @@ async function createJob(payload) {
         else {
           sendResult = { warning: "no-targets" };
         }
+        // Update notification status
         adminNotif.status = "sent";
         adminNotif.result = sendResult;
         adminNotif.sentAt = new Date();
+
         // Save notification
         await adminNotif.save();
       } catch (sendErr) {
+        // Update notification status
         adminNotif.status = "failed";
         adminNotif.result = { error: sendErr.message || String(sendErr) };
+
         // Save notification
         await adminNotif.save();
       }
@@ -330,8 +351,10 @@ async function createJob(payload) {
  * @returns {Promise<Object>}
  */
 async function getJobById(id) {
+  // Convert id to ObjectId
   const jobId = new mongoose.Types.ObjectId(id);
 
+  // Aggregate job with inspector
   const result = await JobModel.aggregate([
     /* ---------------- MATCH JOB ---------------- */
     { $match: { _id: jobId } },
@@ -507,6 +530,7 @@ async function getJobById(id) {
     },
   ]);
 
+  // If no job found, throw error
   if (!result || result.length === 0) {
     const err = new Error("Job not found");
     err.status = 404;
@@ -533,6 +557,7 @@ async function getJobById(id) {
  * }>}
  */
 async function getMyJobs(query = {}, userId) {
+  // Pagination params
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -541,6 +566,7 @@ async function getMyJobs(query = {}, userId) {
   const dateType = query.dateType;
   const customDate = query.customDate ? new Date(query.customDate) : null;
 
+  // Build aggregation pipeline
   const pipeline = [
     // Match jobs assigned to the user
     { $match: { inspector: new mongoose.Types.ObjectId(userId) } },
@@ -818,6 +844,7 @@ async function getMyJobs(query = {}, userId) {
     },
   );
 
+  // Execute aggregation
   const result = await JobModel.aggregate(pipeline);
   const jobs = result[0]?.jobs || [];
   const totalJob = result[0]?.metaData[0]?.totalJob || 0;
@@ -847,6 +874,7 @@ async function getMyJobs(query = {}, userId) {
  * } }>}
  */
 async function getJobs(query = {}) {
+  // Pagination params
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -1124,6 +1152,7 @@ async function getJobs(query = {}) {
     },
   );
 
+  // Execute aggregation
   const result = await JobModel.aggregate(pipeline);
   const jobs = result[0]?.jobs || [];
   const totalJob = result[0]?.metaData[0]?.totalJob || 0;
@@ -1152,6 +1181,7 @@ async function updateJob(id, payload) {
     job: new mongoose.Types.ObjectId(id),
   });
 
+  // If report exists, throw error
   if (reportExists) {
     const err = new Error("Cannot update job with existing report");
     err.status = 400;
@@ -1166,6 +1196,7 @@ async function updateJob(id, payload) {
     { new: true },
   );
 
+  // If no document matched, throw error
   if (!result || result.length === 0) {
     const err = new Error("Job not found");
     err.status = 404;
@@ -1183,14 +1214,20 @@ async function updateJob(id, payload) {
  * @returns {Promise<void>}
  */
 async function deleteJob(id) {
+  // Check if job exists
   const existing = await JobModel.findById(id);
+
+  // If not found, throw error
   if (!existing) {
     const err = new Error("Job not found");
     err.status = 404;
     err.code = "JOB_NOT_FOUND";
     throw err;
   }
+
+  // Delete the job
   await JobModel.findByIdAndDelete(id);
+
   return;
 }
 
