@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const NotificationModel = require("../models/NotificationModel");
 const NotificationToken = require("../models/NotificationTokenModel");
 const {
-  listNotifications: notifications,
+  allNotifications,
   getNotificationById,
   registerToken,
   activeOrInactivePushNotification: onOrOffPushNotification,
@@ -24,7 +24,10 @@ const listNotifications = async (req, res, next) => {
     const userId = req.user._id;
 
     // Call service
-    const { notifications, metaData } = await notifications(req.query, userId);
+    const { notifications, metaData } = await allNotifications(
+      req.query,
+      userId,
+    );
 
     res.json({
       success: true,

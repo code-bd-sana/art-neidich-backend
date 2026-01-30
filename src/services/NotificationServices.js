@@ -272,12 +272,10 @@ function buildMulticast(tokens, payload = {}) {
  * @param {string} userId User ID
  * @returns {object} Object containing notifications array and metaData
  */
-async function listNotifications(query = {}, userId) {
+async function allNotifications(query = {}, userId) {
   // Pagination params
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
-
-  log("listNotifications: called", { query, userId });
 
   // Build query to fetch notifications for the user
   const q = {
@@ -456,7 +454,7 @@ module.exports = {
   sendToDevice,
   sendToMany,
   sendToUser,
-  listNotifications,
+  allNotifications,
   getNotificationById,
   registerToken,
   activeOrInactivePushNotification,
