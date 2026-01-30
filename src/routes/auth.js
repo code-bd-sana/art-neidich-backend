@@ -2,6 +2,8 @@ const express = require("express");
 
 const router = express.Router();
 
+const rateLimit = require("express-rate-limit");
+
 const {
   register,
   login,
@@ -18,6 +20,16 @@ const { loginSchema } = require("../validators/auth/login");
 const { registerSchema } = require("../validators/auth/register");
 const { resetPasswordSchema } = require("../validators/auth/resetPassword");
 const { verifyOtpSchema } = require("../validators/auth/verifyOtp");
+
+/**
+ * Rate limiting for the forget password route
+ */
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message:
+    "Too many password reset requests from this IP, please try again after 15 minutes",
+});
 
 /**
  * Handle user registration
@@ -59,6 +71,7 @@ router.post("/login", validate(loginSchema, { target: "body" }), login);
  */
 router.post(
   "/forgot-password",
+  forgotPasswordLimiter,
   validate(forgotPasswordSchema, { target: "body" }),
   forgotPassword,
 );

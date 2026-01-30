@@ -39,7 +39,7 @@ app.use(morgan("dev"));
 // Request Rate Limiting
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 10000000000000, // limit each IP to 10 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
@@ -61,25 +61,35 @@ readdirSync(routesPath).forEach((item) => {
     let router;
     const indexFile = path.join(itemPath, "index.js");
 
+    // If index.js exists, use it as the router
     if (fs.existsSync(indexFile)) {
       router = require(indexFile);
     } else {
+      // Otherwise, compose all .js files in the directory into a single router
       router = express.Router();
+
+      // Load all .js files in the directory
       readdirSync(itemPath).forEach((file) => {
         if (file.endsWith(".js"))
           router.use(require(path.join(itemPath, file)));
       });
     }
 
+    // Mount the router
     app.use(routePrefix, router);
     mounted.push({ category: item, prefix: routePrefix, router });
   }
 
   // If it's a .js file directly under routes, mount it as a category
   if (stat.isFile() && item.endsWith(".js")) {
+    // Derive category name from filename
     const name = path.basename(item, ".js");
     const routePrefix = `/api/v1/${name}`;
+
+    // Load and mount the router
     const router = require(path.join(routesPath, item));
+
+    // Mount the router
     app.use(routePrefix, router);
     mounted.push({ category: name, prefix: routePrefix, router });
   }
@@ -87,21 +97,34 @@ readdirSync(routesPath).forEach((item) => {
 
 // Helper: extract routes from an express.Router instance
 function getRoutesFromRouter(router) {
+  // Extract all routes from a given express.Router instance
   const routes = [];
+
+  // Guard clause
   if (!router || !router.stack) return routes;
 
+  // Iterate over the router stack to find routes
   router.stack.forEach((layer) => {
     if (layer.route && layer.route.path) {
+      // Extract HTTP methods for the route
       const methods = Object.keys(layer.route.methods || {}).map((m) =>
         m.toUpperCase(),
       );
+
+      // Store the route path and methods
       routes.push({ path: layer.route.path, methods });
-    } else if (layer.name === "router" && layer.handle && layer.handle.stack) {
+    }
+    // Handle nested routers
+    else if (layer.name === "router" && layer.handle && layer.handle.stack) {
+      // Recursively extract routes from the nested router
       layer.handle.stack.forEach((l) => {
         if (l.route && l.route.path) {
+          // Extract HTTP methods for the route
           const methods = Object.keys(l.route.methods || {}).map((m) =>
             m.toUpperCase(),
           );
+
+          // Store the route path and methods
           routes.push({ path: l.route.path, methods });
         }
       });
@@ -133,18 +156,29 @@ const colors = {
   },
 };
 
+// Log all mounted routes
 console.log(
   `${colors.fg.cyan}${colors.bright}Registered routes:${colors.reset}`,
 );
+
+// Iterate over mounted routers and log their routes
 mounted.forEach((m) => {
+  // Log category and prefix
   console.log(
     `${colors.fg.yellow}\nCategory: ${colors.fg.magenta}${m.category} ${colors.reset}-> ${colors.fg.green}${m.prefix}${colors.reset}`,
   );
+
+  // Extract and log routes
   const routes = getRoutesFromRouter(m.router);
+
+  // If no routes found
   if (!routes.length) {
     console.log(`${colors.dim}  (no routes found)${colors.reset}`);
-  } else {
+  }
+  // Log each route
+  else {
     routes.forEach((r) => {
+      // Color-coded method string
       const methodStr = r.methods
         .map((mm) => {
           switch (mm) {
