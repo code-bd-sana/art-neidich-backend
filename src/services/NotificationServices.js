@@ -364,7 +364,7 @@ async function registerToken(
   try {
     // Upsert the push details
     const result = await PushToken.findOneAndUpdate(
-      { deviceId }, // Find by deviceId
+      { token }, // Find by deviceId
       {
         $set: {
           user: new mongoose.Types.ObjectId(userId),
