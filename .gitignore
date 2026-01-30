@@ -1,4 +1,7 @@
-fhainspectorapp.json
+node_modules/
+.env
+fhainspectorapp*.json
+*.firebase-adminsdk-*.jsonfhainspectorapp.json
 # Node.js and NPM
 node_modules/
 npm-debug.log
