@@ -142,12 +142,14 @@ function buildMulticast(tokens, payload) {
  * @param {object} query Query parameters
  * @param {number} query.page Page number (default: 1)
  * @param {number} query.limit Number of items per page (default: 10)
+ * @param {string} query.type Notification type filter (default: "all")
  * @param {string} userId User ID
  * @returns {object} Object containing notifications array and metaData
  */
 async function listNotifications(query = {}, userId) {
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
+  const type = query.type || "all";
 
   // Build query to fetch notifications for the user
   const q = {
@@ -156,6 +158,10 @@ async function listNotifications(query = {}, userId) {
       { authorId: new mongoose.Types.ObjectId(userId) },
     ],
   };
+
+  if (type !== "all") {
+    q.type = type;
+  }
 
   // Fetch notifications with pagination
   const notifications = await NotificationModel.find(q)

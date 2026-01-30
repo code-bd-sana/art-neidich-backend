@@ -37,6 +37,19 @@ const notificationPaginationSchema = z
       .refine((val) => val > 0, {
         message: "Limit must be a positive integer",
       }),
+    type: z
+      .enum([
+        "all",
+        "report_submitted",
+        "job_assigned",
+        "report_status_updated",
+        "registered_as_admin",
+        "registered_as_inspector",
+        "account_suspended",
+        "account_unsuspended",
+        "custom",
+      ])
+      .optional(),
   })
   .strict();
 

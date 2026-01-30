@@ -12,7 +12,7 @@ const NotificationServices = require("../services/NotificationServices");
 const listNotifications = async (req, res, next) => {
   try {
     // Extract pagination parameters from validated request query
-    const { limit = 50, page = 1 } = req.query;
+    const { limit = 50, page = 1, type = "all" } = req.query;
 
     // Get user ID from authenticated request
     const userId = req.user._id;
