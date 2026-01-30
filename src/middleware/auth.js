@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 
 const { verifyToken } = require("../helpers/jwt/jwt-utils");
 const UserModel = require("../models/UserModel");
@@ -24,7 +25,9 @@ async function authenticate(req, res, next) {
     const secret = process.env.JWT_SECRET || "change_this_secret";
     const decoded = await verifyToken(token);
     // Optionally fetch user from DB for fresh data
-    const user = await UserModel.findById(decoded.id).select("-password");
+    const user = await UserModel.findById(
+      new mongoose.Types.ObjectId(decoded.id),
+    ).select("-password");
     if (!user) {
       return res
         .status(401)
@@ -36,13 +39,11 @@ async function authenticate(req, res, next) {
         .json({ success: false, message: "You are suspended", code: 403 });
     }
     if (!user.isApproved) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Your account is not approved yet",
-          code: 403,
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Your account is not approved yet",
+        code: 403,
+      });
     }
     req.user = user;
     next();
