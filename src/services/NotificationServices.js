@@ -3,6 +3,7 @@ const path = require("path");
 const admin = require("firebase-admin");
 const mongoose = require("mongoose");
 
+const NotificationModel = require("../models/NotificationModel");
 const NotificationToken = require("../models/NotificationTokenModel");
 const PushToken = require("../models/PushToken");
 
@@ -133,6 +134,72 @@ function buildMulticast(tokens, payload) {
     );
   }
   return message;
+}
+
+/**
+ * List notifications for a user with pagination
+ *
+ * @param {object} query Query parameters
+ * @param {string} query.userId User ID
+ * @param {number} query.page Page number (default: 1)
+ * @param {number} query.limit Number of items per page (default: 10)
+ * @returns {object} Object containing notifications array and metaData
+ */
+async function listNotifications(query = {}) {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+
+  // Build query to fetch notifications for the user
+  const q = {
+    $or: [
+      { recipients: new mongoose.Types.ObjectId(query.userId) },
+      { authorId: new mongoose.Types.ObjectId(query.userId) },
+    ],
+  };
+
+  // Fetch notifications with pagination
+  const notifications = await NotificationModel.find(q)
+    .sort({ createdAt: -1 })
+    .skip((Number(page) - 1) * Number(limit))
+    .limit(Number(limit))
+    .select("_id title body type data authorId createdAt");
+
+  // Get total count for pagination metadata
+  const totalNotifications = await NotificationModel.countDocuments(q);
+
+  return {
+    notifications,
+    metaData: {
+      page: page,
+      limit: limit,
+      totalNotifications: totalNotifications,
+      totalPage: Math.ceil(totalNotifications / limit),
+    },
+  };
+}
+
+/**
+ * Get a single notification by ID for a user
+ *
+ * @param {string} notificationId Notification ID
+ * @param {string} userId User ID
+ * @returns {object} Notification document
+ */
+async function getNotificationById(notificationId, userId) {
+  const doc = await NotificationModel.findOne({
+    _id: new mongoose.Types.ObjectId(notificationId),
+    $or: [
+      { recipients: new mongoose.Types.ObjectId(userId) },
+      { authorId: new mongoose.Types.ObjectId(userId) },
+    ],
+  }).select("_id title body type data createdAt");
+  if (!doc) {
+    const err = new Error("Notification not found");
+    err.status = 404;
+    err.code = "NOTIFICATION_NOT_FOUND";
+    throw err;
+  }
+  return doc;
 }
 
 /**

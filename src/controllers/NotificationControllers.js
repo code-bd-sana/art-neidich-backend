@@ -17,34 +17,19 @@ const listNotifications = async (req, res, next) => {
     // Get user ID from authenticated request
     const userId = req.user._id;
 
-    // Build query to fetch notifications for the user
-    const q = {
-      $or: [
-        { recipients: new mongoose.Types.ObjectId(userId) },
-        { authorId: new mongoose.Types.ObjectId(userId) },
-      ],
-    };
-
-    // Fetch notifications with pagination
-    const docs = await NotificationModel.find(q)
-      .sort({ createdAt: -1 })
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit))
-      .select("_id title body type data authorId createdAt");
-
-    // Get total count for pagination metadata
-    const totalNotifications = await NotificationModel.countDocuments(q);
+    // Fetch notifications using the service
+    const { notifications, metaData } =
+      await NotificationServices.listNotifications({
+        userId,
+        page,
+        limit,
+      });
 
     res.json({
       success: true,
       message: "Notification list fetched successfully",
-      data: docs,
-      metaData: {
-        page: Number(page),
-        limit: Number(limit),
-        totalNotifications: Number(totalNotifications),
-        totalPage: Math.ceil(totalNotifications / limit),
-      },
+      data: notifications,
+      metaData: metaData,
       code: 200,
     });
   } catch (err) {
@@ -66,26 +51,15 @@ const getNotification = async (req, res, next) => {
     const userId = req.user._id;
 
     // Fetch the notification document by ID
-    const doc = await NotificationModel.findOne({
-      _id: new mongoose.Types.ObjectId(id),
-      $or: [
-        { recipients: new mongoose.Types.ObjectId(userId) },
-        { authorId: new mongoose.Types.ObjectId(userId) },
-      ],
-    }).select("_id title body type data createdAt");
-
-    // If not found, return 404
-    if (!doc) {
-      const err = new Error("Notification not found");
-      err.status = 400;
-      err.code = "NOTIFICATION_NOT_FOUND";
-      throw err;
-    }
+    const notification = await NotificationServices.getNotificationById(
+      id,
+      userId,
+    );
 
     res.json({
       success: true,
       message: "Notification fetched successfully",
-      data: doc,
+      data: notification,
       code: 200,
     });
   } catch (err) {
