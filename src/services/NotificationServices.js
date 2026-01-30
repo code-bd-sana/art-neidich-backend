@@ -9,27 +9,32 @@ const PushToken = require("../models/PushToken");
 
 // Initialize firebase-admin once
 let initialized = false;
+
 function initFirebase() {
   if (initialized) return;
+
   console.log("[NotificationService] initFirebase: starting initialization");
+
   try {
-    // Try to load local service account JSON in repo root
+    // Prefer local service account file
     const saPath = path.resolve(process.cwd(), "fhainspectorapp.json");
     const serviceAccount = require(saPath);
+
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
+
     initialized = true;
     console.log(
       "[NotificationService] initFirebase: initialized with service account",
     );
   } catch (err) {
     console.warn(
-      "[NotificationService] initFirebase: service account not found, trying default credentials",
+      "[NotificationService] initFirebase: service account not found, trying Application Default Credentials",
     );
-    // Fallback: initialize with default credentials (if hosting provides them)
+
     try {
-      admin.initializeApp();
+      admin.initializeApp(); // Uses ADC (e.g. on GCP, or GOOGLE_APPLICATION_CREDENTIALS env var)
       initialized = true;
       console.log(
         "[NotificationService] initFirebase: initialized with default credentials",
@@ -37,32 +42,37 @@ function initFirebase() {
     } catch (e) {
       console.error(
         "[NotificationService] initFirebase: failed to initialize firebase",
-        e && e.message ? e.message : e,
+        e?.message || e,
       );
-      // swallow; callers will get errors when trying to send
+      // Continue — callers will receive errors when sending
     }
   }
 }
 
 initFirebase();
 
-// Simple prefixed log helpers to keep console output consistent
+// ────────────────────────────────────────────────
+// Logging helpers
+// ────────────────────────────────────────────────
 const LOG_PREFIX = "[NotificationService]";
 const log = (...args) => console.log(LOG_PREFIX, ...args);
-const debug = (...args) => {
-  if (process.env.DEBUG) console.debug(LOG_PREFIX, ...args);
-};
 const logError = (...args) => console.error(LOG_PREFIX, ...args);
+const debug = (...args) => {
+  if (process.env.DEBUG === "true") console.debug(LOG_PREFIX, ...args);
+};
+
+// ────────────────────────────────────────────────
+// Core send functions
+// ────────────────────────────────────────────────
 
 /**
- * Send a push notification to a single device
- * @param {string} deviceToken FCM device token
- * @param {object} payload Notification payload
+ * Send notification to a single device
+ * @param {string} deviceToken
+ * @param {object} payload
  */
 async function sendToDevice(deviceToken, payload = {}) {
   log("sendToDevice: called", { hasToken: !!deviceToken });
 
-  // Validate input
   if (!deviceToken) {
     const err = new Error("Device token is required");
     err.status = 404;
@@ -71,51 +81,43 @@ async function sendToDevice(deviceToken, payload = {}) {
     throw err;
   }
 
-  // Build message
   const message = buildMessage(deviceToken, payload);
 
-  debug("sendToDevice: built message", {
-    title: payload && payload.title,
-    bodyLength: payload && payload.body ? payload.body.length : 0,
-  });
-
-  // Send message
   try {
-    const res = await admin.messaging().send(message);
-    log("sendToDevice: send success", res);
-    return res;
+    const response = await admin.messaging().send(message);
+    log("sendToDevice: success", { messageId: response });
+    return response;
   } catch (err) {
-    logError(
-      "sendToDevice: send failed",
-      err && err.message ? err.message : err,
-    );
+    logError("sendToDevice: failed", err?.message || err);
     throw err;
   }
 }
 
 /**
- * Send a push notification to multiple devices
- * @param {string[]} deviceTokens Array of FCM device tokens
- * @param {object} payload Notification payload
+ * Send notification to multiple devices (main modern entry point)
+ * @param {string[]} deviceTokens
+ * @param {object} payload
+ * @returns {Promise<{successCount: number, failureCount: number, responses: any[]}>}
  */
 async function sendToMany(deviceTokens = [], payload = {}) {
   log("sendToMany: called", {
     tokensReceived: Array.isArray(deviceTokens) ? deviceTokens.length : 1,
   });
-  // Validate input
-  if (!Array.isArray(deviceTokens)) deviceTokens = [deviceTokens];
 
-  // Filter out invalid tokens
-  const tokens = deviceTokens.filter(Boolean);
+  // Normalize input
+  const tokens = Array.isArray(deviceTokens)
+    ? deviceTokens.filter(Boolean)
+    : [deviceTokens].filter(Boolean);
 
-  // Return warning if no valid tokens
-  if (!tokens.length) {
+  if (tokens.length === 0) {
     log("sendToMany: no valid tokens provided");
-    return { warning: "no-tokens" };
+    return {
+      successCount: 0,
+      failureCount: 0,
+      responses: [],
+      warning: "no-tokens",
+    };
   }
-
-  // FCM sendMulticast supports up to 500 tokens per request
-  const chunkSize = 500;
 
   const results = {
     successCount: 0,
@@ -123,39 +125,49 @@ async function sendToMany(deviceTokens = [], payload = {}) {
     responses: [],
   };
 
-  // Send in chunks
+  const chunkSize = 500; // Safe conservative limit
+
   for (let i = 0; i < tokens.length; i += chunkSize) {
     const chunk = tokens.slice(i, i + chunkSize);
-    const multicast = buildMulticast(chunk, payload);
+    const multicastMessage = buildMulticast(chunk, payload);
+
     try {
-      const messaging = admin.messaging();
-      let resp;
-      if (typeof messaging.sendMulticast === "function") {
-        // Preferred: send a multicast message when available
-        resp = await messaging.sendMulticast(multicast);
-      } else {
-        // Fallback: some admin SDK versions don't expose sendMulticast.
-        // Use sendAll by mapping tokens to individual messages.
-        const messages = chunk.map((t) => buildMessage(t, payload));
-        resp = await messaging.sendAll(messages);
-      }
+      const resp = await admin
+        .messaging()
+        .sendEachForMulticast(multicastMessage);
 
       log("sendToMany: chunk sent", {
-        chunkIndex: i / chunkSize,
-        chunkSize: chunk.length,
-        successCount: resp.successCount,
-        failureCount: resp.failureCount,
+        chunkIndex: Math.floor(i / chunkSize),
+        chunkTokens: chunk.length,
+        success: resp.successCount,
+        failure: resp.failureCount,
       });
-      results.successCount += resp.successCount || 0;
-      results.failureCount += resp.failureCount || 0;
+
+      results.successCount += resp.successCount;
+      results.failureCount += resp.failureCount;
       results.responses.push(resp);
-    } catch (err) {
-      logError("sendToMany: chunk send failed", {
-        chunkIndex: i / chunkSize,
-        error: err && err.message ? err.message : err,
+
+      // Optional: Clean up invalid tokens
+      resp.responses.forEach((r, idx) => {
+        if (
+          !r.success &&
+          r.error?.code === "messaging/registration-token-not-registered"
+        ) {
+          const badToken = chunk[idx];
+          PushToken.deleteOne({ token: badToken })
+            .then(() => log("Removed unregistered token:", badToken))
+            .catch((e) =>
+              logError("Failed to remove bad token", badToken, e?.message),
+            );
+        }
       });
-      results.responses.push({ error: err });
+    } catch (err) {
+      logError("sendToMany: chunk failed", {
+        chunkIndex: Math.floor(i / chunkSize),
+        error: err?.message || err,
+      });
       results.failureCount += chunk.length;
+      results.responses.push({ error: err });
     }
   }
 
@@ -164,18 +176,18 @@ async function sendToMany(deviceTokens = [], payload = {}) {
     successCount: results.successCount,
     failureCount: results.failureCount,
   });
+
   return results;
 }
 
 /**
- * Send a push notification to all active devices for a user
- * @param {string} userId User ID
- * @param {object} payload Notification payload
+ * Send to all active tokens of a user
+ * @param {string} userId
+ * @param {object} payload
  */
 async function sendToUser(userId, payload = {}) {
   log("sendToUser: called", { userId });
 
-  // Validate input
   if (!userId) {
     const err = new Error("User ID is required");
     err.status = 400;
@@ -184,110 +196,70 @@ async function sendToUser(userId, payload = {}) {
     throw err;
   }
 
-  // find active tokens for user
   const docs = await PushToken.find({
     user: new mongoose.Types.ObjectId(userId),
     active: true,
-  }).select("token -_id");
+  })
+    .select("token -_id")
+    .lean();
 
-  // Extract tokens
-  const tokens = (docs || []).map((d) => d.token).filter(Boolean);
+  const tokens = docs.map((d) => d.token).filter(Boolean);
 
-  log("sendToUser: tokens found for user", {
-    userId,
-    tokenCount: tokens.length,
-  });
+  log("sendToUser: tokens found", { userId, count: tokens.length });
 
-  // Return warning if no tokens
-  if (!tokens.length) {
-    log("sendToUser: no-tokens-for-user", { userId });
-    return { warning: "no-tokens-for-user" };
+  if (tokens.length === 0) {
+    log("sendToUser: no active tokens found");
+    return { successCount: 0, failureCount: 0, warning: "no-tokens-for-user" };
   }
 
-  // Send to all tokens
-  try {
-    const result = await sendToMany(tokens, payload);
-    log("sendToUser: sendToMany result", {
-      userId,
-      resultSummary: {
-        success: result.successCount,
-        failure: result.failureCount,
-      },
-    });
-    return result;
-  } catch (err) {
-    logError(
-      "sendToUser: sendToMany failed",
-      err && err.message ? err.message : err,
-    );
-    throw err;
-  }
+  return sendToMany(tokens, payload);
 }
 
-/**
- * Build a message object for a single device
- * @param {string} deviceToken FCM device token
- * @param {object} payload Notification payload
- */
-function buildMessage(deviceToken, payload) {
-  // Destructure payload
-  const { title, body, data } = payload || {};
+// ────────────────────────────────────────────────
+// Message builders
+// ────────────────────────────────────────────────
 
-  // Build message
+function buildMessage(token, payload = {}) {
+  const { title, body, data, imageUrl } = payload;
+
   const message = {
-    token: deviceToken,
+    token,
     notification: {},
   };
 
-  // Add title and body if provided
   if (title) message.notification.title = title;
   if (body) message.notification.body = body;
+  if (imageUrl) message.notification.imageUrl = imageUrl;
+
   if (data && typeof data === "object") {
-    // FCM data values must be strings
     message.data = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, String(v)]),
     );
   }
 
-  // Return the built message object
-  debug("buildMessage: returning message", {
-    title,
-    bodyLength: body ? body.length : 0,
-    dataKeys: data && typeof data === "object" ? Object.keys(data) : [],
-  });
+  debug("buildMessage", { title, bodyLength: body?.length || 0 });
   return message;
 }
 
-/**
- * Build a multicast message object for multiple devices
- * @param {string[]} tokens Array of FCM device tokens
- * @param {object} payload Notification payload
- */
-function buildMulticast(tokens, payload) {
-  // Destructure payload
-  const { title, body, data } = payload || {};
+function buildMulticast(tokens, payload = {}) {
+  const { title, body, data, imageUrl } = payload;
 
-  // Build message
   const message = {
     tokens,
     notification: {},
   };
 
-  // Add title and body if provided
   if (title) message.notification.title = title;
   if (body) message.notification.body = body;
+  if (imageUrl) message.notification.imageUrl = imageUrl;
+
   if (data && typeof data === "object") {
     message.data = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, String(v)]),
     );
   }
 
-  // Return the built multicast message object
-  debug("buildMulticast: returning multicast", {
-    tokenCount: Array.isArray(tokens) ? tokens.length : 0,
-    title,
-    bodyLength: body ? body.length : 0,
-  });
+  debug("buildMulticast", { tokenCount: tokens.length, title });
   return message;
 }
 
