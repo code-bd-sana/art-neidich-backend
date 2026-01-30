@@ -29,7 +29,8 @@ const listNotifications = async (req, res, next) => {
     const docs = await NotificationModel.find(q)
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .select("_id title body type data authorId createdAt");
 
     // Get total count for pagination metadata
     const totalNotifications = await NotificationModel.countDocuments(q);
@@ -71,7 +72,7 @@ const getNotification = async (req, res, next) => {
         { recipients: new mongoose.Types.ObjectId(userId) },
         { authorId: new mongoose.Types.ObjectId(userId) },
       ],
-    });
+    }).select("_id title body type data createdAt");
 
     // If not found, return 404
     if (!doc) {
