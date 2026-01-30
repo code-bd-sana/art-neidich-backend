@@ -16,8 +16,12 @@ const {
  */
 async function register(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Call service
     const newUser = await registerUser(payload);
+
     return res.status(201).json({
       success: true,
       message:
@@ -39,15 +43,11 @@ async function register(req, res, next) {
  */
 async function login(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
-    const { user, token } = await loginUser(payload);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: "none", // Not same site
-      secure: process.env.NODE_ENV === "production",
-    });
+    // Call service
+    const { user, token } = await loginUser(payload);
 
     return res.status(200).json({
       success: true,
@@ -70,8 +70,12 @@ async function login(req, res, next) {
  */
 async function forgotPassword(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Call service
     await initiateForgotPassword(payload);
+
     return res.status(200).json({
       success: true,
       message: payload.webRequest
@@ -93,8 +97,10 @@ async function forgotPassword(req, res, next) {
  */
 async function resetPassword(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
-    // Assuming resetUserPassword is a service function to handle password reset
+
+    // Call service
     await resetUserPassword(payload);
     return res.status(200).json({
       success: true,
@@ -115,7 +121,10 @@ async function resetPassword(req, res, next) {
  */
 async function verifyOtp(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Call service
     await verifyOtpService(payload);
     return res
       .status(200)
@@ -134,8 +143,13 @@ async function verifyOtp(req, res, next) {
  */
 async function changePassword(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Get user ID from authenticated user
     const userId = req.user?._id;
+
+    // Call service
     await changeUserPassword(userId, payload);
     return res.status(200).json({
       success: true,

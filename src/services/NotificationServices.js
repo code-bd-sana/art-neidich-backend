@@ -140,20 +140,20 @@ function buildMulticast(tokens, payload) {
  * List notifications for a user with pagination
  *
  * @param {object} query Query parameters
- * @param {string} query.userId User ID
  * @param {number} query.page Page number (default: 1)
  * @param {number} query.limit Number of items per page (default: 10)
+ * @param {string} userId User ID
  * @returns {object} Object containing notifications array and metaData
  */
-async function listNotifications(query = {}) {
+async function listNotifications(query = {}, userId) {
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
 
   // Build query to fetch notifications for the user
   const q = {
     $or: [
-      { recipients: new mongoose.Types.ObjectId(query.userId) },
-      { authorId: new mongoose.Types.ObjectId(query.userId) },
+      { recipients: new mongoose.Types.ObjectId(userId) },
+      { authorId: new mongoose.Types.ObjectId(userId) },
     ],
   };
 
@@ -278,6 +278,8 @@ module.exports = {
   sendToDevice,
   sendToMany,
   sendToUser,
+  listNotifications,
+  getNotificationById,
   registerToken,
   activeOrInactivePushNotification,
   getUserTokens,

@@ -19,11 +19,7 @@ const listNotifications = async (req, res, next) => {
 
     // Fetch notifications using the service
     const { notifications, metaData } =
-      await NotificationServices.listNotifications({
-        userId,
-        page,
-        limit,
-      });
+      await NotificationServices.listNotifications(req.query, userId);
 
     res.json({
       success: true,
