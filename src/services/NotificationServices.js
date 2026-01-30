@@ -295,11 +295,6 @@ async function allNotifications(query = {}, userId) {
   // Get total count for pagination metadata
   const totalNotifications = await NotificationModel.countDocuments(q);
 
-  log("listNotifications: fetched", {
-    returned: notifications.length,
-    totalNotifications,
-  });
-
   return {
     notifications,
     metaData: {
