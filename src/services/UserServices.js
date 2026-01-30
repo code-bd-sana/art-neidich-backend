@@ -43,6 +43,17 @@ async function getProfile(userId) {
         },
       },
     },
+    // Project final output
+    {
+      $project: {
+        resetToken: 0,
+        resetTokenExpiry: 0,
+        resetPasswordOTP: 0,
+        resetPasswordOTPExpiry: 0,
+        resetPasswordVerified: 0,
+        resetPasswordVerifiedExpiry: 0,
+      },
+    },
   ]);
 
   return result[0] || null;

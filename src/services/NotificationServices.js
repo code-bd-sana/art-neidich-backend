@@ -336,11 +336,12 @@ async function getNotificationById(notificationId, userId) {
 }
 
 /**
- * Register or update a push token for a user
- * Handles multiple devices per user by using upsert logic
+ * Register or update a device token for push notifications
+ *
  * @param {string} userId User ID
  * @param {string} token FCM device token
  * @param {string} platform Platform: "android", "ios", or "web"
+ * @param {string} deviceId Device ID
  * @param {string} deviceName Optional device information
  */
 async function registerToken(
@@ -353,7 +354,7 @@ async function registerToken(
   try {
     // Upsert the push details
     const result = await PushToken.findOneAndUpdate(
-      { deviceId }, // Find by deviceId
+      { deviceId, user: new mongoose.Types.ObjectId(userId) }, // Find by deviceId and user
       {
         $set: {
           user: new mongoose.Types.ObjectId(userId),
