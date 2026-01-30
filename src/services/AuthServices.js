@@ -320,8 +320,6 @@ async function registerUser(payload) {
           (a) => new mongoose.Types.ObjectId(a._id),
         );
 
-        console.log("Admin ids to send notifications:", adminIds);
-
         // resolve device tokens for admins
         const tokens = await PushToken.find({
           user: { $in: adminIds },
@@ -330,8 +328,6 @@ async function registerUser(payload) {
 
         // extract token strings
         const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
-
-        console.log("Device tokens to send notifications:", deviceTokens);
 
         // create notification record
         const types = NotificationModel.notificationTypes || {};
@@ -362,8 +358,6 @@ async function registerUser(payload) {
               body: notif.body,
               data: notif.data,
             });
-
-            console.log("Notification Result:", sendResult);
           }
 
           // send to single user
@@ -373,8 +367,6 @@ async function registerUser(payload) {
               body: notif.body,
               data: notif.data,
             });
-
-            console.log("Notification Result:", sendResult);
           } else {
             sendResult = { warning: "no-targets" };
           }
