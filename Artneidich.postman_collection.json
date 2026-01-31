@@ -159,35 +159,35 @@
               "mode": "raw",
               "raw": "{\n  \"deviceId\": \"device-123\"\n}"
             },
-            "description": "Logout the authenticated user.",
-            "response": [
-              {
-                "name": "200 OK",
-                "originalRequest": {},
-                "status": "200 OK",
-                "code": 200,
-                "body": "{\n  \"success\": true,\n  \"message\": \"Logout successful\",\n  \"code\": 200\n}"
-              },
-              {
-                "name": "401 Unauthorized",
-                "status": "401 Unauthorized",
-                "code": 401,
-                "body": "{\n  \"success\": false,\n  \"message\": \"Unauthorized\",\n  \"code\": 401\n}"
-              },
-              {
-                "name": "500 Internal Server Error",
-                "status": "500 Internal Server Error",
-                "code": 500,
-                "body": "{\n  \"success\": false,\n  \"message\": \"Internal Server Error\",\n  \"code\": 500\n}"
-              },
-              {
-                "name": "400 Bad Request",
-                "status": "400 Bad Request",
-                "code": 400,
-                "body": "{\n  \"success\": false,\n  \"message\": \"Device ID is required\",\n  \"code\": 400\n}"
-              }
-            ]
-          }
+            "description": "Logout the authenticated user."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {},
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Logout successful\",\n  \"code\": 200\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "401 Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Unauthorized\",\n  \"code\": 401\n}"
+            },
+            {
+              "name": "500 Internal Server Error",
+              "status": "500 Internal Server Error",
+              "code": 500,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal Server Error\",\n  \"code\": 500\n}"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "400 Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Device ID is required\",\n  \"code\": 400\n}"
+            }
+          ]
         },
         {
           "name": "Forgot Password",
