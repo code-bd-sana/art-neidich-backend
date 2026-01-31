@@ -13,6 +13,7 @@ const {
  * @returns {Promise<Array<Object>>} - Array of admin users with _id, firstName, lastName, email
  */
 async function getActiveAdmins() {
+  // Query for active admins
   return await UserModel.find({
     role: { $in: [0, 1] },
     isSuspended: false,
@@ -35,6 +36,7 @@ function extractUserIds(users) {
  * @returns {Promise<Array<string>>} - Array of device token strings
  */
 async function getActiveTokensForUsers(userIds) {
+  // Query for active tokens linked to the specified users
   const tokenDocs = await PushToken.find({
     "users.user": { $in: userIds },
     "users.notificationActive": true,
@@ -48,8 +50,13 @@ async function getActiveTokensForUsers(userIds) {
  * @returns {Promise<{adminIds: Array<mongoose.Types.ObjectId>, deviceTokens: Array<string>}>}
  */
 async function getAdminsAndTokens() {
+  // Fetch active admins
   const admins = await getActiveAdmins();
+
+  // Extract their user IDs
   const adminIds = extractUserIds(admins);
+
+  // Fetch their active push tokens
   const deviceTokens = await getActiveTokensForUsers(adminIds);
 
   return { adminIds, deviceTokens };
@@ -61,7 +68,10 @@ async function getAdminsAndTokens() {
  * @returns {Promise<Array<string>>} - Array of device token strings
  */
 async function getTokensForUser(userId) {
+  // Ensure userId is an ObjectId
   const objectId = new mongoose.Types.ObjectId(userId);
+
+  // Fetch active tokens for the user
   return await getActiveTokensForUsers([objectId]);
 }
 
@@ -190,8 +200,10 @@ async function createAndSendNotification({
  */
 async function notifyAdmins({ type, title, body, data, authorId = null }) {
   try {
+    // Fetch admin IDs and their device tokens
     const { adminIds, deviceTokens } = await getAdminsAndTokens();
 
+    // Create and send notification to admins
     return await createAndSendNotification({
       type,
       title,
@@ -229,9 +241,13 @@ async function notifyUser({
   authorId = null,
 }) {
   try {
+    // Fetch device tokens for the user
     const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    // Get active tokens for the user
     const deviceTokens = await getTokensForUser(userObjectId);
 
+    // Create and send notification to the user
     return await createAndSendNotification({
       type,
       title,
