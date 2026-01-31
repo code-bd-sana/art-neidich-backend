@@ -10,7 +10,7 @@ const {
   comparePassword,
 } = require("../helpers/password/password-util");
 const NotificationModel = require("../models/NotificationModel");
-const PushToken = require("../models/PushTokenModel");
+const PushToken = require("../models/PushToken");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
 

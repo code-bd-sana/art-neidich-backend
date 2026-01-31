@@ -196,6 +196,7 @@ async function changePassword(req, res, next) {
 module.exports = {
   register,
   login,
+  logout,
   forgotPassword,
   resetPassword,
   changePassword,
