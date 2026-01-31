@@ -19,7 +19,11 @@ const generateToken = async (userData) => {
   } catch (error) {
     // Handle any errors during token generation
     console.error(error);
-    throw new Error("Token generation failed.");
+
+    const err = new Error("Token generation failed.");
+    err.status = 500;
+    err.code = "TOKEN_GENERATION_FAILED";
+    throw err;
   }
 };
 

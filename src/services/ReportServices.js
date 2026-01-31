@@ -3,13 +3,12 @@ const { Readable } = require("stream");
 
 const mongoose = require("mongoose");
 
+const { notifyAdmins } = require("../helpers/notification/notification-helper");
 const ImageLabelModel = require("../models/ImageLabelModel");
 const JobModel = require("../models/JobModel");
 const NotificationModel = require("../models/NotificationModel");
 const ReportModel = require("../models/ReportModel");
 const { uploadStreams, deleteObjects } = require("../utils/s3");
-
-const { notifyAdmins } = require("../helpers/notification/notification-helper");
 
 /**
  * Create a new report
@@ -68,7 +67,10 @@ async function createReport(payload) {
   const finalImagesPlaceholder = imagesInput.map((img) => {
     const labelStr = labelMap.get(img.imageLabel);
     if (!labelStr) {
-      throw new Error(`Invalid imageLabel ID: ${img.imageLabel}`);
+      const err = new Error("Image label not found");
+      err.status = 400;
+      err.code = "IMAGE_LABEL_NOT_FOUND";
+      throw err;
     }
     return {
       imageLabel: labelStr,

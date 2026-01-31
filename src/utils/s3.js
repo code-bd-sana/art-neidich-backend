@@ -74,7 +74,12 @@ function generateKey(originalName = "", folderPrefix = "") {
  * @param {string} [jobId] - If provided & no custom key, uses jobId/ prefix
  */
 async function uploadBuffer(buffer, key, contentType, folderPrefix = "") {
-  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!bucket) {
+    const err = new Error("S3 bucket not configured");
+    err.status = 500;
+    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    throw err;
+  }
 
   const finalKey = key ? sanitizeKey(key) : generateKey("", folderPrefix);
 
@@ -103,7 +108,12 @@ async function uploadBuffer(buffer, key, contentType, folderPrefix = "") {
  * Same logic as uploadBuffer
  */
 async function uploadStream(stream, key, contentType, folderPrefix = "") {
-  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!bucket) {
+    const err = new Error("S3 bucket not configured");
+    err.status = 500;
+    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    throw err;
+  }
 
   const finalKey = key ? sanitizeKey(key) : generateKey("", folderPrefix);
 
@@ -132,7 +142,12 @@ async function uploadStream(stream, key, contentType, folderPrefix = "") {
  * @param {string} key
  */
 async function deleteObject(key) {
-  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!bucket) {
+    const err = new Error("S3 bucket not configured");
+    err.status = 500;
+    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    throw err;
+  }
   const safeKey = sanitizeKey(key);
   const cmd = new DeleteObjectCommand({ Bucket: bucket, Key: safeKey });
   return s3Client.send(cmd);
@@ -144,7 +159,12 @@ async function deleteObject(key) {
  * @returns {Promise<import('stream').Readable>}
  */
 async function getObjectStream(key) {
-  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!bucket) {
+    const err = new Error("S3 bucket not configured");
+    err.status = 500;
+    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    throw err;
+  }
   const safeKey = sanitizeKey(key);
   const cmd = new GetObjectCommand({ Bucket: bucket, Key: safeKey });
   const res = await s3Client.send(cmd);
@@ -158,7 +178,12 @@ async function getObjectStream(key) {
  * @returns {Promise<string>}
  */
 async function getSignedDownloadUrl(key, expiresIn = 900) {
-  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!bucket) {
+    const err = new Error("S3 bucket not configured");
+    err.status = 500;
+    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    throw err;
+  }
   const safeKey = sanitizeKey(key);
   const cmd = new GetObjectCommand({ Bucket: bucket, Key: safeKey });
   return getSignedUrl(s3Client, cmd, { expiresIn });
@@ -173,7 +198,12 @@ async function getSignedDownloadUrl(key, expiresIn = 900) {
  * @param {Array<{ buffer: Buffer, key?: string, contentType?: string, originalName?: string, jobId?: string }>} items
  */
 async function uploadBuffers(items, concurrency = 5) {
-  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!bucket) {
+    const err = new Error("S3 bucket not configured");
+    err.status = 500;
+    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    throw err;
+  }
   if (!Array.isArray(items) || items.length === 0) return [];
 
   const results = new Array(items.length);
@@ -227,7 +257,12 @@ async function uploadBuffers(items, concurrency = 5) {
  * Upload multiple streams – supports jobId per item
  */
 async function uploadStreams(items, concurrency = 5) {
-  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!bucket) {
+    const err = new Error("S3 bucket not configured");
+    err.status = 500;
+    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    throw err;
+  }
   if (!Array.isArray(items) || items.length === 0) return [];
 
   const results = new Array(items.length);
@@ -281,7 +316,12 @@ async function uploadStreams(items, concurrency = 5) {
  * Delete multiple objects (batched)
  */
 async function deleteObjects(keys) {
-  if (!bucket) throw new Error("S3 bucket not configured");
+  if (!bucket) {
+    const err = new Error("S3 bucket not configured");
+    err.status = 500;
+    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    throw err;
+  }
   if (!keys || keys.length === 0) return { Deleted: [], Errors: [] };
 
   const safeKeys = keys.map(sanitizeKey).filter(Boolean);
