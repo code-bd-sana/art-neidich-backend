@@ -1,9 +1,12 @@
 const mongoose = require("mongoose");
 
-const NotificationModel = require("../models/NotificationModel");
-const PushToken = require("../models/PushToken");
-const UserModel = require("../models/UserModel");
-const { sendToMany, sendToUser } = require("../services/NotificationServices");
+const NotificationModel = require("../../models/NotificationModel");
+const PushToken = require("../../models/PushToken");
+const UserModel = require("../../models/UserModel");
+const {
+  sendToMany,
+  sendToUser,
+} = require("../../services/NotificationServices");
 
 /**
  * Fetch all active admin users (roles 0 and 1)

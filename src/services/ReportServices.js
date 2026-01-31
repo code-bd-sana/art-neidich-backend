@@ -9,7 +9,7 @@ const NotificationModel = require("../models/NotificationModel");
 const ReportModel = require("../models/ReportModel");
 const { uploadStreams, deleteObjects } = require("../utils/s3");
 
-const { notifyAdmins } = require("../helpers/notification-helper");
+const { notifyAdmins } = require("../helpers/notification/notification-helper");
 
 /**
  * Create a new report

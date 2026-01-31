@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const { notifyAdmins } = require("../helpers/notification-helper");
+const { notifyAdmins } = require("../helpers/notification/notification-helper");
 const NotificationModel = require("../models/NotificationModel");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");

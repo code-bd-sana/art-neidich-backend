@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const { v4 } = require("uuid");
 
 const { generateToken } = require("../helpers/jwt/jwt-utils");
-const { notifyAdmins } = require("../helpers/notification-helper");
+const { notifyAdmins } = require("../helpers/notification/notification-helper");
 const {
   hashPassword,
   comparePassword,
