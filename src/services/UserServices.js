@@ -402,18 +402,18 @@ async function approveUser(userId) {
       }).select("_id firstName lastName email");
 
       // Get admin IDs as ObjectId instances
-      const adminIds = (admins || [])
-        .map((a) => new mongoose.Types.ObjectId(a._id))
-        .filter(Boolean);
+      const adminIds = (admins || []).map(
+        (a) => new mongoose.Types.ObjectId(a._id),
+      );
 
       // Fetch active device tokens for these admins
       const tokens = await PushToken.find({
-        user: { $in: adminIds },
-        active: true,
-      }).select("token -_id");
+        "users.user": { $in: adminIds },
+        "users.notificationActive": true,
+      }).select("token");
 
       // Extract token strings
-      const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+      const deviceTokens = (tokens || []).map((t) => t.token);
 
       // Create and send notification
       const types = NotificationModel.notificationTypes || {};
@@ -586,21 +586,18 @@ async function suspendUser(userId, currentUser) {
     }).select("_id firstName lastName email");
 
     // Convert admin IDs to ObjectId instances
-    const adminIds = (admins || [])
-      .map((a) => new mongoose.Types.ObjectId(a._id))
-      .filter(Boolean);
-
-    // Exclude the suspended user from recipients
-    const recipients = adminIds.filter((id) => String(id) !== String(user._id));
+    const adminIds = (admins || []).map(
+      (a) => new mongoose.Types.ObjectId(a._id),
+    );
 
     // Fetch active device tokens for these admins
     const tokens = await PushToken.find({
-      user: { $in: recipients },
-      active: true,
-    }).select("token -_id");
+      "users.user": { $in: adminIds },
+      "users.notificationActive": true,
+    }).select("token");
 
     // Extract token strings
-    const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+    const deviceTokens = (tokens || []).map((t) => t.token);
 
     // Create and send notification
     const types = NotificationModel.notificationTypes || {};
@@ -615,7 +612,7 @@ async function suspendUser(userId, currentUser) {
       },
       type: types.ACCOUNT_SUSPENDED || "account_suspended",
       authorId: null,
-      recipients,
+      recipients: adminIds,
       deviceTokens,
       status: "pending",
     });
@@ -632,8 +629,8 @@ async function suspendUser(userId, currentUser) {
         });
       }
       // Fallback: send to single admin user
-      else if (recipients.length === 1) {
-        sendResult = await sendToUser(recipients[0], {
+      else if (adminIds.length === 1) {
+        sendResult = await sendToUser(adminIds[0], {
           title: notif.title,
           body: notif.body,
           data: notif.data,
@@ -787,19 +784,18 @@ async function unSuspendUser(userId, currentUser) {
     }).select("_id firstName lastName email");
 
     // Convert admin IDs to ObjectId instances
-    const adminIds = (admins || [])
-      .map((a) => new mongoose.Types.ObjectId(a._id))
-      .filter(Boolean);
-    const recipients = adminIds.filter((id) => String(id) !== String(user._id));
+    const adminIds = (admins || []).map(
+      (a) => new mongoose.Types.ObjectId(a._id),
+    );
 
     // Fetch active device tokens for these admins
     const tokens = await PushToken.find({
-      user: { $in: recipients },
-      active: true,
-    }).select("token -_id");
+      "users.user": { $in: adminIds },
+      "users.notificationActive": true,
+    }).select("token");
 
     // Extract token strings
-    const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+    const deviceTokens = (tokens || []).map((t) => t.token);
 
     // Create and send notification
     const types = NotificationModel.notificationTypes || {};
@@ -814,7 +810,7 @@ async function unSuspendUser(userId, currentUser) {
       },
       type: types.ACCOUNT_REINSTATED || "account_reinstated",
       authorId: null,
-      recipients,
+      recipients: adminIds,
       deviceTokens,
       status: "pending",
     });
@@ -831,8 +827,8 @@ async function unSuspendUser(userId, currentUser) {
         });
       }
       // Fallback: send to single admin user
-      else if (recipients.length === 1) {
-        sendResult = await sendToUser(recipients[0], {
+      else if (adminIds.length === 1) {
+        sendResult = await sendToUser(adminIds[0], {
           title: notif.title,
           body: notif.body,
           data: notif.data,

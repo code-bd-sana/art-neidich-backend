@@ -194,20 +194,18 @@ async function createReport(payload) {
       }).select("_id firstName lastName email");
 
       // Get their active push tokens
-      const adminIds = (admins || [])
-        .map((a) => new mongoose.Types.ObjectId(a._id))
-        .filter(Boolean);
+      const adminIds = (admins || []).map(
+        (a) => new mongoose.Types.ObjectId(a._id),
+      );
 
       // Fetch active push tokens for admins
       const adminTokenDocs = await PushToken.find({
-        user: { $in: adminIds },
-        active: true,
-      }).select("token -_id");
+        "users.user": { $in: adminIds },
+        "users.notificationActive": true,
+      }).select("token");
 
       // Extract tokens
-      const adminDeviceTokens = (adminTokenDocs || [])
-        .map((t) => t.token)
-        .filter(Boolean);
+      const adminDeviceTokens = (adminTokenDocs || []).map((t) => t.token);
 
       // Determine notification type
       const types = NotificationModel.notificationTypes || {};
@@ -233,14 +231,11 @@ async function createReport(payload) {
 
         // Send to multiple or single based on tokens
         if (adminDeviceTokens.length > 0) {
-          sendResult = await sendToMany(
-            adminDeviceTokens,
-            {
-              title: adminNotif.title,
-              body: adminNotif.body,
-              data: adminNotif.data,
-            },
-          );
+          sendResult = await sendToMany(adminDeviceTokens, {
+            title: adminNotif.title,
+            body: adminNotif.body,
+            data: adminNotif.data,
+          });
         }
 
         // If no tokens but single admin, send to that user
@@ -704,20 +699,18 @@ async function updateReportStatus(id, updateData) {
     }).select("_id firstName lastName email");
 
     // Get their active push tokens
-    const adminIds = (admins || [])
-      .map((a) => new mongoose.Types.ObjectId(a._id))
-      .filter(Boolean);
+    const adminIds = (admins || []).map(
+      (a) => new mongoose.Types.ObjectId(a._id),
+    );
 
     // Fetch active push tokens for admins
     const adminTokenDocs = await PushToken.find({
-      user: { $in: adminIds },
-      active: true,
-    }).select("token -_id");
+      "users.user": { $in: adminIds },
+      "users.notificationActive": true,
+    }).select("token");
 
     // Extract tokens
-    const adminDeviceTokens = (adminTokenDocs || [])
-      .map((t) => t.token)
-      .filter(Boolean);
+    const adminDeviceTokens = (adminTokenDocs || []).map((t) => t.token);
 
     // Determine notification type
     const types = NotificationModel.notificationTypes || {};

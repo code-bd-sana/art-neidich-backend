@@ -320,14 +320,14 @@ async function registerUser(payload) {
           (a) => new mongoose.Types.ObjectId(a._id),
         );
 
-        // resolve device tokens for admins
+        // resolve device tokens for admins to send push notifications
         const tokens = await PushToken.find({
-          users: { $in: adminIds }, // user is an array of ObjectIds
-          active: true,
-        });
+          "users.user": { $in: adminIds },
+          "users.notificationActive": true,
+        }).select("token");
 
         // extract token strings
-        const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+        const deviceTokens = (tokens || []).map((t) => t.token);
 
         // create notification record
         const types = NotificationModel.notificationTypes || {};

@@ -7,9 +7,15 @@ const NotificationModel = require("../models/NotificationModel");
 const NotificationToken = require("../models/NotificationTokenModel");
 const PushToken = require("../models/PushToken");
 
-// Initialize firebase-admin once
+// ────────────────────────────────────────────────
+// Firebase initialization
+// ────────────────────────────────────────────────
 let initialized = false;
 
+/**
+ * Initialize Firebase Admin SDK
+ * @returns {void}
+ */
 function initFirebase() {
   if (initialized) return;
 
@@ -203,7 +209,7 @@ async function sendToUser(userId, payload = {}) {
     .select("token -_id")
     .lean();
 
-  const tokens = docs.map((d) => d.token).filter(Boolean);
+  const tokens = (docs || []).map((d) => d.token);
 
   log("sendToUser: tokens found", { userId, count: tokens.length });
 
@@ -219,6 +225,12 @@ async function sendToUser(userId, payload = {}) {
 // Message builders
 // ────────────────────────────────────────────────
 
+/**
+ * Build message for a single token
+ * @param {string} token
+ * @param {object} payload
+ * @return {object} Message object
+ */
 function buildMessage(token, payload = {}) {
   const { title, body, data, imageUrl } = payload;
 
@@ -241,6 +253,12 @@ function buildMessage(token, payload = {}) {
   return message;
 }
 
+/**
+ * Build multicast message for multiple tokens
+ * @param {string[]} tokens
+ * @param {object} payload
+ * @return {object} Multicast message
+ */
 function buildMulticast(tokens, payload = {}) {
   const { title, body, data, imageUrl } = payload;
 
@@ -262,6 +280,10 @@ function buildMulticast(tokens, payload = {}) {
   debug("buildMulticast", { tokenCount: tokens.length, title });
   return message;
 }
+
+// ────────────────────────────────────────────────
+// Other services
+// ────────────────────────────────────────────────
 
 /**
  * List notifications for a user with pagination

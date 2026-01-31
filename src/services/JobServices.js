@@ -29,14 +29,12 @@ async function createJob(payload) {
       if (inspectorId) {
         // Fetch active device tokens for the inspector
         const inspectorTokenDocs = await PushToken.find({
-          users: { $in: [new mongoose.Types.ObjectId(inspectorId)] },
-          active: true,
-        }).select("token -_id");
+          "users.user": new mongoose.Types.ObjectId(inspectorId),
+          "users.notificationActive": true,
+        }).select("token");
 
         // Extract tokens
-        const inspectorTokens = (inspectorTokenDocs || [])
-          .map((t) => t.token)
-          .filter(Boolean);
+        const inspectorTokens = (inspectorTokenDocs || []).map((t) => t.token);
 
         // Create notification for inspector
         const types = NotificationModel.notificationTypes || {};
@@ -100,20 +98,18 @@ async function createJob(payload) {
       }).select("_id firstName lastName email");
 
       // Fetch active device tokens for admins
-      const adminIds = (admins || [])
-        .map((a) => new mongoose.Types.ObjectId(a._id))
-        .filter(Boolean);
+      const adminIds = (admins || []).map(
+        (a) => new mongoose.Types.ObjectId(a._id),
+      );
 
       // Fetch active device tokens for admins
       const adminTokenDocs = await PushToken.find({
-        user: { $in: adminIds },
-        active: true,
-      }).select("token -_id");
+        "users.user": { $in: adminIds },
+        "users.notificationActive": true,
+      }).select("token");
 
       // Extract tokens
-      const adminDeviceTokens = (adminTokenDocs || [])
-        .map((t) => t.token)
-        .filter(Boolean);
+      const adminDeviceTokens = (adminTokenDocs || []).map((t) => t.token);
 
       // Create notification for admins
       const types = NotificationModel.notificationTypes || {};
