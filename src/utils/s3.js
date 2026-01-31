@@ -127,6 +127,10 @@ async function uploadStream(stream, key, contentType, folderPrefix = "") {
   };
 }
 
+/**
+ * Delete a single object
+ * @param {string} key
+ */
 async function deleteObject(key) {
   if (!bucket) throw new Error("S3 bucket not configured");
   const safeKey = sanitizeKey(key);
@@ -134,6 +138,11 @@ async function deleteObject(key) {
   return s3Client.send(cmd);
 }
 
+/**
+ * Get object as stream
+ * @param {string} key
+ * @returns {Promise<import('stream').Readable>}
+ */
 async function getObjectStream(key) {
   if (!bucket) throw new Error("S3 bucket not configured");
   const safeKey = sanitizeKey(key);
@@ -142,6 +151,12 @@ async function getObjectStream(key) {
   return res.Body;
 }
 
+/**
+ * Get signed download URL
+ * @param {string} key
+ * @param {number} [expiresIn=900] - Expiration time in seconds (default 15 mins)
+ * @returns {Promise<string>}
+ */
 async function getSignedDownloadUrl(key, expiresIn = 900) {
   if (!bucket) throw new Error("S3 bucket not configured");
   const safeKey = sanitizeKey(key);
