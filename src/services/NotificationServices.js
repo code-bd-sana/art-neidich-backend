@@ -379,7 +379,7 @@ async function registerToken(
 
     // Upsert the PushToken document
     const result = await PushToken.findOneAndUpdate(
-      { deviceId },
+      { deviceId, users: { $elemMatch: { user: userObjectId } } },
       {
         $set: {
           token,
