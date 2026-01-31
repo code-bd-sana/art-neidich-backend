@@ -5,7 +5,7 @@ const pushTokenSchema = new mongoose.Schema(
   {
     users: [
       {
-        // exclude _id for subdocuments
+        // exclude _id for sub documents
         _id: false,
         user: {
           type: mongoose.Schema.Types.ObjectId,
@@ -21,9 +21,14 @@ const pushTokenSchema = new mongoose.Schema(
           type: Boolean,
           default: true,
         }, // track if user is logged in on this device
-        loggedInLastUpdated: {
+        lastLoggedInAt: {
           type: Date,
+          default: null,
         }, // timestamp of last login status update
+        lastLoggedOutAt: {
+          type: Date,
+          default: null,
+        }, // timestamp of last logout status update
       },
     ],
     token: {
@@ -47,5 +52,11 @@ const pushTokenSchema = new mongoose.Schema(
 );
 
 pushTokenSchema.index({ "users.user": 1, "users.notificationActive": 1 });
+// Index to speed up queries that find stale logged-in sub documents
+pushTokenSchema.index({
+  "users.loggedInStatus": 1,
+  "users.lastLoggedInAt": 1,
+  "users.lastLoggedOutAt": 1,
+});
 
 module.exports = mongoose.model("PushToken", pushTokenSchema);

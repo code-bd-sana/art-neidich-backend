@@ -446,8 +446,9 @@ async function loginUser(payload) {
     },
     {
       $set: {
-        "users.$.loggedInStatus": true,
-        "users.$.loggedInLastUpdated": new Date(),
+        "users.$.loggedInStatus": true, // set loggedInStatus to true
+        "users.$.lastLoggedInAt": new Date(), // set lastLoggedInAt to now
+        "users.$.lastLoggedOutAt": null, // clear lastLoggedOutAt
         lastUsed: new Date(),
       },
     },
@@ -501,8 +502,9 @@ async function logoutUser(userId, payload) {
     },
     {
       $set: {
-        "users.$.loggedInStatus": false,
-        "users.$.loggedInLastUpdated": new Date(),
+        "users.$.loggedInStatus": false, // set loggedInStatus to false
+        "users.$.lastLoggedInAt": null, // clear lastLoggedInAt
+        "users.$.lastLoggedOutAt": new Date(), // set lastLoggedOutAt to now
         lastUsed: new Date(),
       },
     },

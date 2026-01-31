@@ -16,6 +16,7 @@ const morgan = require("morgan");
 
 const { pathNotFoundHelper } = require("./helpers/not-found");
 const errorHandler = require("./middleware/error-handler");
+const { startSessionCleaner } = require("./services/SessionCleaner");
 
 // Express app initialization
 const app = express();
@@ -208,6 +209,13 @@ app.use(pathNotFoundHelper);
 
 // Centralized error handler (must be last middleware)
 app.use(errorHandler);
+
+// Start background session cleaner to mark stale logged-in statuses false
+try {
+  startSessionCleaner();
+} catch (err) {
+  console.error("Failed to start session cleaner:", err);
+}
 
 // Module exports
 module.exports = app;

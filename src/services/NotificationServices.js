@@ -435,7 +435,7 @@ async function activeOrInactivePushNotification(userId, deviceId) {
     // Convert userId to ObjectId
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
-    // Find the only the user subdocument to get current status
+    // Find the only the user sub document to get current status
     const tokenDoc = await PushToken.findOne(
       { deviceId, "users.user": userObjectId },
       { "users.$": 1 },
