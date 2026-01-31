@@ -26,7 +26,7 @@ const { verifyOtpSchema } = require("../validators/auth/verifyOtp");
  */
 const forgotPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
+  max: 3, // limit each IP to 3 requests per windowMs
   message:
     "Too many password reset requests from this IP, please try again after 15 minutes",
 });
