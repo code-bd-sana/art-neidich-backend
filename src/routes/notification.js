@@ -86,16 +86,4 @@ router.put(
   activeOrInactivePushNotification,
 );
 
-/**
- * Get all active push tokens for the authenticated user
- *
- * @route GET /api/v1/notification/tokens
- * Private route to get user's active push tokens
- *
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-router.get("/tokens", authenticate, getUserPushTokens);
-
 module.exports = router;

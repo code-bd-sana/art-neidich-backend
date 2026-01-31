@@ -197,7 +197,7 @@ async function sendToUser(userId, payload = {}) {
   }
 
   const docs = await PushToken.find({
-    user: new mongoose.Types.ObjectId(userId),
+    users: { $in: [new mongoose.Types.ObjectId(userId)] },
     active: true,
   })
     .select("token -_id")
@@ -352,81 +352,87 @@ async function registerToken(
   deviceName = null,
 ) {
   try {
-    // Upsert the push details
+    // Convert userId to ObjectId
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    // Upsert the PushToken document
     const result = await PushToken.findOneAndUpdate(
-      { deviceId, user: new mongoose.Types.ObjectId(userId) }, // Find by deviceId and user
+      { deviceId },
       {
         $set: {
-          user: new mongoose.Types.ObjectId(userId),
-          platform,
           token,
-          deviceId,
+          platform,
           deviceName,
-          active: true,
           lastUsed: new Date(),
         },
         $setOnInsert: {
           createdAt: new Date(),
         },
+        $addToSet: {
+          users: {
+            user: userObjectId,
+            notificationActive: true, // default to active on registration
+          },
+        },
       },
       {
-        upsert: true, // Create if doesn't exist
-        new: true, // Return updated document
+        upsert: true,
+        new: true,
         runValidators: true,
       },
     );
 
     return result;
   } catch (err) {
-    logError(
-      "registerToken: upsert failed",
-      err && err.message ? err.message : err,
-    );
+    console.error("registerToken error:", err);
     throw err;
   }
 }
 
 /**
- * Active or Inactive a specific push notification for a device
+ * Active or Inactive a specific push notification for specific device and user
+ * @param {string} userId User ID
  * @param {string} deviceId Device ID
  */
-async function activeOrInactivePushNotification(deviceId) {
-  // Find the token by deviceId
-  const currentToken = await PushToken.findOne({ deviceId });
+async function activeOrInactivePushNotification(userId, deviceId) {
+  try {
+    // Convert userId to ObjectId
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
-  // If not found, throw error
-  if (!currentToken) {
-    logError("activeOrInactivePushNotification: not found", { deviceId });
-    const err = new Error("Push token not found");
-    err.status = 404;
-    err.code = "PUSH_TOKEN_NOT_FOUND";
+    // Find the only the user subdocument to get current status
+    const tokenDoc = await PushToken.findOne(
+      { deviceId, "users.user": userObjectId },
+      { "users.$": 1 },
+    );
+
+    const currentStatus = tokenDoc?.users?.[0]?.notificationActive;
+
+    if (!tokenDoc) {
+      const err = new Error("Device not found for the user");
+      err.status = 404;
+      err.code = "DEVICE_OR_USER_NOT_FOUND";
+      throw err;
+    }
+
+    // Update the notificationActive status for the specific user
+    const updated = await PushToken.findOneAndUpdate(
+      { deviceId, "users.user": userObjectId },
+      { $set: { "users.$.notificationActive": !currentStatus } },
+      { new: true },
+    );
+
+    if (!updated) {
+      const err = new Error("Device or user not found");
+      err.status = 404;
+      err.code = "DEVICE_OR_USER_NOT_FOUND";
+      throw err;
+    }
+
+    return updated;
+  } catch (err) {
+    console.error("toggle notification error:", err);
     throw err;
   }
-
-  // Toggle the active state
-  const currentActiveState = currentToken.active;
-
-  // Update the active state
-  const result = await PushToken.findOneAndUpdate(
-    { deviceId },
-    { $set: { active: !currentActiveState } },
-    { new: true },
-  );
-
-  return result;
-}
-
-/**
- * Get all active tokens for a user
- * @param {string} userId User ID
- */
-async function getUserTokens(userId) {
-  // Find active tokens for user
-  const tokens = await PushToken.find({
-    user: new mongoose.Types.ObjectId(userId),
-    active: true,
-  });
-  return tokens;
 }
 
 module.exports = {
@@ -437,5 +443,4 @@ module.exports = {
   getNotificationById,
   registerToken,
   activeOrInactivePushNotification,
-  getUserTokens,
 };

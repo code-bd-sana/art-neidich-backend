@@ -3,12 +3,20 @@ const mongoose = require("mongoose");
 
 const pushTokenSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
+    users: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+          index: true,
+        }, // reference to User model
+        notificationActive: {
+          type: Boolean,
+          default: true,
+        }, // toggle notifications per user
+      },
+    ],
     token: {
       type: String,
       required: true,
@@ -21,12 +29,9 @@ const pushTokenSchema = new mongoose.Schema(
     deviceId: {
       type: String,
       required: true,
+      unique: true,
     },
     deviceName: String, // optional: "Samsung Galaxy S23", "iPhone 15 Pro", etc.
-    active: {
-      type: Boolean,
-      default: true,
-    },
     lastUsed: Date, // track last usage
     createdAt: {
       type: Date,
@@ -38,6 +43,6 @@ const pushTokenSchema = new mongoose.Schema(
   { versionKey: false },
 );
 
-pushTokenSchema.index({ user: 1, active: 1 });
+pushTokenSchema.index({ "users.user": 1, "users.notificationActive": 1 });
 
 module.exports = mongoose.model("PushToken", pushTokenSchema);

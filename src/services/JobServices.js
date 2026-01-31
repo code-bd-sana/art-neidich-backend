@@ -29,7 +29,7 @@ async function createJob(payload) {
       if (inspectorId) {
         // Fetch active device tokens for the inspector
         const inspectorTokenDocs = await PushToken.find({
-          user: new mongoose.Types.ObjectId(inspectorId),
+          users: { $in: [new mongoose.Types.ObjectId(inspectorId)] },
           active: true,
         }).select("token -_id");
 

@@ -322,9 +322,9 @@ async function registerUser(payload) {
 
         // resolve device tokens for admins
         const tokens = await PushToken.find({
-          user: { $in: adminIds },
+          users: { $in: adminIds }, // user is an array of ObjectIds
           active: true,
-        }).select("token -_id");
+        });
 
         // extract token strings
         const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);

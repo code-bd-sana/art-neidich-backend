@@ -114,37 +114,15 @@ const activeOrInactivePushNotification = async (req, res, next) => {
     // Extract device ID from validated request body
     const { deviceId } = req.validated;
 
-    // Call service
-    await onOrOffPushNotification(deviceId);
-
-    res.json({
-      success: true,
-      message: "Push notification active state toggled successfully",
-      code: 200,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/**
- * Get all active tokens for the authenticated user
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
-const getUserPushTokens = async (req, res, next) => {
-  try {
     // Get user ID from authenticated request
     const userId = req.user._id;
 
     // Call service
-    const tokens = await getUserTokens(userId);
+    await onOrOffPushNotification(userId, deviceId);
 
     res.json({
       success: true,
-      message: "User push tokens fetched successfully",
-      data: tokens,
-      count: tokens.length,
+      message: "Push notification active state toggled successfully",
       code: 200,
     });
   } catch (err) {
@@ -157,5 +135,4 @@ module.exports = {
   getNotification,
   registerPushToken,
   activeOrInactivePushNotification,
-  getUserPushTokens,
 };
