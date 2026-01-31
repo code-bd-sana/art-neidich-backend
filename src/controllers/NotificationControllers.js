@@ -7,7 +7,6 @@ const {
   getNotificationById,
   registerToken,
   activeOrInactivePushNotification: onOrOffPushNotification,
-  getUserTokens,
 } = require("../services/NotificationServices");
 
 /**
