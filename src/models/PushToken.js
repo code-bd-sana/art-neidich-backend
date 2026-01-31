@@ -33,14 +33,8 @@ const pushTokenSchema = new mongoose.Schema(
     },
     deviceName: String, // optional: "Samsung Galaxy S23", "iPhone 15 Pro", etc.
     lastUsed: Date, // track last usage
-    createdAt: {
-      type: Date,
-      default: Date.now,
-      // Optional: auto-remove very old/inactive tokens after 1 year
-      // expires: 31536000
-    },
   },
-  { versionKey: false },
+  { timestamps: true, versionKey: false },
 );
 
 pushTokenSchema.index({ "users.user": 1, "users.notificationActive": 1 });
