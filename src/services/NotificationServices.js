@@ -377,9 +377,23 @@ async function registerToken(
     // Convert userId to ObjectId
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
+    // Check if a PushToken document already exists for this deviceId and user
+    const existing = await PushToken.findOne({
+      deviceId,
+      "users.user": userObjectId,
+    });
+
+    // If already registered, skip
+    if (existing) {
+      console.log(
+        `User ${userId} already registered on device ${deviceId} — skipping`,
+      );
+      return null;
+    }
+
     // Upsert the PushToken document
     const result = await PushToken.findOneAndUpdate(
-      { deviceId, users: { $elemMatch: { user: userObjectId } } },
+      { deviceId },
       {
         $set: {
           token,
@@ -393,7 +407,7 @@ async function registerToken(
         $addToSet: {
           users: {
             user: userObjectId,
-            notificationActive: true, // default to active on registration
+            notificationActive: true,
           },
         },
       },

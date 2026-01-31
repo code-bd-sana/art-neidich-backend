@@ -5,6 +5,8 @@ const pushTokenSchema = new mongoose.Schema(
   {
     users: [
       {
+        // exclude _id for subdocuments
+        _id: false,
         user: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
