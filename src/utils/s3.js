@@ -39,6 +39,11 @@ const s3Client = new S3Client({
 // ────────────────────────────────────────────────
 // UTILITY FUNCTIONS
 // ────────────────────────────────────────────────
+/**
+ * Sanitize S3 object key to prevent path traversal
+ * @param {string} key
+ * @returns {string}
+ */
 function sanitizeKey(key) {
   if (!key) return "";
   // Remove leading/trailing slashes, prevent path traversal
@@ -52,9 +57,12 @@ function sanitizeKey(key) {
  * @returns {string} e.g. "507f191e810c19729de860ea/uuid.jpg"
  */
 function generateKey(originalName = "", folderPrefix = "") {
+  // Get file extension
   const ext = path.extname(originalName || "") || "";
+  // Generate unique filename
   const uniquePart = `${uuidv4()}${ext}`;
 
+  // If folderPrefix (jobId) provided, prepend it
   if (folderPrefix) {
     const cleanPrefix = sanitizeKey(folderPrefix);
     return cleanPrefix ? `${cleanPrefix}/${uniquePart}` : uniquePart;
@@ -74,6 +82,7 @@ function generateKey(originalName = "", folderPrefix = "") {
  * @param {string} [jobId] - If provided & no custom key, uses jobId/ prefix
  */
 async function uploadBuffer(buffer, key, contentType, folderPrefix = "") {
+  // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
     err.status = 500;
@@ -81,8 +90,10 @@ async function uploadBuffer(buffer, key, contentType, folderPrefix = "") {
     throw err;
   }
 
+  // Determine final key
   const finalKey = key ? sanitizeKey(key) : generateKey("", folderPrefix);
 
+  // Upload
   const upload = new Upload({
     client: s3Client,
     params: {
@@ -93,6 +104,7 @@ async function uploadBuffer(buffer, key, contentType, folderPrefix = "") {
     },
   });
 
+  // Await upload completion
   const result = await upload.done();
 
   return {
@@ -108,6 +120,7 @@ async function uploadBuffer(buffer, key, contentType, folderPrefix = "") {
  * Same logic as uploadBuffer
  */
 async function uploadStream(stream, key, contentType, folderPrefix = "") {
+  // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
     err.status = 500;
@@ -115,8 +128,10 @@ async function uploadStream(stream, key, contentType, folderPrefix = "") {
     throw err;
   }
 
+  // Determine final key
   const finalKey = key ? sanitizeKey(key) : generateKey("", folderPrefix);
 
+  // Upload
   const upload = new Upload({
     client: s3Client,
     params: {
@@ -127,6 +142,7 @@ async function uploadStream(stream, key, contentType, folderPrefix = "") {
     },
   });
 
+  // Await upload completion
   const result = await upload.done();
 
   return {
@@ -142,14 +158,21 @@ async function uploadStream(stream, key, contentType, folderPrefix = "") {
  * @param {string} key
  */
 async function deleteObject(key) {
+  // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
     err.status = 500;
     err.code = "S3_BUCKET_NOT_CONFIGURED";
     throw err;
   }
+
+  // Sanitize key
   const safeKey = sanitizeKey(key);
+
+  // Delete command
   const cmd = new DeleteObjectCommand({ Bucket: bucket, Key: safeKey });
+
+  // Execute delete
   return s3Client.send(cmd);
 }
 
@@ -159,15 +182,23 @@ async function deleteObject(key) {
  * @returns {Promise<import('stream').Readable>}
  */
 async function getObjectStream(key) {
+  // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
     err.status = 500;
     err.code = "S3_BUCKET_NOT_CONFIGURED";
     throw err;
   }
+
+  // Sanitize key
   const safeKey = sanitizeKey(key);
+
+  // Get command
   const cmd = new GetObjectCommand({ Bucket: bucket, Key: safeKey });
+
+  // Execute get
   const res = await s3Client.send(cmd);
+
   return res.Body;
 }
 
@@ -178,14 +209,20 @@ async function getObjectStream(key) {
  * @returns {Promise<string>}
  */
 async function getSignedDownloadUrl(key, expiresIn = 900) {
+  // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
     err.status = 500;
     err.code = "S3_BUCKET_NOT_CONFIGURED";
     throw err;
   }
+
+  // Sanitize key
   const safeKey = sanitizeKey(key);
+
+  // Get command
   const cmd = new GetObjectCommand({ Bucket: bucket, Key: safeKey });
+
   return getSignedUrl(s3Client, cmd, { expiresIn });
 }
 
@@ -198,25 +235,38 @@ async function getSignedDownloadUrl(key, expiresIn = 900) {
  * @param {Array<{ buffer: Buffer, key?: string, contentType?: string, originalName?: string, jobId?: string }>} items
  */
 async function uploadBuffers(items, concurrency = 5) {
+  // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
     err.status = 500;
     err.code = "S3_BUCKET_NOT_CONFIGURED";
     throw err;
   }
+
+  // Return early if no items
   if (!Array.isArray(items) || items.length === 0) return [];
 
+  // Process items with concurrency control
   const results = new Array(items.length);
+
+  // Create a queue of items to process
   const queue = items.map((it, ix) => ({ item: it, ix }));
 
+  // Worker function to process items
   async function processNext() {
     while (queue.length > 0) {
+      // Get next item from the queue
       const { item, ix } = queue.shift();
+
+      // Upload each item
       try {
+        // Determine safe key
         const safeKey = sanitizeKey(
           item.key ||
             generateKey(item.originalName || "", item.folderPrefix || ""),
         );
+
+        // Create upload
         const upload = new Upload({
           client: s3Client,
           params: {
@@ -227,8 +277,10 @@ async function uploadBuffers(items, concurrency = 5) {
           },
         });
 
+        // Await upload completion
         const result = await upload.done();
 
+        // Store result
         results[ix] = {
           status: "fulfilled",
           value: {
@@ -244,10 +296,13 @@ async function uploadBuffers(items, concurrency = 5) {
     }
   }
 
+  // Start worker pool
   const workers = Array.from(
     { length: Math.min(concurrency, items.length) },
     () => processNext(),
   );
+
+  // Wait for all workers to complete
   await Promise.all(workers);
 
   return results;
@@ -257,25 +312,36 @@ async function uploadBuffers(items, concurrency = 5) {
  * Upload multiple streams – supports jobId per item
  */
 async function uploadStreams(items, concurrency = 5) {
+  // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
     err.status = 500;
     err.code = "S3_BUCKET_NOT_CONFIGURED";
     throw err;
   }
+
+  // Return early if no items
   if (!Array.isArray(items) || items.length === 0) return [];
 
+  // Process items with concurrency control
   const results = new Array(items.length);
+
+  // Create a queue of items to process
   const queue = items.map((it, ix) => ({ item: it, ix }));
 
+  // Worker function to process items
   async function processNext() {
     while (queue.length > 0) {
+      // Get next item from the queue
       const { item, ix } = queue.shift();
       try {
+        // Determine safe key
         const safeKey = sanitizeKey(
           item.key ||
             generateKey(item.originalName || "", item.folderPrefix || ""),
         );
+
+        // Create upload
         const upload = new Upload({
           client: s3Client,
           params: {
@@ -286,8 +352,10 @@ async function uploadStreams(items, concurrency = 5) {
           },
         });
 
+        // Await upload completion
         const result = await upload.done();
 
+        // Store result
         results[ix] = {
           status: "fulfilled",
           value: {
@@ -303,10 +371,13 @@ async function uploadStreams(items, concurrency = 5) {
     }
   }
 
+  // Start worker pool
   const workers = Array.from(
     { length: Math.min(concurrency, items.length) },
     () => processNext(),
   );
+
+  // Wait for all workers to complete
   await Promise.all(workers);
 
   return results;
@@ -316,22 +387,32 @@ async function uploadStreams(items, concurrency = 5) {
  * Delete multiple objects (batched)
  */
 async function deleteObjects(keys) {
+  // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
     err.status = 500;
     err.code = "S3_BUCKET_NOT_CONFIGURED";
     throw err;
   }
+
+  // Return early if no keys
   if (!keys || keys.length === 0) return { Deleted: [], Errors: [] };
 
+  // Sanitize keys and chunk into batches of 1000
   const safeKeys = keys.map(sanitizeKey).filter(Boolean);
+
+  // Chunking
   const chunks = [];
+
+  // AWS S3 DeleteObjects API allows max 1000 keys per request
   for (let i = 0; i < safeKeys.length; i += 1000) {
     chunks.push(safeKeys.slice(i, i + 1000));
   }
 
+  // Aggregate results
   const finalResult = { Deleted: [], Errors: [] };
 
+  // Process each chunk
   for (const chunk of chunks) {
     const cmd = new DeleteObjectsCommand({
       Bucket: bucket,
@@ -341,8 +422,13 @@ async function deleteObjects(keys) {
       },
     });
 
+    // Execute delete
     const response = await s3Client.send(cmd);
+
+    // Aggregate results
     if (response.Deleted) finalResult.Deleted.push(...(response.Deleted || []));
+
+    // Aggregate errors
     if (response.Errors) finalResult.Errors.push(...(response.Errors || []));
   }
 

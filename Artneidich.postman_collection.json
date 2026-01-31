@@ -1354,6 +1354,355 @@
           "description": "Delete an image label (admin/root only)."
         }
       ]
+    },
+    {
+      "name": "Inspector",
+      "item": [
+        {
+          "name": "Inspector Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/inspector/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inspector",
+                "overview"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Inspector overview fetched successfully\",\n  \"data\": {},\n  \"code\": 200\n}"
+            }
+          ],
+          "description": "Get inspector overview statistics."
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Admin Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "overview"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Admin overview fetched successfully\",\n  \"data\": {},\n  \"code\": 200\n}"
+            }
+          ],
+          "description": "Get admin overview statistics."
+        }
+      ]
+    },
+    {
+      "name": "Email",
+      "item": [
+        {
+          "name": "Support",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/email/support",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "email",
+                "support"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Support request\",\n  \"message\": \"Please help with...\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Support email sent\",\n  \"code\": 200\n}"
+            }
+          ],
+          "description": "Send a support email (authenticated users)."
+        }
+      ]
+    },
+    {
+      "name": "Notification",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notification?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notifications fetched successfully\",\n  \"data\": [],\n  \"code\": 200\n}"
+            }
+          ],
+          "description": "List notifications for the authenticated user."
+        },
+        {
+          "name": "Get Notification By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notification/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification",
+                ":id"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notification fetched successfully\",\n  \"data\": {},\n  \"code\": 200\n}"
+            }
+          ],
+          "description": "Get a notification by ID."
+        },
+        {
+          "name": "Register Push Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notification/token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification",
+                "token"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"device-123\",\n  \"token\": \"push-token-value\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Push token registered\",\n  \"code\": 200\n}"
+            }
+          ],
+          "description": "Register a push token for the authenticated user."
+        },
+        {
+          "name": "Activate/Deactivate Push Token",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notification/:deviceId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification",
+                ":deviceId"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Push token updated\",\n  \"code\": 200\n}"
+            }
+          ],
+          "description": "Activate or deactivate a push token for a specific device."
+        }
+      ]
+    },
+    {
+      "name": "Test",
+      "item": [
+        {
+          "name": "Single Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test/single-upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test",
+                "single-upload"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"File uploaded successfully\"\n}"
+            }
+          ],
+          "description": "Public test route to upload a single file."
+        },
+        {
+          "name": "Multiple Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/test/multiple-upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test",
+                "multiple-upload"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "200 OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"Files uploaded successfully\"\n}"
+            }
+          ],
+          "description": "Public test route to upload multiple files."
+        }
+      ]
     }
   ]
 }
