@@ -6,6 +6,7 @@ const rateLimit = require("express-rate-limit");
 const {
   register,
   login,
+  logout,
   forgotPassword,
   resetPassword,
   changePassword,
@@ -16,6 +17,7 @@ const { validate } = require("../utils/validator");
 const { changePasswordSchema } = require("../validators/auth/changePassword");
 const { forgotPasswordSchema } = require("../validators/auth/forgotPassword");
 const { loginSchema } = require("../validators/auth/login");
+const { logoutSchema } = require("../validators/auth/logout");
 const { registerSchema } = require("../validators/auth/register");
 const { resetPasswordSchema } = require("../validators/auth/resetPassword");
 const { verifyOtpSchema } = require("../validators/auth/verifyOtp");
@@ -57,6 +59,23 @@ router.post(
  * @param {import('express').NextFunction} next
  */
 router.post("/login", validate(loginSchema, { target: "body" }), login);
+
+/**
+ * Handle user logout
+ *
+ * @route POST /api/v1/auth/logout
+ * Private route to log out a user
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+router.post(
+  "/logout",
+  authenticate,
+  validate(logoutSchema, { target: "body" }),
+  logout,
+);
 
 /**
  * Handle forgot password request

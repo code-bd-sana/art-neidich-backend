@@ -36,10 +36,11 @@ function extractUserIds(users) {
  * @returns {Promise<Array<string>>} - Array of device token strings
  */
 async function getActiveTokensForUsers(userIds) {
-  // Query for active tokens linked to the specified users
+  // Query for active tokens linked to the specified users with notificationActive and loggedInStatus true
   const tokenDocs = await PushToken.find({
     "users.user": { $in: userIds },
     "users.notificationActive": true,
+    "users.loggedInStatus": true,
   }).select("token");
 
   return (tokenDocs || []).map((t) => t.token);

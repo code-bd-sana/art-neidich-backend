@@ -10,6 +10,7 @@ const {
   comparePassword,
 } = require("../helpers/password/password-util");
 const NotificationModel = require("../models/NotificationModel");
+const PushToken = require("../models/PushTokenModel");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
 
@@ -360,7 +361,7 @@ async function registerUser(payload) {
  */
 async function loginUser(payload) {
   // Destructure payload
-  const { email, password } = payload;
+  const { deviceId, email, password } = payload;
 
   // Find user by email
   const user = await UserModel.findOne({ email });
@@ -437,6 +438,21 @@ async function loginUser(payload) {
     2: "Inspector",
   };
 
+  // update the PushToken document to to update loggedInStatus to true for this user for this device
+  await PushToken.findOneAndUpdate(
+    {
+      deviceId,
+      "users.user": user._id,
+    },
+    {
+      $set: {
+        "users.$.loggedInStatus": true,
+        "users.$.loggedInLastUpdated": new Date(),
+        lastUsed: new Date(),
+      },
+    },
+  );
+
   return {
     user: {
       firstName: user.firstName,
@@ -446,6 +462,53 @@ async function loginUser(payload) {
     },
     token,
   };
+}
+
+/**
+ * Logout user by invalidating their token
+ *
+ * @param {{deviceId: string}} payload
+ * @param {string} userId
+ * @returns {Promise<void>}
+ */
+async function logoutUser(userId, payload) {
+  // Destructure payload
+  const { deviceId } = payload;
+
+  // Off the push notification for this device
+  // Convert userId to ObjectId
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  // Check if a PushToken document already exists for this deviceId and user
+  const existing = await PushToken.findOne({
+    deviceId,
+    "users.user": userObjectId,
+  });
+
+  // If already registered, skip
+  if (existing) {
+    console.log(
+      `User ${userId} isn't registered on device ${deviceId} — skipping`,
+    );
+    return;
+  }
+
+  // update the PushToken document to to update loggedInStatus to false for this user for this device
+  const updated = await PushToken.findOneAndUpdate(
+    {
+      deviceId,
+      "users.user": userObjectId,
+    },
+    {
+      $set: {
+        "users.$.loggedInStatus": false,
+        "users.$.loggedInLastUpdated": new Date(),
+        lastUsed: new Date(),
+      },
+    },
+  );
+
+  return;
 }
 
 /**
@@ -1027,6 +1090,7 @@ async function verifyOtp(payload) {
 module.exports = {
   registerUser,
   loginUser,
+  logoutUser,
   initiateForgotPassword,
   resetUserPassword,
   changeUserPassword,

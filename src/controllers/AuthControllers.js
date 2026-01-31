@@ -1,6 +1,7 @@
 const {
   registerUser,
   loginUser,
+  logoutUser,
   initiateForgotPassword,
   resetUserPassword,
   changeUserPassword,
@@ -54,6 +55,34 @@ async function login(req, res, next) {
       message: "Login successful",
       token,
       user,
+      code: 200,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * Handle user logout
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function logout(req, res, next) {
+  try {
+    // Get validated payload
+    const payload = req.validated;
+
+    // Get user ID from authenticated user
+    const userId = req.user?._id;
+
+    // Call service
+    await logoutUser(userId, payload);
+
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful",
       code: 200,
     });
   } catch (err) {

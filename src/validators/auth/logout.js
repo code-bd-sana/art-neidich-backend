@@ -1,11 +1,11 @@
 const { z } = require("zod");
 
 /**
- * Validation schema for user login
+ * Validation schema for user logout
  *
  * @type {import("zod").ZodObject}
  */
-const loginSchema = z
+const logoutSchema = z
   .object({
     deviceId: z
       .string({
@@ -13,9 +13,7 @@ const loginSchema = z
       })
       .max(100, { message: "Device ID must not exceed 100 characters" })
       .trim(),
-    email: z.string().email("Invalid email address").trim(),
-    password: z.string().min(6, "Password must be at least 6 characters"),
   })
   .strict();
 
-module.exports = { loginSchema };
+module.exports = { logoutSchema };
