@@ -4,16 +4,14 @@ const mongoose = require("mongoose");
 const { v4 } = require("uuid");
 
 const { generateToken } = require("../helpers/jwt/jwt-utils");
+const { notifyAdmins } = require("../helpers/notification-helper");
 const {
   hashPassword,
   comparePassword,
 } = require("../helpers/password/password-util");
 const NotificationModel = require("../models/NotificationModel");
-const PushToken = require("../models/PushToken");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
-
-const { sendToMany, sendToUser } = require("./NotificationServices");
 
 /**
  * Register a new user
@@ -308,79 +306,18 @@ async function registerUser(payload) {
     // If this is an inspector or admin registration (role 1, 2), notify admins (role 0 and 1)
     try {
       if (role === 1 || role === 2) {
-        // find admin users
-        const admins = await UserModel.find({
-          role: { $in: [0, 1] },
-          isSuspended: false,
-          isApproved: true,
-        }).select("_id firstName lastName email");
-
-        // extract admin IDs
-        const adminIds = (admins || []).map(
-          (a) => new mongoose.Types.ObjectId(a._id),
-        );
-
-        // resolve device tokens for admins to send push notifications
-        const tokens = await PushToken.find({
-          "users.user": { $in: adminIds },
-          "users.notificationActive": true,
-        }).select("token");
-
-        // extract token strings
-        const deviceTokens = (tokens || []).map((t) => t.token);
-
-        // create notification record
         const types = NotificationModel.notificationTypes || {};
 
-        // create notification
-        const notif = await NotificationModel.create({
-          title: `New ${roleNames === 1 ? "admin" : "inspector"} registration`,
-          body: `${firstName} ${lastName} has registered as an ${role === 1 ? "admin" : "inspector"} and is awaiting approval.`,
-          data: { userId: new mongoose.Types.ObjectId(newUser._id), role },
+        await notifyAdmins({
           type:
             role === 1
               ? types.REGISTERED_AS_ADMIN || "registered_as_admin"
               : types.REGISTERED_AS_INSPECTOR || "registered_as_inspector",
+          title: `New ${roleNames === 1 ? "admin" : "inspector"} registration`,
+          body: `${firstName} ${lastName} has registered as an ${role === 1 ? "admin" : "inspector"} and is awaiting approval.`,
+          data: { userId: new mongoose.Types.ObjectId(newUser._id), role },
           authorId: new mongoose.Types.ObjectId(newUser._id),
-          recipients: adminIds,
-          deviceTokens,
-          status: "pending",
         });
-
-        // attempt to send push notifications
-        try {
-          // Send notifications to device tokens or individual admins
-          let sendResult = null;
-          if (deviceTokens.length > 0) {
-            // send to many
-            sendResult = await sendToMany(deviceTokens, {
-              title: notif.title,
-              body: notif.body,
-              data: notif.data,
-            });
-          }
-
-          // send to single user
-          else if (adminIds.length === 1) {
-            sendResult = await sendToUser(adminIds[0], {
-              title: notif.title,
-              body: notif.body,
-              data: notif.data,
-            });
-          } else {
-            sendResult = { warning: "no-targets" };
-          }
-
-          notif.status = "sent";
-          notif.result = sendResult;
-          notif.sentAt = new Date();
-          // save notification result
-          await notif.save();
-        } catch (sendErr) {
-          notif.status = "failed";
-          notif.result = { error: sendErr.message || String(sendErr) };
-          await notif.save();
-        }
       }
     } catch (e) {
       // swallow notification errors to avoid blocking registration

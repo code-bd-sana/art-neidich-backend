@@ -6,15 +6,10 @@ const mongoose = require("mongoose");
 const ImageLabelModel = require("../models/ImageLabelModel");
 const JobModel = require("../models/JobModel");
 const NotificationModel = require("../models/NotificationModel");
-const PushToken = require("../models/PushToken");
 const ReportModel = require("../models/ReportModel");
-const UserModel = require("../models/UserModel");
 const { uploadStreams, deleteObjects } = require("../utils/s3");
 
-const {
-  sendToMany,
-  sendToUser,
-} = require("./../services/NotificationServices");
+const { notifyAdmins } = require("../helpers/notification-helper");
 
 /**
  * Create a new report
@@ -184,34 +179,11 @@ async function createReport(payload) {
 
     console.log("Report fully updated with S3 URLs");
 
-    // If the report is created and images uploaded successfully, then send the notifications to the admin users - (roles 0 and 1)
+    // Notify admins about new report submission
     try {
-      // Fetch all admin users
-      const admins = await UserModel.find({
-        role: { $in: [0, 1] },
-        isSuspended: false,
-        isApproved: true,
-      }).select("_id firstName lastName email");
-
-      // Get their active push tokens
-      const adminIds = (admins || []).map(
-        (a) => new mongoose.Types.ObjectId(a._id),
-      );
-
-      // Fetch active push tokens for admins
-      const adminTokenDocs = await PushToken.find({
-        "users.user": { $in: adminIds },
-        "users.notificationActive": true,
-      }).select("token");
-
-      // Extract tokens
-      const adminDeviceTokens = (adminTokenDocs || []).map((t) => t.token);
-
-      // Determine notification type
       const types = NotificationModel.notificationTypes || {};
 
-      // Create notification for admins
-      const adminNotif = await NotificationModel.create({
+      await notifyAdmins({
         type: types.NEW_REPORT || "new_report",
         title: "New Report Submitted",
         body: `A new report has been submitted by ${payload.inspectorName || "an inspector"}.`,
@@ -220,53 +192,8 @@ async function createReport(payload) {
           jobId: new mongoose.Types.ObjectId(jobId),
           action: "view_report",
         },
-        recipients: adminIds,
         authorId: new mongoose.Types.ObjectId(payload.inspector),
-        status: "pending",
       });
-
-      // Send notifications
-      try {
-        let sendResult = null;
-
-        // Send to multiple or single based on tokens
-        if (adminDeviceTokens.length > 0) {
-          sendResult = await sendToMany(adminDeviceTokens, {
-            title: adminNotif.title,
-            body: adminNotif.body,
-            data: adminNotif.data,
-          });
-        }
-
-        // If no tokens but single admin, send to that user
-        else if (adminIds.length === 1) {
-          sendResult = await sendToUser(adminIds[0], {
-            title: adminNotif.title,
-            body: adminNotif.body,
-            data: adminNotif.data,
-          });
-        }
-
-        // If no targets, note that
-        else {
-          sendResult = { warning: "no-targets" };
-        }
-
-        // Update notification status
-        adminNotif.status = "sent";
-        adminNotif.result = sendResult;
-        adminNotif.sentAt = new Date();
-
-        // Save notification status
-        await adminNotif.save();
-      } catch (sendErr) {
-        // On error, update notification as failed
-        adminNotif.status = "failed";
-        adminNotif.result = { error: sendErr.message || String(sendErr) };
-
-        // Save notification failure
-        await adminNotif.save();
-      }
     } catch (e) {
       console.error("Failed to create/send job report notifications:", e);
     }
@@ -689,34 +616,11 @@ async function updateReportStatus(id, updateData) {
     throw err;
   }
 
-  // If the report status updated successfully, then send the notifications to the admin users - (roles 0 and 1)
+  // If the report status updated successfully, then notify admin users
   try {
-    // Fetch all admin users
-    const admins = await UserModel.find({
-      role: { $in: [0, 1] },
-      isSuspended: false,
-      isApproved: true,
-    }).select("_id firstName lastName email");
-
-    // Get their active push tokens
-    const adminIds = (admins || []).map(
-      (a) => new mongoose.Types.ObjectId(a._id),
-    );
-
-    // Fetch active push tokens for admins
-    const adminTokenDocs = await PushToken.find({
-      "users.user": { $in: adminIds },
-      "users.notificationActive": true,
-    }).select("token");
-
-    // Extract tokens
-    const adminDeviceTokens = (adminTokenDocs || []).map((t) => t.token);
-
-    // Determine notification type
     const types = NotificationModel.notificationTypes || {};
 
-    // Create notification for admins
-    const adminNotif = await NotificationModel.create({
+    await notifyAdmins({
       type: types.REPORT_STATUS_UPDATED || "report_status_updated",
       title: "Report Status Updated",
       body: `The status of a report has been updated to "${status}".`,
@@ -724,50 +628,8 @@ async function updateReportStatus(id, updateData) {
         reportId: new mongoose.Types.ObjectId(id),
         action: "view_report",
       },
-      recipients: adminIds,
       authorId: new mongoose.Types.ObjectId(lastUpdatedBy),
-      status: "pending",
     });
-
-    // Send notifications
-    try {
-      let sendResult = null;
-
-      // Send to multiple or single based on tokens
-      if (adminDeviceTokens.length > 0) {
-        sendResult = await sendToMany(adminDeviceTokens, {
-          title: adminNotif.title,
-          body: adminNotif.body,
-          data: adminNotif.data,
-        });
-      }
-      // If no tokens but single admin, send to that user
-      else if (adminIds.length === 1) {
-        sendResult = await sendToUser(adminIds[0], {
-          title: adminNotif.title,
-          body: adminNotif.body,
-          data: adminNotif.data,
-        });
-      }
-      // If no targets, note that
-      else {
-        sendResult = { warning: "no-targets" };
-      }
-
-      // Update notification status
-      adminNotif.status = "sent";
-      adminNotif.result = sendResult;
-      adminNotif.sentAt = new Date();
-
-      // Save notification status
-      await adminNotif.save();
-    } catch (sendErr) {
-      // On error, update notification as failed
-      adminNotif.status = "failed";
-      adminNotif.result = { error: sendErr.message || String(sendErr) };
-      // Save notification failure
-      await adminNotif.save();
-    }
   } catch (error) {
     console.error("Error sending notification to admins:", error);
   }
