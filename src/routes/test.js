@@ -32,7 +32,6 @@ router.post(
     try {
       // prefer explicit field name 'image' for single upload
       function getFilesFromReq(req) {
-        console.log(req);
         // If multer.single('image') used -> req.file
         if (req.file) return [req.file];
 

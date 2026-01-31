@@ -81,8 +81,6 @@ const registerPushToken = async (req, res, next) => {
     // Get user ID from authenticated request
     const userId = req.user._id;
 
-    console.log(userId, token, platform, deviceId, deviceName);
-
     // Call service
     const result = await registerToken(
       userId,

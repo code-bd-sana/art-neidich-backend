@@ -7,7 +7,6 @@ const {
   getNotification,
   registerPushToken,
   activeOrInactivePushNotification,
-  getUserPushTokens,
 } = require("../controllers/NotificationControllers");
 const { authenticate } = require("../middleware/auth");
 const { validate } = require("../utils/validator");

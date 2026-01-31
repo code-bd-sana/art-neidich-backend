@@ -99,7 +99,6 @@ async function sendMail({ to, subject, text, html, attachments } = {}) {
   } catch (err) {
     // Log detailed error for troubleshooting
     try {
-      console.log(err);
       logError(err, { mailOptions });
     } catch (e) {
       // swallow logging errors

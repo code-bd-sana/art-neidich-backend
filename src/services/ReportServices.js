@@ -111,10 +111,6 @@ async function createReport(payload) {
 
     // Only upload if there are images with buffers
     if (toUpload.length > 0) {
-      console.log(
-        `Uploading ${toUpload.length} images to folder: ${folderPrefix}`,
-      );
-
       // Prepare upload items
       const uploadItems = toUpload.map((img, index) => ({
         stream: Readable.from(img.buffer),
@@ -178,8 +174,6 @@ async function createReport(payload) {
     // Update the report document with final image data
     report.images = finalImages;
     await report.save();
-
-    console.log("Report fully updated with S3 URLs");
 
     // Notify admins about new report submission
     try {

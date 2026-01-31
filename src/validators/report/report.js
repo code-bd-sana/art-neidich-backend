@@ -70,15 +70,8 @@ const updateReportStatusSchema = z
 
 // Merge multer files into req.body.images before validation
 const handleGroupedImages = (req, res, next) => {
-  console.log("=== handleGroupedImages started ===");
-  console.log("request body:", req.body);
-  console.log(
-    "request files:",
-    req.files?.map((f) => f.originalname),
-  );
 
   if (!req.files?.length) {
-    console.log("No files → skipping");
     return next();
   }
 
@@ -87,7 +80,6 @@ const handleGroupedImages = (req, res, next) => {
     try {
       const cleaned = req.body.images.trim().replace(/\n\s*/g, " ");
       groups = JSON.parse(cleaned);
-      console.log("Parsed groups:", groups);
     } catch (e) {
       console.error("JSON parse error:", e.message);
       return res
@@ -109,8 +101,6 @@ const handleGroupedImages = (req, res, next) => {
   for (const group of groups) {
     const labelId = group.imageLabel;
     const expectedCount = Number(group.images?.length || 0);
-
-    console.log(`Group: ${labelId}, expected: ${expectedCount}`);
 
     if (expectedCount > 2) {
       return res.status(400).json({
@@ -151,9 +141,6 @@ const handleGroupedImages = (req, res, next) => {
 
   // Clean up original JSON field
   delete req.body.images;
-
-  console.log("Processed count:", processedImages.length);
-  console.log("=== handleGroupedImages finished ===");
 
   next();
 };
