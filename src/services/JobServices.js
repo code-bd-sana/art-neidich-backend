@@ -1,6 +1,12 @@
 const mongoose = require("mongoose");
 
+const {
+  notifyAdmins,
+  notifyUser,
+} = require("../helpers/notification/notification-helper");
 const JobModel = require("../models/JobModel");
+const NotificationModel = require("../models/NotificationModel");
+const ReportModel = require("../models/ReportModel");
 
 /**
  * Create a new job
@@ -11,6 +17,43 @@ const JobModel = require("../models/JobModel");
 async function createJob(payload) {
   // Create job
   const created = await JobModel.create(payload);
+
+  // If created successfully, notify the inspector and admin users
+  if (created && created._id) {
+    try {
+      const inspectorId = created.inspector || null;
+      const types = NotificationModel.notificationTypes || {};
+
+      // Notify inspector if assigned
+      if (inspectorId) {
+        await notifyUser({
+          userId: inspectorId,
+          type: types.JOB_ASSIGNED || "job_assigned",
+          title: "You have a new job assigned",
+          body: `${created.orderId || created.streetAddress || "A new job"} has been assigned to you.`,
+          data: {
+            jobId: new mongoose.Types.ObjectId(created._id),
+            action: "job_assigned",
+          },
+          authorId: new mongoose.Types.ObjectId(created.createdBy) || null,
+        });
+      }
+
+      // Notify all admin users about new job creation
+      await notifyAdmins({
+        type: types.JOB_ASSIGNED || "job_assigned",
+        title: "New job created",
+        body: `${created.orderId || created.streetAddress || "A new job"} has been created.`,
+        data: {
+          jobId: new mongoose.Types.ObjectId(created._id),
+          action: "job_created",
+        },
+        authorId: new mongoose.Types.ObjectId(created.createdBy) || null,
+      });
+    } catch (e) {
+      console.error("Failed to create/send job notifications:", e);
+    }
+  }
 
   // Aggregate with createdBy and lastUpdatedBy
   const result = await JobModel.aggregate([
@@ -182,8 +225,10 @@ async function createJob(payload) {
  * @returns {Promise<Object>}
  */
 async function getJobById(id) {
+  // Convert id to ObjectId
   const jobId = new mongoose.Types.ObjectId(id);
 
+  // Aggregate job with inspector
   const result = await JobModel.aggregate([
     /* ---------------- MATCH JOB ---------------- */
     { $match: { _id: jobId } },
@@ -359,6 +404,7 @@ async function getJobById(id) {
     },
   ]);
 
+  // If no job found, throw error
   if (!result || result.length === 0) {
     const err = new Error("Job not found");
     err.status = 404;
@@ -385,6 +431,7 @@ async function getJobById(id) {
  * }>}
  */
 async function getMyJobs(query = {}, userId) {
+  // Pagination params
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -393,6 +440,7 @@ async function getMyJobs(query = {}, userId) {
   const dateType = query.dateType;
   const customDate = query.customDate ? new Date(query.customDate) : null;
 
+  // Build aggregation pipeline
   const pipeline = [
     // Match jobs assigned to the user
     { $match: { inspector: new mongoose.Types.ObjectId(userId) } },
@@ -622,6 +670,8 @@ async function getMyJobs(query = {}, userId) {
       siteContactPhone: 1,
       siteContactEmail: 1,
       dueDate: 1,
+      specialNotesForInspector: 1,
+      specialNoteForApOrAr: 1,
       createdAt: 1,
       updatedAt: 1,
       hasReport: 1,
@@ -668,6 +718,7 @@ async function getMyJobs(query = {}, userId) {
     },
   );
 
+  // Execute aggregation
   const result = await JobModel.aggregate(pipeline);
   const jobs = result[0]?.jobs || [];
   const totalJob = result[0]?.metaData[0]?.totalJob || 0;
@@ -697,6 +748,7 @@ async function getMyJobs(query = {}, userId) {
  * } }>}
  */
 async function getJobs(query = {}) {
+  // Pagination params
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -974,6 +1026,7 @@ async function getJobs(query = {}) {
     },
   );
 
+  // Execute aggregation
   const result = await JobModel.aggregate(pipeline);
   const jobs = result[0]?.jobs || [];
   const totalJob = result[0]?.metaData[0]?.totalJob || 0;
@@ -997,6 +1050,19 @@ async function getJobs(query = {}) {
  * @returns {Promise<Object>}
  */
 async function updateJob(id, payload) {
+  // If any report exists for the job, prevent changing
+  const reportExists = await ReportModel.exists({
+    job: new mongoose.Types.ObjectId(id),
+  });
+
+  // If report exists, throw error
+  if (reportExists) {
+    const err = new Error("Cannot update job with existing report");
+    err.status = 400;
+    err.code = "JOB_UPDATE_NOT_ALLOWED";
+    throw err;
+  }
+
   // Update the document
   const result = await JobModel.updateOne(
     { _id: id },
@@ -1004,6 +1070,7 @@ async function updateJob(id, payload) {
     { new: true },
   );
 
+  // If no document matched, throw error
   if (!result || result.length === 0) {
     const err = new Error("Job not found");
     err.status = 404;
@@ -1021,14 +1088,20 @@ async function updateJob(id, payload) {
  * @returns {Promise<void>}
  */
 async function deleteJob(id) {
+  // Check if job exists
   const existing = await JobModel.findById(id);
+
+  // If not found, throw error
   if (!existing) {
     const err = new Error("Job not found");
     err.status = 404;
     err.code = "JOB_NOT_FOUND";
     throw err;
   }
+
+  // Delete the job
   await JobModel.findByIdAndDelete(id);
+
   return;
 }
 

@@ -90,13 +90,14 @@ const userSchema = new mongoose.Schema(
     resetPasswordVerified: {
       type: Boolean,
       default: false,
+      nullable: true,
     },
     resetPasswordVerifiedExpiry: {
       type: Date,
       default: null,
     },
   },
-  { timestamps: true, versionKey: false }
+  { timestamps: true, versionKey: false },
 );
 
 // Instance method to hide sensitive fields

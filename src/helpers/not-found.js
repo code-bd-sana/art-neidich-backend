@@ -5,6 +5,7 @@
  * @param {import('express').Response} res - The Express response object.
  */
 const pathNotFoundHelper = (req, res) => {
+  // Send 404 response
   res.status(404).json({
     success: false,
     message: "Path not found",

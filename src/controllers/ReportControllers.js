@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 
-const { generateReportPdf } = require("../services/ReportPdfService");
 const {
   createReport,
   getReportById,
@@ -18,15 +17,18 @@ const {
  */
 async function createReportController(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
 
     // Use the new field name
     payload.images = payload.imageEntries || [];
     delete payload.imageEntries;
 
+    // Attach inspector and job as ObjectId
     payload.inspector = new mongoose.Types.ObjectId(req.user._id);
     payload.job = new mongoose.Types.ObjectId(payload.job);
 
+    // Call service
     const report = await createReport(payload);
 
     return res.status(201).json({
@@ -49,7 +51,9 @@ async function createReportController(req, res, next) {
  */
 async function getReportsController(req, res, next) {
   try {
+    // Call service
     const { reports, metaData } = await getAllReports(req.query);
+
     return res.status(200).json({
       success: true,
       message: "Reports fetched successfully",
@@ -71,31 +75,15 @@ async function getReportsController(req, res, next) {
  */
 async function getReportByIdController(req, res, next) {
   try {
+    // Call service
     const report = await getReportById(req.params.id);
+
     return res.status(200).json({
       success: true,
       message: "Report fetched successfully",
       data: report,
       code: 200,
     });
-  } catch (err) {
-    return next(err);
-  }
-}
-
-/**
- * Stream a PDF version of the report
- */
-async function getReportPdfController(req, res, next) {
-  try {
-    const report = await getReportById(req.params.id);
-    const pdfBuffer = await generateReportPdf(report);
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="report-${report._id}.pdf"`,
-    );
-    return res.send(pdfBuffer);
   } catch (err) {
     return next(err);
   }
@@ -110,9 +98,15 @@ async function getReportPdfController(req, res, next) {
  */
 async function updateReportStatusController(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Attach lastUpdatedBy
     payload.lastUpdatedBy = req.user?._id;
+
+    // Call service
     const updated = await updateReportStatus(req.params.id, payload);
+
     return res.status(200).json({
       success: true,
       message: "Report status updated successfully",
@@ -133,7 +127,9 @@ async function updateReportStatusController(req, res, next) {
  */
 async function deleteReportController(req, res, next) {
   try {
+    // Call service
     await deleteReport(req.params.id);
+
     return res.status(200).json({
       success: true,
       message: "Report deleted successfully",
@@ -150,5 +146,4 @@ module.exports = {
   getReportByIdController,
   deleteReportController,
   updateReportStatusController,
-  getReportPdfController,
 };

@@ -1,11 +1,9 @@
 const mongoose = require("mongoose");
 
+const { notifyAdmins } = require("../helpers/notification/notification-helper");
 const NotificationModel = require("../models/NotificationModel");
-const PushToken = require("../models/PushToken");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
-
-const NotificationServices = require("./../services/NotificationServices");
 
 /**
  * Get user profile
@@ -14,6 +12,7 @@ const NotificationServices = require("./../services/NotificationServices");
  * @returns {Promise<Object>}
  */
 async function getProfile(userId) {
+  // Get user by ID and exclude password
   const result = await UserModel.aggregate([
     {
       $match: {
@@ -39,6 +38,17 @@ async function getProfile(userId) {
         },
       },
     },
+    // Project final output
+    {
+      $project: {
+        resetToken: 0,
+        resetTokenExpiry: 0,
+        resetPasswordOTP: 0,
+        resetPasswordOTPExpiry: 0,
+        resetPasswordVerified: 0,
+        resetPasswordVerifiedExpiry: 0,
+      },
+    },
   ]);
 
   return result[0] || null;
@@ -52,13 +62,14 @@ async function getProfile(userId) {
  * @returns {Promise<Object>}
  */
 async function updateProfile(userId, updateData) {
-  // 1. Update the user
+  //  Update the user
   const updatedUser = await UserModel.findByIdAndUpdate(
     userId,
     { $set: updateData },
     { new: true }, // return the updated document
   );
 
+  // If user not found, throw error
   if (!updatedUser) {
     const err = new Error("User not found");
     err.status = 404;
@@ -66,7 +77,7 @@ async function updateProfile(userId, updateData) {
     throw err;
   }
 
-  // 2. Map role for output
+  // Map role for output
   let roleName;
   switch (updatedUser.role) {
     case 0:
@@ -82,8 +93,9 @@ async function updateProfile(userId, updateData) {
       roleName = "Unknown";
   }
 
-  // 3. Return safe output
+  // Return safe output
   const { password, ...rest } = updatedUser.toObject();
+
   return { ...rest, role: roleName };
 }
 
@@ -111,30 +123,14 @@ async function updateProfile(userId, updateData) {
  * }>}
  */
 async function getUsers(query = {}) {
+  // Pagination and filters
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
   const role = query.role !== undefined ? Number(query.role) : undefined;
-
-  // Parse boolean-like query values reliably. `Boolean("false")` is truthy,
-  // so we need to explicitly handle string values like "true"/"false" and
-  // numeric "1"/"0" too.
-  const parseBoolean = (val) => {
-    if (val === undefined || val === null) return undefined;
-    if (typeof val === "boolean") return val;
-    if (typeof val === "string") {
-      const v = val.trim().toLowerCase();
-      if (v === "true" || v === "1") return true;
-      if (v === "false" || v === "0") return false;
-      return undefined;
-    }
-    if (typeof val === "number") return val === 1;
-    return undefined;
-  };
-
-  const isSuspended = parseBoolean(query.isSuspended);
-  const isApproved = parseBoolean(query.isApproved);
+  const isSuspended = query.isSuspended;
+  const isApproved = query.isApproved;
 
   const pipeline = [];
 
@@ -207,6 +203,10 @@ async function getUsers(query = {}) {
             password: 0,
             resetToken: 0,
             resetTokenExpiry: 0,
+            resetPasswordOTP: 0,
+            resetPasswordOTPExpiry: 0,
+            resetPasswordVerified: 0,
+            resetPasswordVerifiedExpiry: 0,
           },
         },
       ],
@@ -214,8 +214,10 @@ async function getUsers(query = {}) {
     },
   });
 
+  // Execute aggregation pipeline
   const result = await UserModel.aggregate(pipeline);
 
+  // Extract users and metadata
   const users = result[0]?.users || [];
   const totalUser = result[0]?.metaData[0]?.totalUser || 0;
 
@@ -237,6 +239,7 @@ async function getUsers(query = {}) {
  * @returns {Promise<Object>}
  */
 async function getUserById(userId) {
+  // Get user by ID and exclude password
   const result = await UserModel.aggregate([
     {
       $match: {
@@ -262,10 +265,15 @@ async function getUserById(userId) {
         password: 0,
         resetToken: 0,
         resetTokenExpiry: 0,
+        resetPasswordOTP: 0,
+        resetPasswordOTPExpiry: 0,
+        resetPasswordVerified: 0,
+        resetPasswordVerifiedExpiry: 0,
       },
     },
   ]);
 
+  // If user not found, throw error
   if (!result || result.length === 0) {
     const err = new Error("User not found");
     err.status = 404;
@@ -283,8 +291,10 @@ async function getUserById(userId) {
  * @returns {Promise<Object>}
  */
 async function approveUser(userId) {
+  // Find user by ID
   const user = await UserModel.findById(userId);
 
+  // If user not found, throw error
   if (!user) {
     const err = new Error("User not found");
     err.status = 404;
@@ -376,6 +386,26 @@ async function approveUser(userId) {
     html: emailHtml,
   });
 
+  // If this is an inspector or administrator gets approved (role - 1, 2), notify admins (role 0 and 1)
+  if (user.role === 1 || user.role === 2) {
+    try {
+      const types = NotificationModel.notificationTypes || {};
+
+      await notifyAdmins({
+        type: types.USER_APPROVED || "user_approved",
+        title: "User approved",
+        body: `${user.firstName} ${user.lastName} has been approved and can now access the system.`,
+        data: {
+          userId: new mongoose.Types.ObjectId(user._id),
+          action: "approved",
+        },
+        authorId: null,
+      });
+    } catch (error) {
+      console.error("Error notifying admins about user approval:", error);
+    }
+  }
+
   return;
 }
 
@@ -387,13 +417,26 @@ async function approveUser(userId) {
  * @returns {Promise<Object>}
  */
 async function suspendUser(userId, currentUser) {
+  // Find user by ID
   const user = await UserModel.findById(userId);
+
+  // If user not found, throw error
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    err.code = "USER_NOT_FOUND";
+    throw err;
+  }
+
+  // Prevent suspending root users
   if (user.role === 0) {
     const err = new Error("Cannot suspend a root user");
     err.status = 400;
     err.code = "CANNOT_SUSPEND_ROOT";
     throw err;
   }
+
+  // Prevent suspending users with same role as current user
   if (user.role === currentUser.role) {
     const err = new Error("Cannot suspend a user with same role as yours");
     err.status = 400;
@@ -481,60 +524,20 @@ async function suspendUser(userId, currentUser) {
     html: emailHtml,
   });
 
-  // Notify other admins (roles 0 and 1) about this suspension, but
-  // exclude the user being suspended from recipients.
+  // Notify admins about user suspension
   try {
-    const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
-      "_id firstName lastName email",
-    );
-    const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
-    const recipients = adminIds.filter((id) => String(id) !== String(user._id));
-
-    const tokens = await PushToken.find({
-      user: { $in: recipients },
-      active: true,
-    }).select("token -_id");
-    const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
-
     const types = NotificationModel.notificationTypes || {};
-    const notif = await NotificationModel.create({
+
+    await notifyAdmins({
+      type: types.ACCOUNT_SUSPENDED || "account_suspended",
       title: "Account suspended",
       body: `${user.firstName} ${user.lastName} has been suspended by an administrator.`,
-      data: { userId: String(user._id), action: "suspended" },
-      type: types.ACCOUNT_SUSPENDED || "account_suspended",
+      data: {
+        userId: new mongoose.Types.ObjectId(user._id),
+        action: "suspended",
+      },
       authorId: null,
-      recipients,
-      deviceTokens,
-      status: "pending",
     });
-
-    try {
-      let sendResult = null;
-      if (deviceTokens.length) {
-        sendResult = await NotificationServices.sendToMany(deviceTokens, {
-          title: notif.title,
-          body: notif.body,
-          data: notif.data,
-        });
-      } else if (recipients.length === 1) {
-        sendResult = await NotificationServices.sendToUser(recipients[0], {
-          title: notif.title,
-          body: notif.body,
-          data: notif.data,
-        });
-      } else {
-        sendResult = { warning: "no-targets" };
-      }
-
-      notif.status = "sent";
-      notif.result = sendResult;
-      notif.sentAt = new Date();
-      await notif.save();
-    } catch (sendErr) {
-      notif.status = "failed";
-      notif.result = { error: sendErr.message || String(sendErr) };
-      await notif.save();
-    }
   } catch (e) {
     console.error("Failed to create/send suspension notification:", e);
   }
@@ -550,13 +553,26 @@ async function suspendUser(userId, currentUser) {
  * @returns {Promise<Object>}
  */
 async function unSuspendUser(userId, currentUser) {
+  // Find user by ID
   const user = await UserModel.findById(userId);
+
+  // If user not found, throw error
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    err.code = "USER_NOT_FOUND";
+    throw err;
+  }
+
+  // Prevent un-suspending root users
   if (user.role === 0) {
     const err = new Error("Cannot un-suspend a root user");
     err.status = 400;
     err.code = "CANNOT_UNSUSPEND_ROOT";
     throw err;
   }
+
+  // Prevent un-suspending users with same role as current user
   if (user.role === currentUser.role) {
     const err = new Error("Cannot un-suspend a user with same role as yours");
     err.status = 400;
@@ -566,7 +582,7 @@ async function unSuspendUser(userId, currentUser) {
 
   // Update user suspension status
   user.isSuspended = false;
-  user.save();
+  await user.save();
 
   // Email template for account un-suspension notification
   const emailHtml = `<!DOCTYPE html>
@@ -644,61 +660,22 @@ async function unSuspendUser(userId, currentUser) {
     html: emailHtml,
   });
 
-  // Notify admins (roles 0 and 1) about un-suspension; include the user who
-  // was un-suspended so they receive the notification too.
+  // Notify admins about account reinstatement
   try {
-    const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
-      "_id firstName lastName email",
-    );
-    const adminIds = (admins || []).map((a) => a._id).filter(Boolean);
-
-    const tokens = await PushToken.find({
-      user: { $in: adminIds },
-      active: true,
-    }).select("token -_id");
-    const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
-
     const types = NotificationModel.notificationTypes || {};
-    const notif = await NotificationModel.create({
+
+    await notifyAdmins({
+      type: types.ACCOUNT_REINSTATED || "account_reinstated",
       title: "Account reinstated",
-      body: `${user.firstName} ${user.lastName} has been un-suspended and can now access the system.`,
-      data: { userId: String(user._id), action: "unsuspended" },
-      type: types.ACCOUNT_UNSUSPENDED || "account_unsuspended",
+      body: `${user.firstName} ${user.lastName} has been reinstated by an administrator.`,
+      data: {
+        userId: new mongoose.Types.ObjectId(user._id),
+        action: "reinstated",
+      },
       authorId: null,
-      recipients: adminIds,
-      deviceTokens,
-      status: "pending",
     });
-
-    try {
-      let sendResult = null;
-      if (deviceTokens.length) {
-        sendResult = await NotificationServices.sendToMany(deviceTokens, {
-          title: notif.title,
-          body: notif.body,
-          data: notif.data,
-        });
-      } else if (adminIds.length === 1) {
-        sendResult = await NotificationServices.sendToUser(adminIds[0], {
-          title: notif.title,
-          body: notif.body,
-          data: notif.data,
-        });
-      } else {
-        sendResult = { warning: "no-targets" };
-      }
-
-      notif.status = "sent";
-      notif.result = sendResult;
-      notif.sentAt = new Date();
-      await notif.save();
-    } catch (sendErr) {
-      notif.status = "failed";
-      notif.result = { error: sendErr.message || String(sendErr) };
-      await notif.save();
-    }
   } catch (e) {
-    console.error("Failed to create/send un-suspension notification:", e);
+    console.error("Failed to create/send reinstatement notification:", e);
   }
 
   return;
@@ -712,18 +689,31 @@ async function unSuspendUser(userId, currentUser) {
  */
 async function deleteUser(userId, currentUser) {
   const user = await UserModel.findById(userId);
+  // If user not found, throw error
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    err.code = "USER_NOT_FOUND";
+    throw err;
+  }
+
+  // Prevent deleting root users
   if (user.role === 0) {
     const err = new Error("Cannot delete a root user");
     err.status = 400;
     err.code = "CANNOT_DELETE_ROOT";
     throw err;
   }
+
+  // Prevent deleting users with same role as current user
   if (user.role === currentUser.role) {
     const err = new Error("Cannot delete a user with same role as yours");
     err.status = 400;
     err.code = "CANNOT_DELETE_SAME_ROLE";
     throw err;
   }
+
+  // Delete the user
   await UserModel.findByIdAndDelete(userId);
 
   // Email template for account deletion notification

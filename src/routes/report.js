@@ -84,14 +84,6 @@ router.get(
   getReportByIdController,
 );
 
-// Stream PDF for a report
-router.get(
-  "/:id/pdf",
-  authorizeRoles(0, 1),
-  validate(mongoIdSchema, { target: "params" }),
-  getReportPdfController,
-);
-
 /**
  * Update only the status of a report
  *

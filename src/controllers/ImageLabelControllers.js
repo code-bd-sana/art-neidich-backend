@@ -17,9 +17,14 @@ const {
  */
 async function createImageLabelController(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Attach createdBy and lastUpdatedBy
     payload.createdBy = new mongoose.Types.ObjectId(req.user?._id);
     payload.lastUpdatedBy = new mongoose.Types.ObjectId(req.user?._id);
+
+    // Call service
     const label = await createImageLabel(payload);
     return res.status(201).json({
       success: true,
@@ -41,7 +46,9 @@ async function createImageLabelController(req, res, next) {
  */
 async function getImageLabelsController(req, res, next) {
   try {
+    // Call service
     const { labels, metaData } = await getImageLabels(req.query);
+
     return res.status(200).json({
       success: true,
       message: "Image labels fetched successfully",
@@ -63,7 +70,9 @@ async function getImageLabelsController(req, res, next) {
  */
 async function getImageLabelController(req, res, next) {
   try {
+    // Call service
     const label = await getImageLabel(req.params.id);
+
     return res.status(200).json({
       success: true,
       message: "Image label fetched successfully",
@@ -84,9 +93,15 @@ async function getImageLabelController(req, res, next) {
  */
 async function updateImageLabelController(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Attach lastUpdatedBy
     payload.lastUpdatedBy = new mongoose.Types.ObjectId(req.user?._id);
+
+    // Call service
     const updated = await updateImageLabel(req.params.id, payload);
+
     return res.status(200).json({
       success: true,
       message: "Image label updated successfully",

@@ -18,19 +18,22 @@ const {
  */
 async function createJobController(req, res, next) {
   try {
+    // get validated payload
     const payload = req.validated;
-    // attach creator
+
+    // attach createdBy and lastUpdatedBy
     payload.createdBy = new mongoose.Types.ObjectId(req.user?._id);
     payload.lastUpdatedBy = new mongoose.Types.ObjectId(req.user?._id);
+
+    // call service
     const job = await createJob(payload);
-    return res
-      .status(201)
-      .json({
-        success: true,
-        message: "Job created successfully",
-        data: job,
-        code: 201,
-      });
+
+    return res.status(201).json({
+      success: true,
+      message: "Job created successfully",
+      data: job,
+      code: 201,
+    });
   } catch (err) {
     return next(err);
   }
@@ -45,7 +48,9 @@ async function createJobController(req, res, next) {
  */
 async function getJobsController(req, res, next) {
   try {
+    // Call service
     const result = await getJobs(req.query);
+
     return res.status(200).json({
       success: true,
       message: "Jobs fetched successfully",
@@ -67,7 +72,10 @@ async function getJobsController(req, res, next) {
  */
 async function getMyJobsController(req, res, next) {
   try {
+    // Get user ID from authenticated request
     const userId = req.user?._id;
+
+    // Call service
     const { jobs, metaData } = await getMyJobs(req.query, userId);
     return res.status(200).json({
       success: true,
@@ -90,15 +98,15 @@ async function getMyJobsController(req, res, next) {
  */
 async function getJobByIdController(req, res, next) {
   try {
+    // Call service
     const job = await getJobById(req.params.id);
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Job fetched successfully",
-        data: job,
-        code: 200,
-      });
+
+    return res.status(200).json({
+      success: true,
+      message: "Job fetched successfully",
+      data: job,
+      code: 200,
+    });
   } catch (err) {
     return next(err);
   }
@@ -113,9 +121,15 @@ async function getJobByIdController(req, res, next) {
  */
 async function updateJobController(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Attach lastUpdatedBy
     payload.lastUpdatedBy = new mongoose.Types.ObjectId(req.user?._id);
+
+    // Call service
     const updated = await updateJob(req.params.id, payload);
+
     return res.status(200).json({
       success: true,
       message: "Job updated successfully",
@@ -136,7 +150,9 @@ async function updateJobController(req, res, next) {
  */
 async function deleteJobController(req, res, next) {
   try {
+    // Call service
     await deleteJob(req.params.id);
+
     return res
       .status(200)
       .json({ success: true, message: "Job deleted successfully", code: 200 });

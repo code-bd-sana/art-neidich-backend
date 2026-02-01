@@ -1,20 +1,12 @@
 {
   "info": {
-    "_postman_id": "artneidich-api-collection-2026",
+    "_postman_id": "7a1ae32f-4a8b-4480-8a37-1f7d8b51a89a",
     "name": "Artneidich API Collection",
     "description": "Full API collection for Artneidich backend. Includes all endpoints, variables for base URL and authentication, and example responses.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "21226126",
+    "_collection_link": "https://go.postman.co/collection/21226126-7a1ae32f-4a8b-4480-8a37-1f7d8b51a89a?source=collection_link"
   },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080/api/v1"
-    },
-    {
-      "key": "authToken",
-      "value": ""
-    }
-  ],
   "item": [
     {
       "name": "Auth",
@@ -29,6 +21,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"user@example.com\",\n  \"password\": \"123456\",\n  \"role\": 2\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
               "host": [
@@ -39,34 +35,71 @@
                 "register"
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"role\": 2\n}"
-            },
             "description": "Register a new user.\n\nValidation fields:\n- firstName: string, required, min 1 character\n- lastName: string, required, min 1 character\n- email: string, required, valid email\n- password: string, required, min 6 characters\n- role: 1 (admin) or 2 (inspector), required"
           },
           "response": [
             {
               "name": "201 Created",
-              "originalRequest": {},
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": ""
+                }
+              },
               "status": "201 Created",
               "code": 201,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User registered successfully\",\n  \"code\": 201\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"User registered successfully\",\n    \"code\": 201\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Email already in use\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Email already in use\",\n    \"code\": 400\n}"
             },
             {
               "name": "500 Internal Server Error",
+              "originalRequest": {
+                "header": []
+              },
               "status": "500 Internal Server Error",
               "code": 500,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Internal Server Error\",\n  \"code\": 500\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Internal Server Error\",\n    \"code\": 500\n}"
             }
-          ],
-          "description": "Register a new user."
+          ]
         },
         {
           "name": "Login",
@@ -78,6 +111,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"device-123\",\n  \"email\": \"user0@example.com\",\n  \"password\": \"123456\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
               "host": [
@@ -88,52 +125,342 @@
                 "login"
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
-            },
             "description": "Authenticate a user and receive a JWT token.\n\nValidation fields:\n- email: string, required, valid email\n- password: string, required, min 6 characters"
           },
           "response": [
             {
               "name": "200 OK",
-              "originalRequest": {},
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": ""
+                }
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZDIxYjQ2NjdkMGQ4OTkyZTYxMGM4NSIsImVtYWlsIjoidXNlckBleGFtcGxlLmNvbSIsInJvbGUiOjIsImlhdCI6MTYwOTAwMDAwMCwiZXhwIjoxNjA5MDg2NDAwfQ.sflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\",\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Login successful\",\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYwZDIxYjQ2NjdkMGQ4OTkyZTYxMGM4NSIsImVtYWlsIjoidXNlckBleGFtcGxlLmNvbSIsInJvbGUiOjIsImlhdCI6MTYwOTAwMDAwMCwiZXhwIjoxNjA5MDg2NDAwfQ.sflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\",\n    \"code\": 200\n}"
             },
             {
               "name": "401 Unauthorized",
+              "originalRequest": {
+                "header": []
+              },
               "status": "401 Unauthorized",
               "code": 401,
-              "body": "{\n  \"success\": false,\n  \"message\": \"No token provided\",\n  \"code\": 401\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"No token provided\",\n    \"code\": 401\n}"
             },
             {
               "name": "401 Unauthorized (Invalid Token)",
+              "originalRequest": {
+                "header": []
+              },
               "status": "401 Unauthorized",
               "code": 401,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid or expired token\",\n  \"code\": 401\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Invalid or expired token\",\n    \"code\": 401\n}"
             },
             {
               "name": "403 Forbidden (Suspended)",
+              "originalRequest": {
+                "header": []
+              },
               "status": "403 Forbidden",
               "code": 403,
-              "body": "{\n  \"success\": false,\n  \"message\": \"You are suspended\",\n  \"code\": 403\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"You are suspended\",\n    \"code\": 403\n}"
             },
             {
               "name": "403 Forbidden (Not Approved)",
+              "originalRequest": {
+                "header": []
+              },
               "status": "403 Forbidden",
               "code": 403,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Your account is not approved yet\",\n  \"code\": 403\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Your account is not approved yet\",\n    \"code\": 403\n}"
             },
             {
               "name": "500 Internal Server Error",
+              "originalRequest": {
+                "header": []
+              },
               "status": "500 Internal Server Error",
               "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Internal Server Error\",\n    \"code\": 500\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"device-123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout the currently authenticated user.\n\n- Invalidates the session/JWT token.\n- Turns off push notifications for the specified device (notificationActive = false).\n- Requires deviceId in body to track logout per device.\n\n**Headers Required:**\n- Authorization: Bearer {{authToken}}\n\n**Body Required:**\n- deviceId: string (unique device identifier)"
+          },
+          "response": [
+            {
+              "name": "200 OK - Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"deviceId\":\"device-123\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/logout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Logout successful. Device notifications turned off.\",\n  \"code\": 200\n}"
+            },
+            {
+              "name": "400 Bad Request - Missing deviceId",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"deviceId\": \"device-123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/logout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                },
+                "description": "Logout the currently authenticated user.\n\n- Invalidates the session/JWT token.\n- Turns off push notifications for the specified device (notificationActive = false).\n- Requires deviceId in body to track logout per device.\n\n**Headers Required:**\n- Authorization: Bearer {{authToken}}\n\n**Body Required:**\n- deviceId: string (unique device identifier)"
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Device ID is required\",\n  \"code\": 400\n}"
+            },
+            {
+              "name": "401 Unauthorized - Invalid/No Token",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"deviceId\": \"device-123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/logout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                },
+                "description": "Logout the currently authenticated user.\n\n- Invalidates the session/JWT token.\n- Turns off push notifications for the specified device (notificationActive = false).\n- Requires deviceId in body to track logout per device.\n\n**Headers Required:**\n- Authorization: Bearer {{authToken}}\n\n**Body Required:**\n- deviceId: string (unique device identifier)"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Unauthorized - Invalid or missing token\",\n  \"code\": 401\n}"
+            },
+            {
+              "name": "500 Internal Server Error",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"deviceId\": \"device-123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/logout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                },
+                "description": "Logout the currently authenticated user.\n\n- Invalidates the session/JWT token.\n- Turns off push notifications for the specified device (notificationActive = false).\n- Requires deviceId in body to track logout per device.\n\n**Headers Required:**\n- Authorization: Bearer {{authToken}}\n\n**Body Required:**\n- deviceId: string (unique device identifier)"
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
               "body": "{\n  \"success\": false,\n  \"message\": \"Internal Server Error\",\n  \"code\": 500\n}"
             }
-          ],
-          "description": "Authenticate a user and receive a JWT token."
+          ]
         },
         {
           "name": "Forgot Password",
@@ -145,6 +472,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"webRequest\": true\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/auth/forgot-password",
               "host": [
@@ -155,22 +486,33 @@
                 "forgot-password"
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"webRequest\": true\n}"
-            },
             "description": "Request a password reset link.\n\nValidation fields:\n- email: string, required, valid email\n- webRequest: boolean, optional\n- mobileRequest: boolean, optional\n- Either webRequest or mobileRequest must be provided, but not both."
           },
           "response": [
             {
               "name": "200 OK",
-              "originalRequest": {},
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": ""
+                }
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Password reset link sent if email exists\",\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Password reset link sent if email exists\",\n    \"code\": 200\n}"
             }
-          ],
-          "description": "Request a password reset link."
+          ]
         },
         {
           "name": "Reset Password",
@@ -182,6 +524,10 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newPassword123\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/auth/reset-password",
               "host": [
@@ -192,22 +538,33 @@
                 "reset-password"
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newPassword123\"\n}"
-            },
             "description": "Reset user password using a token or OTP.\n\nValidation fields (OTP mode):\n- email: string, required, valid email\n- otp: string, required, exactly 6 characters\n- newPassword: string, required, min 6 characters\n\nValidation fields (Token mode):\n- email: string, required, valid email\n- token: string, required, valid UUID\n- newPassword: string, required, min 6 characters"
           },
           "response": [
             {
               "name": "200 OK",
-              "originalRequest": {},
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": ""
+                }
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Password reset successful\",\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Password reset successful\",\n    \"code\": 200\n}"
             }
-          ],
-          "description": "Reset user password using a token."
+          ]
         },
         {
           "name": "Change Password",
@@ -223,6 +580,10 @@
                 "value": "Bearer {{authToken}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"oldPassword123\",\n  \"newPassword\": \"newPassword123\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/auth/change-password",
               "host": [
@@ -233,22 +594,33 @@
                 "change-password"
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"currentPassword\": \"oldPassword123\",\n  \"newPassword\": \"newPassword123\"\n}"
-            },
             "description": "Change the password for the authenticated user.\n\nValidation fields:\n- currentPassword: string, required, min 6 characters\n- newPassword: string, required, min 6 characters"
           },
           "response": [
             {
               "name": "200 OK",
-              "originalRequest": {},
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": ""
+                }
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Password changed successfully\",\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Password changed successfully\",\n    \"code\": 200\n}"
             }
-          ],
-          "description": "Change the password for the authenticated user."
+          ]
         }
       ]
     },
@@ -279,42 +651,119 @@
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User profile fetched successfully\",\n  \"data\": {\n    \"_id\": \"60d21b4667d0d8992e610c85\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"user@example.com\",\n    \"role\": 2,\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"User profile fetched successfully\",\n    \"data\": {\n        \"_id\": \"60d21b4667d0d8992e610c85\",\n        \"firstName\": \"John\",\n        \"lastName\": \"Doe\",\n        \"email\": \"user@example.com\",\n        \"role\": 2,\n        \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n        \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    },\n    \"code\": 200\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"A report for this job already exists.\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"A report for this job already exists.\",\n    \"code\": 400\n}"
             },
             {
               "name": "401 Unauthorized",
+              "originalRequest": {
+                "header": []
+              },
               "status": "401 Unauthorized",
               "code": 401,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Unauthorized\",\n  \"code\": 401\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Unauthorized\",\n    \"code\": 401\n}"
             },
             {
               "name": "403 Forbidden",
+              "originalRequest": {
+                "header": []
+              },
               "status": "403 Forbidden",
               "code": 403,
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have the required role to access this resource\",\n  \"code\": 403\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"You do not have the required role to access this resource\",\n    \"code\": 403\n}"
             },
             {
               "name": "404 Not Found",
+              "originalRequest": {
+                "header": []
+              },
               "status": "404 Not Found",
               "code": 404,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Resource not found\",\n  \"code\": 404\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Resource not found\",\n    \"code\": 404\n}"
             },
             {
               "name": "500 Internal Server Error",
+              "originalRequest": {
+                "header": []
+              },
               "status": "500 Internal Server Error",
               "code": 500,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Internal Server Error\",\n  \"code\": 500\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Internal Server Error\",\n    \"code\": 500\n}"
             }
-          ],
-          "description": "Get the authenticated user's profile."
+          ]
         },
         {
           "name": "Update Profile",
@@ -330,6 +779,10 @@
                 "value": "Bearer {{authToken}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"user@example.com\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/user/profile",
               "host": [
@@ -340,33 +793,67 @@
                 "profile"
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"user@example.com\"\n}"
-            },
             "description": "Update the authenticated user's profile.\n\nValidation fields (all optional):\n- firstName: string, min 1 character\n- lastName: string, min 1 character\n- email: string, valid email"
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User profile updated successfully\",\n  \"data\": {\n    \"_id\": \"60d21b4667d0d8992e610c85\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"user@example.com\",\n    \"role\": 2,\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"User profile updated successfully\",\n    \"data\": {\n        \"_id\": \"60d21b4667d0d8992e610c85\",\n        \"firstName\": \"John\",\n        \"lastName\": \"Doe\",\n        \"email\": \"user@example.com\",\n        \"role\": 2,\n        \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n        \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    },\n    \"code\": 200\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"You must provide at least 1 and maximum 2 images.\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"You must provide at least 1 and maximum 2 images.\",\n    \"code\": 400\n}"
             },
             {
               "name": "401 Unauthorized",
+              "originalRequest": {
+                "header": []
+              },
               "status": "401 Unauthorized",
               "code": 401,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Unauthorized\",\n  \"code\": 401\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Unauthorized\",\n    \"code\": 401\n}"
             }
-          ],
-          "description": "Update the authenticated user's profile."
+          ]
         },
         {
           "name": "Get All Users",
@@ -379,7 +866,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/user?page=1&limit=10&search=",
+              "raw": "{{baseUrl}}/user?page=1&limit=10&search=&role=&isSuspended=&isApproved=",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -423,18 +910,43 @@
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Users fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"60d21b4667d0d8992e610c85\",\n      \"firstName\": \"John\",\n      \"lastName\": \"Doe\",\n      \"email\": \"user@example.com\",\n      \"role\": 2,\n      \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Users fetched successfully\",\n    \"data\": [\n        {\n            \"_id\": \"60d21b4667d0d8992e610c85\",\n            \"firstName\": \"John\",\n            \"lastName\": \"Doe\",\n            \"email\": \"user@example.com\",\n            \"role\": 2,\n            \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n            \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n        }\n    ],\n    \"metaData\": {\n        \"page\": 1,\n        \"limit\": 10,\n        \"total\": 1\n    },\n    \"code\": 200\n}"
             },
             {
               "name": "403 Forbidden",
+              "originalRequest": {
+                "header": []
+              },
               "status": "403 Forbidden",
               "code": 403,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Forbidden\",\n  \"code\": 403\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Forbidden\",\n    \"code\": 403\n}"
             }
-          ],
-          "description": "Get all users (admin/root only)."
+          ]
         },
         {
           "name": "Get User By ID",
@@ -454,24 +966,54 @@
               "path": [
                 "user",
                 ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User fetched successfully\",\n  \"data\": {\n    \"_id\": \"60d21b4667d0d8992e610c85\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"user@example.com\",\n    \"role\": 2,\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"User fetched successfully\",\n    \"data\": {\n        \"_id\": \"60d21b4667d0d8992e610c85\",\n        \"firstName\": \"John\",\n        \"lastName\": \"Doe\",\n        \"email\": \"user@example.com\",\n        \"role\": 2,\n        \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n        \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    },\n    \"code\": 200\n}"
             },
             {
               "name": "404 Not Found",
+              "originalRequest": {
+                "header": []
+              },
               "status": "404 Not Found",
               "code": 404,
-              "body": "{\n  \"success\": false,\n  \"message\": \"User not found\",\n  \"code\": 404\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"User not found\",\n    \"code\": 404\n}"
             }
-          ],
-          "description": "Get a user by ID (admin/root only)."
+          ]
         },
         {
           "name": "Approve User",
@@ -492,24 +1034,54 @@
                 "user",
                 ":id",
                 "approve"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User approved successfully\",\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"User approved successfully\",\n    \"code\": 200\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"You cannot approve yourself\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"You cannot approve yourself\",\n    \"code\": 400\n}"
             }
-          ],
-          "description": "Approve a user (admin/root only)."
+          ]
         },
         {
           "name": "Suspend User",
@@ -530,24 +1102,54 @@
                 "user",
                 ":id",
                 "suspend"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User suspended successfully\",\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"User suspended successfully\",\n    \"code\": 200\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"You cannot suspend yourself\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"You cannot suspend yourself\",\n    \"code\": 400\n}"
             }
-          ],
-          "description": "Suspend a user (admin/root only)."
+          ]
         },
         {
           "name": "Un-suspend User",
@@ -568,24 +1170,54 @@
                 "user",
                 ":id",
                 "unsuspend"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User un-suspended successfully\",\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"User un-suspended successfully\",\n    \"code\": 200\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"You cannot un-suspend yourself\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"You cannot un-suspend yourself\",\n    \"code\": 400\n}"
             }
-          ],
-          "description": "Un-suspend a user (admin/root only)."
+          ]
         },
         {
           "name": "Delete User",
@@ -605,24 +1237,54 @@
               "path": [
                 "user",
                 ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"User deleted successfully\",\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"User deleted successfully\",\n    \"code\": 200\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"You cannot delete yourself\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"You cannot delete yourself\",\n    \"code\": 400\n}"
             }
-          ],
-          "description": "Delete a user (root only)."
+          ]
         }
       ]
     },
@@ -643,6 +1305,10 @@
                 "value": "Bearer {{authToken}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspector\": \"60d21b4667d0d8992e610c85\",\n  \"formType\": \"RCI Residential Building Code Inspection\",\n  \"feeStatus\": \"Standard\",\n  \"agreedFee\": 1000,\n  \"fhaCaseDetailsNo\": \"FHA123456\",\n  \"orderId\": \"ORD123\",\n  \"streetAddress\": \"123 Main St\",\n  \"developmentName\": \"Greenfield\",\n  \"siteContactName\": \"Jane Smith\",\n  \"siteContactPhone\": \"+1234567890\",\n  \"siteContactEmail\": \"contact@example.com\",\n  \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n  \"specialNotesForInspector\": \"Please check the roof.\",\n  \"specialNoteForApOrAr\": \"Urgent job.\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/job",
               "host": [
@@ -652,27 +1318,48 @@
                 "job"
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"inspector\": \"60d21b4667d0d8992e610c85\",\n  \"formType\": \"RCI Residential Building Code Inspection\",\n  \"feeStatus\": \"Standard\",\n  \"agreedFee\": 1000,\n  \"fhaCaseDetailsNo\": \"FHA123456\",\n  \"orderId\": \"ORD123\",\n  \"streetAddress\": \"123 Main St\",\n  \"developmentName\": \"Greenfield\",\n  \"siteContactName\": \"Jane Smith\",\n  \"siteContactPhone\": \"+1234567890\",\n  \"siteContactEmail\": \"contact@example.com\",\n  \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n  \"specialNotesForInspector\": \"Please check the roof.\",\n  \"specialNoteForApOrAr\": \"Urgent job.\"\n}"
-            },
             "description": "Create a new job (admin/root only).\n\nValidation fields:\n- inspector: string (MongoId), required\n- formType: enum, required (\"RCI Residential Building Code Inspection\", \"UnKnown\")\n- feeStatus: enum, required (\"Standard\", \"Rush Order\", \"Occupied Fee\", \"Modified Fee\", \"Long Distance Fee\")\n- agreedFee: integer, required, nonnegative\n- fhaCaseDetailsNo: string, required\n- orderId: string, required\n- streetAddress: string, required\n- developmentName: string, required\n- siteContactName: string, required\n- siteContactPhone: string, required\n- siteContactEmail: string, optional, valid email\n- dueDate: date, required, cannot be in the past\n- specialNotesForInspector: string, optional, max 1250 chars\n- specialNoteForApOrAr: string, optional, max 1250 chars"
           },
           "response": [
             {
               "name": "201 Created",
+              "originalRequest": {
+                "header": []
+              },
               "status": "201 Created",
               "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
               "body": "{\n  \"success\": true,\n  \"message\": \"Job created successfully\",\n  \"data\": { /* job */ },\n  \"code\": 201\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Label already exists\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Label already exists\",\n    \"code\": 400\n}"
             }
-          ],
-          "description": "Create a new job (admin/root only)."
+          ]
         },
         {
           "name": "Get All Jobs",
@@ -685,7 +1372,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/job?page=1&limit=10&search=",
+              "raw": "{{baseUrl}}/job?page=1&limit=10&search=&status=all",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -719,12 +1406,24 @@
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Jobs fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"jobid1\",\n      \"inspector\": \"60d21b4667d0d8992e610c85\",\n      \"formType\": \"RCI Residential Building Code Inspection\",\n      \"feeStatus\": \"Standard\",\n      \"agreedFee\": 1000,\n      \"fhaCaseDetailsNo\": \"FHA123456\",\n      \"orderId\": \"ORD123\",\n      \"streetAddress\": \"123 Main St\",\n      \"developmentName\": \"Greenfield\",\n      \"siteContactName\": \"Jane Smith\",\n      \"siteContactPhone\": \"+1234567890\",\n      \"siteContactEmail\": \"contact@example.com\",\n      \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n      \"specialNotesForInspector\": \"Please check the roof.\",\n      \"specialNoteForApOrAr\": \"Urgent job.\",\n      \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Jobs fetched successfully\",\n    \"data\": [\n        {\n            \"_id\": \"jobid1\",\n            \"inspector\": \"60d21b4667d0d8992e610c85\",\n            \"formType\": \"RCI Residential Building Code Inspection\",\n            \"feeStatus\": \"Standard\",\n            \"agreedFee\": 1000,\n            \"fhaCaseDetailsNo\": \"FHA123456\",\n            \"orderId\": \"ORD123\",\n            \"streetAddress\": \"123 Main St\",\n            \"developmentName\": \"Greenfield\",\n            \"siteContactName\": \"Jane Smith\",\n            \"siteContactPhone\": \"+1234567890\",\n            \"siteContactEmail\": \"contact@example.com\",\n            \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n            \"specialNotesForInspector\": \"Please check the roof.\",\n            \"specialNoteForApOrAr\": \"Urgent job.\",\n            \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n            \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n        }\n    ],\n    \"metaData\": {\n        \"page\": 1,\n        \"limit\": 10,\n        \"total\": 1\n    },\n    \"code\": 200\n}"
             }
-          ],
-          "description": "Get all jobs (admin/root only)."
+          ]
         },
         {
           "name": "Get My Jobs",
@@ -750,12 +1449,24 @@
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"My jobs fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"jobid2\",\n      \"inspector\": \"60d21b4667d0d8992e610c85\",\n      \"formType\": \"RCI Residential Building Code Inspection\",\n      \"feeStatus\": \"Rush Order\",\n      \"agreedFee\": 1200,\n      \"fhaCaseDetailsNo\": \"FHA654321\",\n      \"orderId\": \"ORD456\",\n      \"streetAddress\": \"456 New Ave\",\n      \"developmentName\": \"Bluefield\",\n      \"siteContactName\": \"John Smith\",\n      \"siteContactPhone\": \"+1987654321\",\n      \"siteContactEmail\": \"site@example.com\",\n      \"dueDate\": \"2026-01-15T00:00:00.000Z\",\n      \"specialNotesForInspector\": \"Updated note.\",\n      \"specialNoteForApOrAr\": \"Updated urgent job.\",\n      \"createdAt\": \"2026-01-02T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"My jobs fetched successfully\",\n    \"data\": [\n        {\n            \"_id\": \"jobid2\",\n            \"inspector\": \"60d21b4667d0d8992e610c85\",\n            \"formType\": \"RCI Residential Building Code Inspection\",\n            \"feeStatus\": \"Rush Order\",\n            \"agreedFee\": 1200,\n            \"fhaCaseDetailsNo\": \"FHA654321\",\n            \"orderId\": \"ORD456\",\n            \"streetAddress\": \"456 New Ave\",\n            \"developmentName\": \"Bluefield\",\n            \"siteContactName\": \"John Smith\",\n            \"siteContactPhone\": \"+1987654321\",\n            \"siteContactEmail\": \"site@example.com\",\n            \"dueDate\": \"2026-01-15T00:00:00.000Z\",\n            \"specialNotesForInspector\": \"Updated note.\",\n            \"specialNoteForApOrAr\": \"Updated urgent job.\",\n            \"createdAt\": \"2026-01-02T12:00:00.000Z\",\n            \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n        }\n    ],\n    \"metaData\": {\n        \"page\": 1,\n        \"limit\": 10,\n        \"total\": 1\n    },\n    \"code\": 200\n}"
             }
-          ],
-          "description": "Get jobs assigned to the logged-in user."
+          ]
         },
         {
           "name": "Get Job By ID",
@@ -775,24 +1486,54 @@
               "path": [
                 "job",
                 ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Job fetched successfully\",\n  \"data\": {\n    \"_id\": \"jobid1\",\n    \"inspector\": \"60d21b4667d0d8992e610c85\",\n    \"formType\": \"RCI Residential Building Code Inspection\",\n    \"feeStatus\": \"Standard\",\n    \"agreedFee\": 1000,\n    \"fhaCaseDetailsNo\": \"FHA123456\",\n    \"orderId\": \"ORD123\",\n    \"streetAddress\": \"123 Main St\",\n    \"developmentName\": \"Greenfield\",\n    \"siteContactName\": \"Jane Smith\",\n    \"siteContactPhone\": \"+1234567890\",\n    \"siteContactEmail\": \"contact@example.com\",\n    \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n    \"specialNotesForInspector\": \"Please check the roof.\",\n    \"specialNoteForApOrAr\": \"Urgent job.\",\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Job fetched successfully\",\n    \"data\": {\n        \"_id\": \"jobid1\",\n        \"inspector\": \"60d21b4667d0d8992e610c85\",\n        \"formType\": \"RCI Residential Building Code Inspection\",\n        \"feeStatus\": \"Standard\",\n        \"agreedFee\": 1000,\n        \"fhaCaseDetailsNo\": \"FHA123456\",\n        \"orderId\": \"ORD123\",\n        \"streetAddress\": \"123 Main St\",\n        \"developmentName\": \"Greenfield\",\n        \"siteContactName\": \"Jane Smith\",\n        \"siteContactPhone\": \"+1234567890\",\n        \"siteContactEmail\": \"contact@example.com\",\n        \"dueDate\": \"2026-01-10T00:00:00.000Z\",\n        \"specialNotesForInspector\": \"Please check the roof.\",\n        \"specialNoteForApOrAr\": \"Urgent job.\",\n        \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n        \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    },\n    \"code\": 200\n}"
             },
             {
               "name": "404 Not Found",
+              "originalRequest": {
+                "header": []
+              },
               "status": "404 Not Found",
               "code": 404,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Job not found\",\n  \"code\": 404\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Job not found\",\n    \"code\": 404\n}"
             }
-          ],
-          "description": "Get a job by ID (admin/root only)."
+          ]
         },
         {
           "name": "Update Job",
@@ -808,6 +1549,10 @@
                 "value": "Bearer {{authToken}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inspector\": \"60d21b4667d0d8992e610c85\",\n  \"formType\": \"RCI Residential Building Code Inspection\",\n  \"feeStatus\": \"Rush Order\",\n  \"agreedFee\": 1200,\n  \"fhaCaseDetailsNo\": \"FHA654321\",\n  \"orderId\": \"ORD456\",\n  \"streetAddress\": \"456 New Ave\",\n  \"developmentName\": \"Bluefield\",\n  \"siteContactName\": \"John Smith\",\n  \"siteContactPhone\": \"+1987654321\",\n  \"siteContactEmail\": \"site@example.com\",\n  \"dueDate\": \"2026-01-15T00:00:00.000Z\",\n  \"specialNotesForInspector\": \"Updated note.\",\n  \"specialNoteForApOrAr\": \"Updated urgent job.\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/job/:id",
               "host": [
@@ -816,29 +1561,55 @@
               "path": [
                 "job",
                 ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"inspector\": \"60d21b4667d0d8992e610c85\",\n  \"formType\": \"RCI Residential Building Code Inspection\",\n  \"feeStatus\": \"Rush Order\",\n  \"agreedFee\": 1200,\n  \"fhaCaseDetailsNo\": \"FHA654321\",\n  \"orderId\": \"ORD456\",\n  \"streetAddress\": \"456 New Ave\",\n  \"developmentName\": \"Bluefield\",\n  \"siteContactName\": \"John Smith\",\n  \"siteContactPhone\": \"+1987654321\",\n  \"siteContactEmail\": \"site@example.com\",\n  \"dueDate\": \"2026-01-15T00:00:00.000Z\",\n  \"specialNotesForInspector\": \"Updated note.\",\n  \"specialNoteForApOrAr\": \"Updated urgent job.\"\n}"
             },
             "description": "Update a job (admin/root only).\n\nValidation fields (all optional):\n- inspector: string (MongoId)\n- formType: enum (\"RCI Residential Building Code Inspection\", \"UnKnown\")\n- feeStatus: enum (\"Standard\", \"Rush Order\", \"Occupied Fee\", \"Modified Fee\", \"Long Distance Fee\")\n- agreedFee: integer, nonnegative\n- fhaCaseDetailsNo: string\n- orderId: string\n- streetAddress: string\n- developmentName: string\n- siteContactName: string\n- siteContactPhone: string\n- siteContactEmail: string, valid email\n- dueDate: date, cannot be in the past\n- specialNotesForInspector: string, max 1250 chars\n- specialNoteForApOrAr: string, max 1250 chars"
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
               "body": "{\n  \"success\": true,\n  \"message\": \"Job updated successfully\",\n  \"data\": { /* updated job */ },\n  \"code\": 200\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"A report for this job already exists.\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"A report for this job already exists.\",\n    \"code\": 400\n}"
             }
-          ],
-          "description": "Update a job (admin/root only)."
+          ]
         },
         {
           "name": "Delete Job",
@@ -858,24 +1629,54 @@
               "path": [
                 "job",
                 ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Job deleted successfully\",\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Job deleted successfully\",\n    \"code\": 200\n}"
             },
             {
               "name": "404 Not Found",
+              "originalRequest": {
+                "header": []
+              },
               "status": "404 Not Found",
               "code": 404,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Job not found\",\n  \"code\": 404\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Job not found\",\n    \"code\": 404\n}"
             }
-          ],
-          "description": "Delete a job (admin/root only)."
+          ]
         }
       ]
     },
@@ -896,15 +1697,6 @@
                 "value": "Bearer {{authToken}}"
               }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/report",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "report"
-              ]
-            },
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -916,8 +1708,17 @@
                 {
                   "key": "images",
                   "type": "file",
-                  "src": ""
+                  "value": ""
                 }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "report"
               ]
             },
             "description": "Create a new report (inspector only).\n\nValidation fields:\n- job: string (MongoId), required\n- images: array of objects, required, 1-2 images\n  - imageLabel: string (MongoId), required\n  - fileName: string, required\n  - alt: string, optional\n  - mimeType: string, required\n  - size: integer, required, nonnegative\n  - noteForAdmin: string, optional\n  - buffer: any, optional\n  - stream: any, optional\n- You must provide 1 or 2 images."
@@ -925,18 +1726,43 @@
           "response": [
             {
               "name": "201 Created",
+              "originalRequest": {
+                "header": []
+              },
               "status": "201 Created",
               "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
               "body": "{\n  \"success\": true,\n  \"message\": \"Report created successfully\",\n  \"data\": { /* report */ },\n  \"code\": 201\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Label already exists\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Label already exists\",\n    \"code\": 400\n}"
             }
-          ],
-          "description": "Create a new report (inspector only)."
+          ]
         },
         {
           "name": "Get All Reports",
@@ -983,12 +1809,24 @@
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Reports fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"reportid1\",\n      \"job\": \"jobid1\",\n      \"inspector\": \"60d21b4667d0d8992e610c85\",\n      \"images\": [\n        {\n          \"imageLabel\": \"labelid1\",\n          \"fileName\": \"photo1.jpg\",\n          \"alt\": \"Front view\",\n          \"mimeType\": \"image/jpeg\",\n          \"size\": 123456,\n          \"noteForAdmin\": \"Clear image\"\n        }\n      ],\n      \"createdAt\": \"2026-01-03T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Reports fetched successfully\",\n    \"data\": [\n        {\n            \"_id\": \"reportid1\",\n            \"job\": \"jobid1\",\n            \"inspector\": \"60d21b4667d0d8992e610c85\",\n            \"images\": [\n                {\n                    \"imageLabel\": \"labelid1\",\n                    \"fileName\": \"photo1.jpg\",\n                    \"alt\": \"Front view\",\n                    \"mimeType\": \"image/jpeg\",\n                    \"size\": 123456,\n                    \"noteForAdmin\": \"Clear image\"\n                }\n            ],\n            \"createdAt\": \"2026-01-03T12:00:00.000Z\",\n            \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n        }\n    ],\n    \"metaData\": {\n        \"page\": 1,\n        \"limit\": 10,\n        \"total\": 1\n    },\n    \"code\": 200\n}"
             }
-          ],
-          "description": "Get all reports (admin/root only)."
+          ]
         },
         {
           "name": "Get Report By ID",
@@ -1008,56 +1846,54 @@
               "path": [
                 "report",
                 ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Report fetched successfully\",\n  \"data\": {\n    \"_id\": \"reportid1\",\n    \"job\": \"jobid1\",\n    \"inspector\": \"60d21b4667d0d8992e610c85\",\n    \"images\": [\n      {\n        \"imageLabel\": \"labelid1\",\n        \"fileName\": \"photo1.jpg\",\n        \"alt\": \"Front view\",\n        \"mimeType\": \"image/jpeg\",\n        \"size\": 123456,\n        \"noteForAdmin\": \"Clear image\"\n      }\n    ],\n    \"createdAt\": \"2026-01-03T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Report fetched successfully\",\n    \"data\": {\n        \"_id\": \"reportid1\",\n        \"job\": \"jobid1\",\n        \"inspector\": \"60d21b4667d0d8992e610c85\",\n        \"images\": [\n            {\n                \"imageLabel\": \"labelid1\",\n                \"fileName\": \"photo1.jpg\",\n                \"alt\": \"Front view\",\n                \"mimeType\": \"image/jpeg\",\n                \"size\": 123456,\n                \"noteForAdmin\": \"Clear image\"\n            }\n        ],\n        \"createdAt\": \"2026-01-03T12:00:00.000Z\",\n        \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    },\n    \"code\": 200\n}"
             },
             {
               "name": "404 Not Found",
+              "originalRequest": {
+                "header": []
+              },
               "status": "404 Not Found",
               "code": 404,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Report not found\",\n  \"code\": 404\n}"
-            }
-          ],
-          "description": "Get a report by ID (admin/root only)."
-        },
-        {
-          "name": "Get Report PDF",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{authToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/report/:id/pdf",
-              "host": [
-                "{{baseUrl}}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
               ],
-              "path": [
-                "report",
-                ":id",
-                "pdf"
-              ]
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Report not found\",\n    \"code\": 404\n}"
             }
-          },
-          "response": [
-            {
-              "name": "200 OK (PDF)",
-              "status": "200 OK",
-              "code": 200,
-              "body": "<PDF binary>"
-            }
-          ],
-          "description": "Download a report as PDF (admin/root only)."
+          ]
         },
         {
           "name": "Update Report Status",
@@ -1073,6 +1909,10 @@
                 "value": "Bearer {{authToken}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\",\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/report/:id/status",
               "host": [
@@ -1082,22 +1922,58 @@
                 "report",
                 ":id",
                 "status"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"completed\",\n}"
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"completed\",\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/report/:id/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "report",
+                    ":id",
+                    "status"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id"
+                    }
+                  ]
+                }
+              },
               "status": "200 OK",
               "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
               "body": "{\n  \"success\": true,\n  \"message\": \"Report status updated successfully\",\n  \"data\": { /* updated report */ },\n  \"code\": 200\n}"
             }
-          ],
-          "description": "Update the status of a report (admin/root only)."
+          ]
         },
         {
           "name": "Delete Report",
@@ -1117,24 +1993,82 @@
               "path": [
                 "report",
                 ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/report/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "report",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id"
+                    }
+                  ]
+                }
+              },
               "status": "200 OK",
               "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
               "body": "{\n  \"success\": true,\n  \"message\": \"Report deleted successfully\",\n  \"code\": 200\n}"
             },
             {
               "name": "404 Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/report/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "report",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id"
+                    }
+                  ]
+                }
+              },
               "status": "404 Not Found",
               "code": 404,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
               "body": "{\n  \"success\": false,\n  \"message\": \"Report not found\",\n  \"code\": 404\n}"
             }
-          ],
-          "description": "Delete a report (admin/root only)."
+          ]
         }
       ]
     },
@@ -1155,6 +2089,10 @@
                 "value": "Bearer {{authToken}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Tree\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/image-label",
               "host": [
@@ -1164,27 +2102,48 @@
                 "image-label"
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"label\": \"Tree\"\n}"
-            },
             "description": "Create a new image label (admin/root only).\n\nValidation fields:\n- label: string, required, min 1 character"
           },
           "response": [
             {
               "name": "201 Created",
+              "originalRequest": {
+                "header": []
+              },
               "status": "201 Created",
               "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
               "body": "{\n  \"success\": true,\n  \"message\": \"Image label created successfully\",\n  \"data\": { /* image label */ },\n  \"code\": 201\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Validation error\",\n    \"code\": 400\n}"
             }
-          ],
-          "description": "Create a new image label (admin/root only)."
+          ]
         },
         {
           "name": "Get All Image Labels",
@@ -1226,12 +2185,24 @@
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Image labels fetched successfully\",\n  \"data\": [\n    {\n      \"_id\": \"labelid1\",\n      \"label\": \"Tree\",\n      \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n      \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    }\n  ],\n  \"metaData\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Image labels fetched successfully\",\n    \"data\": [\n        {\n            \"_id\": \"labelid1\",\n            \"label\": \"Tree\",\n            \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n            \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n        }\n    ],\n    \"metaData\": {\n        \"page\": 1,\n        \"limit\": 10,\n        \"total\": 1\n    },\n    \"code\": 200\n}"
             }
-          ],
-          "description": "Get all image labels (admin/root only)."
+          ]
         },
         {
           "name": "Get Image Label By ID",
@@ -1251,24 +2222,54 @@
               "path": [
                 "image-label",
                 ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Image label fetched successfully\",\n  \"data\": {\n    \"_id\": \"labelid1\",\n    \"label\": \"Tree\",\n    \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n    \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n  },\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Image label fetched successfully\",\n    \"data\": {\n        \"_id\": \"labelid1\",\n        \"label\": \"Tree\",\n        \"createdAt\": \"2026-01-01T12:00:00.000Z\",\n        \"updatedAt\": \"2026-01-06T12:00:00.000Z\"\n    },\n    \"code\": 200\n}"
             },
             {
               "name": "404 Not Found",
+              "originalRequest": {
+                "header": []
+              },
               "status": "404 Not Found",
               "code": 404,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Image label not found\",\n  \"code\": 404\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Image label not found\",\n    \"code\": 404\n}"
             }
-          ],
-          "description": "Get an image label by ID (admin/root only)."
+          ]
         },
         {
           "name": "Update Image Label",
@@ -1284,6 +2285,10 @@
                 "value": "Bearer {{authToken}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Updated Label\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/image-label/:id",
               "host": [
@@ -1292,29 +2297,55 @@
               "path": [
                 "image-label",
                 ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"label\": \"Updated Label\"\n}"
             },
             "description": "Update an image label (admin/root only).\n\nValidation fields (all optional):\n- label: string, min 1 character"
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
               "body": "{\n  \"success\": true,\n  \"message\": \"Image label updated successfully\",\n  \"data\": { /* updated image label */ },\n  \"code\": 200\n}"
             },
             {
               "name": "400 Bad Request",
+              "originalRequest": {
+                "header": []
+              },
               "status": "400 Bad Request",
               "code": 400,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Validation error\",\n  \"code\": 400\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Validation error\",\n    \"code\": 400\n}"
             }
-          ],
-          "description": "Update an image label (admin/root only)."
+          ]
         },
         {
           "name": "Delete Image Label",
@@ -1334,26 +2365,533 @@
               "path": [
                 "image-label",
                 ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
               ]
             }
           },
           "response": [
             {
               "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
               "status": "200 OK",
               "code": 200,
-              "body": "{\n  \"success\": true,\n  \"message\": \"Image label deleted successfully\",\n  \"code\": 200\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Image label deleted successfully\",\n    \"code\": 200\n}"
             },
             {
               "name": "404 Not Found",
+              "originalRequest": {
+                "header": []
+              },
               "status": "404 Not Found",
               "code": 404,
-              "body": "{\n  \"success\": false,\n  \"message\": \"Image label not found\",\n  \"code\": 404\n}"
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": false,\n    \"message\": \"Image label not found\",\n    \"code\": 404\n}"
             }
-          ],
-          "description": "Delete an image label (admin/root only)."
+          ]
         }
       ]
+    },
+    {
+      "name": "Inspector",
+      "item": [
+        {
+          "name": "Inspector Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/inspector/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inspector",
+                "overview"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
+              "status": "200 OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Inspector overview fetched successfully\",\n    \"data\": {},\n    \"code\": 200\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Admin Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/overview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "overview"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
+              "status": "200 OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Admin overview fetched successfully\",\n    \"data\": {},\n    \"code\": 200\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Email",
+      "item": [
+        {
+          "name": "Support",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Support request\",\n  \"message\": \"Please help with...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/email/support",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "email",
+                "support"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
+              "status": "200 OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Support email sent\",\n    \"code\": 200\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Notification",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notification?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
+              "status": "200 OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Notifications fetched successfully\",\n    \"data\": [],\n    \"code\": 200\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Notification By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notification/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
+              "status": "200 OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Notification fetched successfully\",\n    \"data\": {},\n    \"code\": 200\n}"
+            }
+          ]
+        },
+        {
+          "name": "Register Push Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"device-123\",\n  \"token\": \"push-token-value\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notification/token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification",
+                "token"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
+              "status": "200 OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Push token registered\",\n    \"code\": 200\n}"
+            }
+          ]
+        },
+        {
+          "name": "Activate/Deactivate Push Token",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notification/:deviceId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notification",
+                ":deviceId"
+              ],
+              "variable": [
+                {
+                  "key": "deviceId"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
+              "status": "200 OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Push token updated\",\n    \"code\": 200\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Test",
+      "item": [
+        {
+          "name": "Single Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "value": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/test/single-upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test",
+                "single-upload"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
+              "status": "200 OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"File uploaded successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Multiple Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "images",
+                  "type": "file",
+                  "value": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/test/multiple-upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test",
+                "multiple-upload"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "header": []
+              },
+              "status": "200 OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Files uploaded successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "authToken",
+      "value": ""
     }
   ]
 }

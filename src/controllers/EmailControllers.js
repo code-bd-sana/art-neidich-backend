@@ -11,9 +11,15 @@ const { emailSupport } = require("../services/EmailServices");
  */
 async function support(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Attach inspector info
     payload.inspector = req.user;
+
+    // Call service
     const result = await emailSupport(payload);
+
     return res.status(200).json({
       success: true,
       message: "Support mail sent successfully",

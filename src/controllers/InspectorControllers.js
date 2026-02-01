@@ -11,9 +11,12 @@ const { inspectorOverview } = require("../services/InspectorServices");
  */
 async function overview(req, res, next) {
   try {
+    // Get inspector id
     const inspector = new mongoose.Types.ObjectId(req.user?._id);
 
+    // Call service
     const result = await inspectorOverview(inspector);
+
     return res.status(200).json({
       success: true,
       message: "Inspector overview retrieved successfully",

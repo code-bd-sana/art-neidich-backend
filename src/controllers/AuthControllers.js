@@ -1,6 +1,7 @@
 const {
   registerUser,
   loginUser,
+  logoutUser,
   initiateForgotPassword,
   resetUserPassword,
   changeUserPassword,
@@ -16,8 +17,12 @@ const {
  */
 async function register(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
-    await registerUser(payload);
+
+    // Call service
+    const newUser = await registerUser(payload);
+
     return res.status(201).json({
       success: true,
       message:
@@ -39,21 +44,45 @@ async function register(req, res, next) {
  */
 async function login(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
-    const { user, token } = await loginUser(payload);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: "none", // Not same site
-      secure: process.env.NODE_ENV === "production",
-    });
+    // Call service
+    const { user, token } = await loginUser(payload);
 
     return res.status(200).json({
       success: true,
       message: "Login successful",
       token,
       user,
+      code: 200,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * Handle user logout
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function logout(req, res, next) {
+  try {
+    // Get validated payload
+    const payload = req.validated;
+
+    // Get user ID from authenticated user
+    const userId = req.user?._id;
+
+    // Call service
+    await logoutUser(userId, payload);
+
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful",
       code: 200,
     });
   } catch (err) {
@@ -70,8 +99,12 @@ async function login(req, res, next) {
  */
 async function forgotPassword(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Call service
     await initiateForgotPassword(payload);
+
     return res.status(200).json({
       success: true,
       message: payload.webRequest
@@ -93,9 +126,12 @@ async function forgotPassword(req, res, next) {
  */
 async function resetPassword(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
-    // Assuming resetUserPassword is a service function to handle password reset
+
+    // Call service
     await resetUserPassword(payload);
+
     return res.status(200).json({
       success: true,
       message: "Password reset successfully",
@@ -115,8 +151,12 @@ async function resetPassword(req, res, next) {
  */
 async function verifyOtp(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Call service
     await verifyOtpService(payload);
+
     return res
       .status(200)
       .json({ success: true, message: "OTP verified", code: 200 });
@@ -134,9 +174,15 @@ async function verifyOtp(req, res, next) {
  */
 async function changePassword(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Get user ID from authenticated user
     const userId = req.user?._id;
+
+    // Call service
     await changeUserPassword(userId, payload);
+
     return res.status(200).json({
       success: true,
       message: "Password changed successfully",
@@ -150,6 +196,7 @@ async function changePassword(req, res, next) {
 module.exports = {
   register,
   login,
+  logout,
   forgotPassword,
   resetPassword,
   changePassword,

@@ -9,8 +9,12 @@ const { adminOverview } = require("../services/AdminServices");
  */
 async function overview(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Call service
     const result = await adminOverview(payload);
+
     return res.status(200).json({
       success: true,
       message: "Admin overview retrieved successfully",

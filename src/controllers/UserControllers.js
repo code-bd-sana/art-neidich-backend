@@ -18,7 +18,9 @@ const {
  */
 async function getUserProfileController(req, res, next) {
   try {
+    // Call service
     const user = await getProfile(req.user._id);
+
     res.status(200).json({
       success: true,
       message: "User profile fetched successfully",
@@ -39,8 +41,12 @@ async function getUserProfileController(req, res, next) {
  */
 async function updateUserProfileController(req, res, next) {
   try {
+    // Get validated payload
     const payload = req.validated;
+
+    // Call service
     const updatedUser = await updateProfile(req.user.id, payload);
+
     res.status(200).json({
       success: true,
       message: "User profile updated successfully",
@@ -61,9 +67,12 @@ async function updateUserProfileController(req, res, next) {
  */
 async function getAllUsersController(req, res, next) {
   try {
-    // Use validated query when available (validator places result on `req.validated`).
+    // Get validated query
     const query = req.validated;
+
+    // Call service
     const { users, metaData } = await getUsers(query);
+
     res.status(200).json({
       success: true,
       message: "Users fetched successfully",
@@ -85,7 +94,9 @@ async function getAllUsersController(req, res, next) {
  */
 async function getUserByIdController(req, res, next) {
   try {
+    // Call service
     const user = await getUserById(req.params.id);
+
     res.status(200).json({
       success: true,
       message: "User fetched successfully",
@@ -106,6 +117,7 @@ async function getUserByIdController(req, res, next) {
  */
 async function approveUserController(req, res, next) {
   try {
+    // Prevent self-approval
     if (req.params.id === req.user.id) {
       return res.status(400).json({
         success: false,
@@ -113,7 +125,10 @@ async function approveUserController(req, res, next) {
         code: 400,
       });
     }
+
+    // Call service
     await approveUser(req.params.id);
+
     res.status(200).json({
       success: true,
       message: "User approved successfully",
@@ -133,6 +148,7 @@ async function approveUserController(req, res, next) {
  */
 async function suspendUserController(req, res, next) {
   try {
+    // Prevent self-suspension
     if (req.params.id === req.user.id) {
       return res.status(400).json({
         success: false,
@@ -140,7 +156,10 @@ async function suspendUserController(req, res, next) {
         code: 400,
       });
     }
+
+    // Call service
     await suspendUser(req.params.id, req.user);
+
     res.status(200).json({
       success: true,
       message: "User suspended successfully",
@@ -160,6 +179,7 @@ async function suspendUserController(req, res, next) {
  */
 async function unSuspendUserController(req, res, next) {
   try {
+    // Prevent self-un-suspension
     if (req.params.id === req.user.id) {
       return res.status(400).json({
         success: false,
@@ -167,7 +187,10 @@ async function unSuspendUserController(req, res, next) {
         code: 400,
       });
     }
+
+    // Call service
     await unSuspendUser(req.params.id, req.user);
+
     res.status(200).json({
       success: true,
       message: "User un-suspended successfully",
@@ -187,6 +210,7 @@ async function unSuspendUserController(req, res, next) {
  */
 async function deleteUserController(req, res, next) {
   try {
+    // Prevent self-deletion
     if (req.params.id === req.user.id) {
       return res.status(400).json({
         success: false,
@@ -194,7 +218,10 @@ async function deleteUserController(req, res, next) {
         code: 400,
       });
     }
+
+    // Call service
     await deleteUser(req.params.id, req.user);
+
     res.status(200).json({
       success: true,
       message: "User deleted successfully",

@@ -1,5 +1,11 @@
 const { z } = require("zod");
 
+const parseBoolean = (val) => {
+  if (val === "true") return true;
+  if (val === "false") return false;
+  return undefined;
+};
+
 /**
  * Validation schema for user search and pagination.
  *
@@ -27,8 +33,9 @@ const userSearchAndPaginationSchema = z
         message: "Role must be 0 (Super Admin), 1 (Admin), or 2 (Inspector)",
       })
       .optional(),
-    isSuspended: z.coerce.boolean().optional(),
-    isApproved: z.coerce.boolean().optional(),
+    isSuspended: z.string().optional().transform(parseBoolean),
+
+    isApproved: z.string().optional().transform(parseBoolean),
   })
   .strict();
 

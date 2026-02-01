@@ -1,8 +1,10 @@
 const crypto = require("crypto");
 
+const mongoose = require("mongoose");
 const { v4 } = require("uuid");
 
 const { generateToken } = require("../helpers/jwt/jwt-utils");
+const { notifyAdmins } = require("../helpers/notification/notification-helper");
 const {
   hashPassword,
   comparePassword,
@@ -12,19 +14,20 @@ const PushToken = require("../models/PushToken");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
 
-const NotificationServices = require("./../services/NotificationServices");
-
 /**
  * Register a new user
  *
- * @param {{firstName: string, lastName: string, email: string, password: string, role: number}} payload
+ * @param {{firstName: string, lastName: string, email: string, password: string, role: number, pushToken?: string, platform?: "android" | "ios", deviceName?: string}} payload
  * @returns {Promise<void>}
  */
 async function registerUser(payload) {
+  // Destructure payload
   const { firstName, lastName, email, password, role } = payload;
 
+  // Check if email already exists
   const existing = await UserModel.findOne({ email });
 
+  // If exists, throw error
   if (existing) {
     const err = new Error("Email already in use");
     err.status = 400;
@@ -32,22 +35,29 @@ async function registerUser(payload) {
     throw err;
   }
 
+  // Hash password
   const hashed = await hashPassword(password);
 
-  const newUser = await UserModel.create({
-    firstName: firstName,
-    lastName: lastName,
-    email,
-    password: hashed,
-    role,
-  });
+  let newUser;
 
-  const roleNames = {
-    1: "Administrator",
-    2: "Inspector",
-  };
+  try {
+    // Create user
+    newUser = await UserModel.create({
+      firstName: firstName,
+      lastName: lastName,
+      email,
+      password: hashed,
+      role,
+    });
 
-  const emailHtml = `
+    // Prepare welcome email HTML
+    const roleNames = {
+      1: "Administrator",
+      2: "Inspector",
+    };
+
+    // Welcome email HTML template
+    const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -277,87 +287,70 @@ async function registerUser(payload) {
 </html>
   `;
 
-  // Send the welcome email
-  const sendResult = await sendMail({
-    to: email,
-    subject: "🏠 Welcome to Property Inspector Pro - Registration Successful",
-    html: emailHtml,
-  });
+    // Send the welcome email
+    const sendResult = await sendMail({
+      to: email,
+      subject: "🏠 Welcome to Property Inspector Pro - Registration Successful",
+      html: emailHtml,
+    });
 
-  if (!sendResult || !sendResult.messageId) {
-    await UserModel.findByIdAndDelete(newUser._id);
-    const err = new Error(
-      "Failed to send welcome email. Registration aborted.",
-    );
-    err.status = 500;
-    err.code = "WELCOME_EMAIL_FAILED";
-    throw err;
-  }
-
-  // If this is an inspector registration (role 2), notify admins (role 0 and 1)
-  try {
-    if (role === 2) {
-      // find admin users
-      const admins = await UserModel.find({ role: { $in: [0, 1] } }).select(
-        "_id firstName lastName email",
+    // Check if email was sent successfully
+    if (!sendResult || !sendResult.messageId) {
+      const err = new Error(
+        "Failed to send welcome email. Registration aborted.",
       );
-      const adminIds = (admins || []).map((a) => a._id);
+      err.status = 500;
+      err.code = "WELCOME_EMAIL_FAILED";
+      throw err;
+    }
 
-      // resolve device tokens for admins
-      const tokens = await PushToken.find({
-        user: { $in: adminIds },
-        active: true,
-      }).select("token -_id");
-      const deviceTokens = (tokens || []).map((t) => t.token).filter(Boolean);
+    // If this is an inspector or admin registration (role 1, 2), notify admins (role 0 and 1)
+    try {
+      if (role === 1 || role === 2) {
+        const types = NotificationModel.notificationTypes || {};
 
-      // create notification record
-      const types = NotificationModel.notificationTypes || {};
-      const notif = await NotificationModel.create({
-        title: "New inspector registration",
-        body: `${firstName} ${lastName} has registered as an inspector and is awaiting approval.`,
-        data: { userId: String(newUser._id), role: 2 },
-        type: types.REGISTERED_AS_INSPECTOR || "registered_as_inspector",
-        authorId: newUser._id,
-        recipients: adminIds,
-        deviceTokens,
-        status: "pending",
-      });
+        await notifyAdmins({
+          type:
+            role === 1
+              ? types.REGISTERED_AS_ADMIN || "registered_as_admin"
+              : types.REGISTERED_AS_INSPECTOR || "registered_as_inspector",
+          title: `New ${roleNames === 1 ? "admin" : "inspector"} registration`,
+          body: `${firstName} ${lastName} has registered as an ${role === 1 ? "admin" : "inspector"} and is awaiting approval.`,
+          data: { userId: new mongoose.Types.ObjectId(newUser._id), role },
+          authorId: new mongoose.Types.ObjectId(newUser._id),
+        });
+      }
+    } catch (e) {
+      // swallow notification errors to avoid blocking registration
+      console.error("Notification send error:", e);
+    }
 
-      // attempt to send push notifications
+    return {
+      _id: newUser._id,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      email: newUser.email,
+      role: newUser.role,
+    };
+  } catch (error) {
+    // If anything fails after user creation (email, notifications, etc), delete the user
+    if (newUser && newUser._id) {
       try {
-        let sendResult = null;
-        if (deviceTokens.length) {
-          sendResult = await NotificationServices.sendToMany(deviceTokens, {
-            title: notif.title,
-            body: notif.body,
-            data: notif.data,
-          });
-        } else if (adminIds.length === 1) {
-          sendResult = await NotificationServices.sendToUser(adminIds[0], {
-            title: notif.title,
-            body: notif.body,
-            data: notif.data,
-          });
-        } else {
-          sendResult = { warning: "no-targets" };
-        }
-
-        notif.status = "sent";
-        notif.result = sendResult;
-        notif.sentAt = new Date();
-        await notif.save();
-      } catch (sendErr) {
-        notif.status = "failed";
-        notif.result = { error: sendErr.message || String(sendErr) };
-        await notif.save();
+        await UserModel.findByIdAndDelete(newUser._id);
+        console.error(
+          `User ${newUser._id} deleted due to registration failure:`,
+          error.message,
+        );
+      } catch (deleteError) {
+        console.error(
+          `Failed to delete user ${newUser._id} after registration error:`,
+          deleteError.message,
+        );
       }
     }
-  } catch (e) {
-    // swallow notification errors to avoid blocking registration
-    console.error("Notification send error:", e);
+    // Re-throw the original error so the controller can handle it
+    throw error;
   }
-
-  return;
 }
 
 /**
@@ -367,9 +360,13 @@ async function registerUser(payload) {
  * @returns {Promise<string>} JWT token
  */
 async function loginUser(payload) {
-  const { email, password } = payload;
+  // Destructure payload
+  const { deviceId, email, password } = payload;
+
+  // Find user by email
   const user = await UserModel.findOne({ email });
 
+  // If user not found, throw error
   if (!user) {
     const err = new Error("Invalid email or password");
     err.status = 401;
@@ -385,6 +382,7 @@ async function loginUser(payload) {
     throw err;
   }
 
+  // Guard against missing hashed password
   if (
     !user.password ||
     typeof user.password !== "string" ||
@@ -403,6 +401,7 @@ async function loginUser(payload) {
     err.code = "USER_SUSPENDED";
     throw err;
   }
+
   // Check for approved users
   if (!user.isApproved) {
     const err = new Error("User account is not approved");
@@ -411,8 +410,10 @@ async function loginUser(payload) {
     throw err;
   }
 
+  // Compare passwords
   const match = await comparePassword(password, user.password);
 
+  // If passwords do not match, throw error
   if (!match) {
     const err = new Error("Invalid email or password");
     err.status = 401;
@@ -420,6 +421,7 @@ async function loginUser(payload) {
     throw err;
   }
 
+  // Generate JWT token
   const token = await generateToken({
     id: user._id,
     userId: user.userId,
@@ -429,11 +431,28 @@ async function loginUser(payload) {
     role: user.role,
   });
 
+  // Return user details and token
   const roleMap = {
     0: "Super Admin",
     1: "Admin",
     2: "Inspector",
   };
+
+  // update the PushToken document to to update loggedInStatus to true for this user for this device
+  await PushToken.findOneAndUpdate(
+    {
+      deviceId,
+      "users.user": user._id,
+    },
+    {
+      $set: {
+        "users.$.loggedInStatus": true, // set loggedInStatus to true
+        "users.$.lastLoggedInAt": new Date(), // set lastLoggedInAt to now
+        "users.$.lastLoggedOutAt": null, // clear lastLoggedOutAt
+        lastUsed: new Date(),
+      },
+    },
+  );
 
   return {
     user: {
@@ -447,14 +466,64 @@ async function loginUser(payload) {
 }
 
 /**
+ * Logout user by invalidating their token
+ *
+ * @param {{deviceId: string}} payload
+ * @param {string} userId
+ * @returns {Promise<void>}
+ */
+async function logoutUser(userId, payload) {
+  // Destructure payload
+  const { deviceId } = payload;
+
+  // Off the push notification for this device
+  // Convert userId to ObjectId
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  // Check if a PushToken document already exists for this deviceId and user
+  const existing = await PushToken.findOne({
+    deviceId,
+    "users.user": userObjectId,
+  });
+
+  // If already registered, skip
+  if (existing) {
+    console.log(
+      `User ${userId} isn't registered on device ${deviceId} — skipping`,
+    );
+    return;
+  }
+
+  // update the PushToken document to to update loggedInStatus to false for this user for this device
+  const updated = await PushToken.findOneAndUpdate(
+    {
+      deviceId,
+      "users.user": userObjectId,
+    },
+    {
+      $set: {
+        "users.$.loggedInStatus": false, // set loggedInStatus to false
+        "users.$.lastLoggedInAt": null, // clear lastLoggedInAt
+        "users.$.lastLoggedOutAt": new Date(), // set lastLoggedOutAt to now
+        lastUsed: new Date(),
+      },
+    },
+  );
+
+  return;
+}
+
+/**
  * Initiate forgot password process
  *
  * @param {{email: string}} payload
  * @returns {Promise<void>}
  */
 async function initiateForgotPassword(payload) {
+  // Destructure payload
   const { email, webRequest, mobileRequest } = payload;
 
+  // Find user by email
   const user = await UserModel.findOne({ email });
 
   // Do not reveal whether the email exists. Return early so controller
@@ -808,6 +877,7 @@ async function initiateForgotPassword(payload) {
  * @returns {Promise<void>}
  */
 async function resetUserPassword(payload) {
+  // Destructure payload
   const { email, otp, token, newPassword } = payload;
 
   // Cases supported:
@@ -817,6 +887,7 @@ async function resetUserPassword(payload) {
 
   if (token) {
     const user = await UserModel.findOne({ email, resetToken: token });
+
     // Validate token and expiry
     if (!user) {
       const err = new Error("Invalid or expired reset token");
@@ -824,22 +895,33 @@ async function resetUserPassword(payload) {
       err.code = "INVALID_RESET_TOKEN";
       throw err;
     }
+
+    // Check expiry
     if (!user.resetTokenExpiry || Date.now() > user.resetTokenExpiry) {
       const err = new Error("Reset token has expired");
       err.status = 400;
       err.code = "RESET_TOKEN_EXPIRED";
       throw err;
     }
+
+    // Update password
     const hashed = await hashPassword(newPassword);
+
     user.password = hashed;
     user.resetToken = null;
     user.resetTokenExpiry = null;
+    user.resetPasswordOTP = null;
+    user.resetPasswordOTPExpiry = null;
+    user.resetPasswordVerified = null;
+    user.resetPasswordVerifiedExpiry = null;
+
     await user.save();
     return;
   }
 
   if (otp) {
     const user = await UserModel.findOne({ email, resetPasswordOTP: otp });
+
     // Validate OTP and expiry
     if (!user) {
       const err = new Error("Invalid or expired OTP");
@@ -847,6 +929,8 @@ async function resetUserPassword(payload) {
       err.code = "INVALID_OTP";
       throw err;
     }
+
+    // Check expiry
     if (
       !user.resetPasswordOTPExpiry ||
       Date.now() > user.resetPasswordOTPExpiry
@@ -856,10 +940,16 @@ async function resetUserPassword(payload) {
       err.code = "OTP_EXPIRED";
       throw err;
     }
+
+    // Update password
     const hashed = await hashPassword(newPassword);
+
     user.password = hashed;
     user.resetPasswordOTP = null;
     user.resetPasswordOTPExpiry = null;
+    user.resetPasswordVerified = null;
+    user.resetPasswordVerifiedExpiry = null;
+
     await user.save();
     return;
   }
@@ -874,6 +964,7 @@ async function resetUserPassword(payload) {
     throw err;
   }
 
+  // Check expiry of verified flag
   if (
     !user.resetPasswordVerifiedExpiry ||
     Date.now() > user.resetPasswordVerifiedExpiry
@@ -884,13 +975,16 @@ async function resetUserPassword(payload) {
     throw err;
   }
 
+  // Update password
   const hashed = await hashPassword(newPassword);
+
   user.password = hashed;
-  user.resetPasswordVerified = false;
+  user.resetPasswordVerified = null;
   user.resetPasswordVerifiedExpiry = null;
   // ensure any lingering OTP fields are cleared
   user.resetPasswordOTP = null;
   user.resetPasswordOTPExpiry = null;
+
   await user.save();
   return;
 }
@@ -902,21 +996,31 @@ async function resetUserPassword(payload) {
  * @returns {Promise<void>}
  */
 async function changeUserPassword(userId, payload) {
+  // Destructure payload
   const { currentPassword, newPassword } = payload;
+
+  // Find user by ID
   const user = await UserModel.findById(userId);
+
+  // If user not found, throw error
   if (!user) {
     const err = new Error("User not found");
     err.status = 404;
     err.code = "USER_NOT_FOUND";
     throw err;
   }
+
+  // Compare current password
   const match = await comparePassword(currentPassword, user.password);
+
+  // If passwords do not match, throw error
   if (!match) {
     const err = new Error("Current password is incorrect");
     err.status = 400;
     err.code = "INCORRECT_CURRENT_PASSWORD";
     throw err;
   }
+
   // Old password cannot be the same as new password
   if (currentPassword === newPassword) {
     const err = new Error(
@@ -926,8 +1030,11 @@ async function changeUserPassword(userId, payload) {
     err.code = "SAME_PASSWORD";
     throw err;
   }
+
+  // Update password
   const hashed = await hashPassword(newPassword);
   user.password = hashed;
+
   await user.save();
   return;
 }
@@ -939,8 +1046,10 @@ async function changeUserPassword(userId, payload) {
  * @returns {Promise<void>}
  */
 async function verifyOtp(payload) {
+  // Destructure payload
   const { email, otp } = payload;
 
+  // Find user by email
   const user = await UserModel.findOne({ email });
 
   const err = new Error("Invalid or expired OTP");
@@ -955,10 +1064,12 @@ async function verifyOtp(payload) {
     throw err;
   }
 
+  // Check OTP match and expiry
   if (String(user.resetPasswordOTP) !== String(otp)) {
     throw err;
   }
 
+  // Check expiry
   if (new Date(user.resetPasswordOTPExpiry) < new Date()) {
     throw err;
   }
@@ -981,6 +1092,7 @@ async function verifyOtp(payload) {
 module.exports = {
   registerUser,
   loginUser,
+  logoutUser,
   initiateForgotPassword,
   resetUserPassword,
   changeUserPassword,

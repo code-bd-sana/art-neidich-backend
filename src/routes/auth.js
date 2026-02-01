@@ -1,10 +1,12 @@
 const express = require("express");
 
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
 
 const {
   register,
   login,
+  logout,
   forgotPassword,
   resetPassword,
   changePassword,
@@ -15,9 +17,20 @@ const { validate } = require("../utils/validator");
 const { changePasswordSchema } = require("../validators/auth/changePassword");
 const { forgotPasswordSchema } = require("../validators/auth/forgotPassword");
 const { loginSchema } = require("../validators/auth/login");
+const { logoutSchema } = require("../validators/auth/logout");
 const { registerSchema } = require("../validators/auth/register");
 const { resetPasswordSchema } = require("../validators/auth/resetPassword");
 const { verifyOtpSchema } = require("../validators/auth/verifyOtp");
+
+/**
+ * Rate limiting for the forget password route
+ */
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // limit each IP to 3 requests per windowMs
+  message:
+    "Too many password reset requests from this IP, please try again after 15 minutes",
+});
 
 /**
  * Handle user registration
@@ -48,6 +61,23 @@ router.post(
 router.post("/login", validate(loginSchema, { target: "body" }), login);
 
 /**
+ * Handle user logout
+ *
+ * @route POST /api/v1/auth/logout
+ * Private route to log out a user
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+router.post(
+  "/logout",
+  authenticate,
+  validate(logoutSchema, { target: "body" }),
+  logout,
+);
+
+/**
  * Handle forgot password request
  *
  * @route POST /api/v1/auth/forgot-password
@@ -59,6 +89,7 @@ router.post("/login", validate(loginSchema, { target: "body" }), login);
  */
 router.post(
   "/forgot-password",
+  forgotPasswordLimiter,
   validate(forgotPasswordSchema, { target: "body" }),
   forgotPassword,
 );

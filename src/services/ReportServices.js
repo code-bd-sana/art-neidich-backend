@@ -3,8 +3,10 @@ const { Readable } = require("stream");
 
 const mongoose = require("mongoose");
 
+const { notifyAdmins } = require("../helpers/notification/notification-helper");
 const ImageLabelModel = require("../models/ImageLabelModel");
 const JobModel = require("../models/JobModel");
+const NotificationModel = require("../models/NotificationModel");
 const ReportModel = require("../models/ReportModel");
 const { uploadStreams, deleteObjects } = require("../utils/s3");
 
@@ -19,41 +21,56 @@ const { uploadStreams, deleteObjects } = require("../utils/s3");
  * @returns {Promise<Object>} - Created report
  */
 async function createReport(payload) {
+  // Validate job ID
   const jobId = new mongoose.Types.ObjectId(payload.job);
 
-  // 1. Job existence check
+  // Job existence check
   if (!(await JobModel.exists({ _id: jobId }))) {
     const err = new Error("Associated job not found");
     err.status = 404;
     throw err;
   }
 
-  // 2. Duplicate report check
+  // Duplicate report check
   if (await ReportModel.exists({ job: jobId })) {
     const err = new Error("A report already exists for this job");
     err.status = 400;
     throw err;
   }
 
+  // Validate images
   const imagesInput = Array.isArray(payload.images) ? payload.images : [];
+
+  // Require at least 1 image
   if (imagesInput.length < 1) {
     const err = new Error("At least 1 image is required");
     err.status = 400;
     throw err;
   }
 
-  // 3. Fetch labels (optimized single query)
-  const labelIds = [...new Set(imagesInput.map((img) => img.imageLabel))];
+  // Fetch labels (optimized single query)
+  const labelIds = [
+    ...new Set(
+      imagesInput.map((img) => new mongoose.Types.ObjectId(img.imageLabel)),
+    ),
+  ];
+
+  // Fetch labels from DB
   const labels = await ImageLabelModel.find({ _id: { $in: labelIds } })
     .select("label")
     .lean();
+
+  // Map label IDs to strings
   const labelMap = new Map(labels.map((l) => [l._id.toString(), l.label]));
 
-  // 4. Prepare images with string label
+  // Prepare images with string label
   const finalImagesPlaceholder = imagesInput.map((img) => {
     const labelStr = labelMap.get(img.imageLabel);
     if (!labelStr) {
-      throw new Error(`Invalid imageLabel ID: ${img.imageLabel}`);
+      const err = new Error("Image label not found");
+      err.status = 400;
+      err.code = "IMAGE_LABEL_NOT_FOUND";
+      throw err;
     }
     return {
       imageLabel: labelStr,
@@ -68,7 +85,7 @@ async function createReport(payload) {
     };
   });
 
-  // 5. Create report document FIRST (to get _id)
+  // Create report document FIRST (to get _id)
   const report = new ReportModel({
     ...payload,
     job: jobId,
@@ -82,20 +99,19 @@ async function createReport(payload) {
   });
 
   await report.save();
-  console.log("Report document created with _id:", report._id.toString());
 
-  // 6. Now upload images using report._id as folder prefix
+  // Now upload images using report._id as folder prefix
   const folderPrefix = `reports/${report._id.toString()}`;
 
   let uploadedResults = [];
+
   try {
+    // Upload images to S3
     const toUpload = finalImagesPlaceholder.filter((img) => img.buffer);
 
+    // Only upload if there are images with buffers
     if (toUpload.length > 0) {
-      console.log(
-        `Uploading ${toUpload.length} images to folder: ${folderPrefix}`,
-      );
-
+      // Prepare upload items
       const uploadItems = toUpload.map((img, index) => ({
         stream: Readable.from(img.buffer),
         originalName: img.fileName,
@@ -103,25 +119,36 @@ async function createReport(payload) {
         folderPrefix, // ← key change: pass folder prefix
       }));
 
+      // Perform uploads
       uploadedResults = await uploadStreams(uploadItems);
 
+      // Check for any failed uploads
       const failed = uploadedResults.filter((r) => r.status === "rejected");
+
+      // If any failed, cleanup and throw error
       if (failed.length > 0) {
         const keysToDelete = uploadedResults
           .filter((r) => r.status === "fulfilled")
           .map((r) => r.value.Key);
 
+        // Delete successfully uploaded objects
         if (keysToDelete.length) await deleteObjects(keysToDelete);
-        throw failed[0].reason || new Error("Image upload failed");
+
+        // Throw error after cleanup
+        const err = new Error("At least 1 image is required");
+        err.status = 400;
+        throw err;
       }
 
+      // Extract fulfilled values
       uploadedResults = uploadedResults.map((r) => r.value);
     }
 
-    // 7. Update report with real S3 data
+    // Update report with real S3 data
     const finalImages = [];
     let uploadIndex = 0;
 
+    // Map uploaded results back to final images
     for (const orig of finalImagesPlaceholder) {
       if (orig.buffer) {
         const uploaded = uploadedResults[uploadIndex++];
@@ -148,19 +175,41 @@ async function createReport(payload) {
     report.images = finalImages;
     await report.save();
 
-    console.log("Report fully updated with S3 URLs");
+    // Notify admins about new report submission
+    try {
+      const types = NotificationModel.notificationTypes || {};
 
+      await notifyAdmins({
+        type: types.NEW_REPORT || "new_report",
+        title: "New Report Submitted",
+        body: `A new report has been submitted by ${payload.inspectorName || "an inspector"}.`,
+        data: {
+          reportId: new mongoose.Types.ObjectId(report._id),
+          jobId: new mongoose.Types.ObjectId(jobId),
+          action: "view_report",
+        },
+        authorId: new mongoose.Types.ObjectId(payload.inspector),
+      });
+    } catch (e) {
+      console.error("Failed to create/send job report notifications:", e);
+    }
+
+    // 8. Return the complete report
     return await getReportById(report._id);
   } catch (err) {
     // Cleanup images if report was created but upload failed
     if (uploadedResults.length > 0) {
+      // Delete successfully uploaded images from S3
       const keys = uploadedResults.map((u) => u?.Key).filter(Boolean);
+
+      // Delete objects from S3
       if (keys.length) await deleteObjects(keys).catch(console.error);
     }
 
     // Optional: delete the incomplete report document
     await ReportModel.deleteOne({ _id: report._id }).catch(console.error);
 
+    // Rethrow the error
     throw err;
   }
 }
@@ -172,6 +221,7 @@ async function createReport(payload) {
  * @returns {Promise<{reports: Array<Object>, metaData: Object}>} - Reports and metadata
  */
 async function getAllReports(query) {
+  // Pagination params
   const page = parseInt(query.page, 10) || 1;
   const limit = parseInt(query.limit, 10) || 10;
   const skip = (page - 1) * limit;
@@ -188,6 +238,8 @@ async function getAllReports(query) {
 
   // Optional search
   let searchPipeline = [];
+
+  // If search term provided
   if (query.search && query.search.trim()) {
     const search = query.search.trim();
     const esc = search.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
@@ -241,8 +293,9 @@ async function getAllReports(query) {
         },
       },
     ];
-  } else {
-    // If not searching, still need to lookup for projection
+  }
+  // If not searching, still need to lookup for projection
+  else {
     searchPipeline = [
       {
         $lookup: {
@@ -310,6 +363,7 @@ async function getAllReports(query) {
   const countResult = await ReportModel.aggregate(countPipeline);
   const totalReports = countResult[0]?.total || 0;
 
+  // Paginated reports
   const reports = await ReportModel.aggregate(pipeline);
 
   const metaData = {
@@ -329,6 +383,7 @@ async function getAllReports(query) {
  * @returns {Promise<Object>} - Report document
  */
 async function getReportById(id) {
+  // Aggregation to fetch report with related data
   const [report] = await ReportModel.aggregate([
     { $match: { _id: new mongoose.Types.ObjectId(id) } },
 
@@ -514,6 +569,7 @@ async function getReportById(id) {
     },
   ]);
 
+  // If no report found
   if (!report) {
     const err = new Error("Report not found");
     err.status = 404;
@@ -532,8 +588,10 @@ async function getReportById(id) {
  * @returns {Promise<Object>} - Updated report document
  */
 async function updateReportStatus(id, updateData) {
+  // Extract status and lastUpdatedBy
   const { status, lastUpdatedBy } = updateData;
 
+  // Update the report status
   const updated = await ReportModel.findByIdAndUpdate(
     id,
     {
@@ -546,11 +604,30 @@ async function updateReportStatus(id, updateData) {
     { new: true },
   );
 
+  // If no report found to update
   if (!updated) {
     const err = new Error("Report not found");
     err.status = 404;
     err.code = "REPORT_NOT_FOUND";
     throw err;
+  }
+
+  // If the report status updated successfully, then notify admin users
+  try {
+    const types = NotificationModel.notificationTypes || {};
+
+    await notifyAdmins({
+      type: types.REPORT_STATUS_UPDATED || "report_status_updated",
+      title: "Report Status Updated",
+      body: `The status of a report has been updated to "${status}".`,
+      data: {
+        reportId: new mongoose.Types.ObjectId(id),
+        action: "view_report",
+      },
+      authorId: new mongoose.Types.ObjectId(lastUpdatedBy),
+    });
+  } catch (error) {
+    console.error("Error sending notification to admins:", error);
   }
 
   // Return EXACT SAME response as GET BY ID
@@ -564,7 +641,10 @@ async function updateReportStatus(id, updateData) {
  * @returns {Promise<void>}
  */
 async function deleteReport(id) {
+  // Check if report exists
   const report = await ReportModel.findById(id);
+
+  // If not found, throw error
   if (!report) {
     const err = new Error("Report not found");
     err.status = 404;

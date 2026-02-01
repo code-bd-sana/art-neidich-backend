@@ -15,13 +15,16 @@ function escapeRegExp(string) {
  * @returns {Promise<Object>} created label
  */
 async function createImageLabel(payload, user) {
+  // Check for duplicate label
   const label = payload.label;
 
+  // Escape special regex characters for accurate search
   const escaped = escapeRegExp(label);
   const existing = await ImageLabelModel.findOne({
     label: { $regex: `^${escaped}$`, $options: "i" },
   });
 
+  // If duplicate found, throw error
   if (existing) {
     const err = new Error("Label already exists");
     err.status = 400;
@@ -130,17 +133,20 @@ async function createImageLabel(payload, user) {
  * }>}
  */
 async function getImageLabels(query = {}) {
+  // Parse pagination parameters
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
 
+  // Build match stage
   const matchStage = {};
   if (search) {
     const esc = escapeRegExp(search);
     matchStage.label = { $regex: esc, $options: "i" };
   }
 
+  // Build aggregation pipeline
   const pipeline = [
     { $match: matchStage },
 
@@ -230,6 +236,7 @@ async function getImageLabels(query = {}) {
     },
   ];
 
+  // Execute aggregation
   const result = await ImageLabelModel.aggregate(pipeline);
   const labels = result[0]?.labels || [];
   const totalLabel = result[0]?.metaData[0]?.totalLabel || 0;
@@ -252,6 +259,7 @@ async function getImageLabels(query = {}) {
  * @returns {Promise<Object>}
  */
 async function getImageLabel(id) {
+  // Execute aggregation to get label by id
   const label = await ImageLabelModel.aggregate([
     // Search by id
     { $match: { _id: new mongoose.Types.ObjectId(id) } },
@@ -326,12 +334,15 @@ async function getImageLabel(id) {
       },
     },
   ]);
+
+  // If not found, throw error
   if (!label || !label.length) {
     const err = new Error("Image label not found");
     err.status = 404;
     err.code = "LABEL_NOT_FOUND";
     throw err;
   }
+
   return label[0];
 }
 
@@ -343,6 +354,7 @@ async function getImageLabel(id) {
  * @returns {Promise<Object>} updated label
  */
 async function updateImageLabel(id, payload, userId) {
+  // Check for duplicate label if label is being updated
   const labelValue = payload.label;
 
   /* ---------- DUPLICATE CHECK ---------- */
@@ -353,6 +365,7 @@ async function updateImageLabel(id, payload, userId) {
       _id: { $ne: id },
     });
 
+    // If duplicate found, throw error
     if (existing) {
       const err = new Error("Label already exists");
       err.status = 400;
@@ -370,9 +383,10 @@ async function updateImageLabel(id, payload, userId) {
         lastUpdatedBy: userId,
       },
     },
-    { new: true }
+    { new: true },
   );
 
+  // If not found, throw error
   if (!updateResult) {
     const err = new Error("Image label not found");
     err.status = 404;
@@ -465,14 +479,20 @@ async function updateImageLabel(id, payload, userId) {
  * @returns {Promise<void>}
  */
 async function deleteImageLabel(id) {
+  // Check if label exists
   const existing = await ImageLabelModel.findById(id);
+
+  // If not found, throw error
   if (!existing) {
     const err = new Error("Image label not found");
     err.status = 404;
     err.code = "LABEL_NOT_FOUND";
     throw err;
   }
+
+  // Delete label
   await ImageLabelModel.findByIdAndDelete(id);
+
   return;
 }
 

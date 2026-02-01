@@ -3,13 +3,17 @@ const { logError } = require("../helpers/logger");
 module.exports = function errorHandler(err, req, res, next) {
   // Log error silently to file
   try {
+    // Log the error with the request path for context
     logError(err, { path: req && req.originalUrl });
   } catch (e) {
     // swallow
     console.error("Error logging in errorHandler middleware:", e);
   }
 
+  // Send generic error response
   const status = (err && err.status && Number(err.status)) || 500;
+
+  // Construct response
   const response = {
     success: false,
     message:
@@ -18,9 +22,11 @@ module.exports = function errorHandler(err, req, res, next) {
         : (err && err.message) || "Error",
   };
 
+  // Include error code if present
   if (err && err.code) response.code = status;
 
   // Ensure we only send once
   if (res.headersSent) return next(err);
+
   res.status(status).json(response);
 };

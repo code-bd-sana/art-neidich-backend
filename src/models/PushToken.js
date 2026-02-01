@@ -3,38 +3,60 @@ const mongoose = require("mongoose");
 
 const pushTokenSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
+    users: [
+      {
+        // exclude _id for sub documents
+        _id: false,
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+          index: true,
+        }, // reference to User model
+        notificationActive: {
+          type: Boolean,
+          default: true,
+        }, // toggle notifications per user
+        loggedInStatus: {
+          type: Boolean,
+          default: true,
+        }, // track if user is logged in on this device
+        lastLoggedInAt: {
+          type: Date,
+          default: null,
+        }, // timestamp of last login status update
+        lastLoggedOutAt: {
+          type: Date,
+          default: null,
+        }, // timestamp of last logout status update
+      },
+    ],
     token: {
       type: String,
       required: true,
-      unique: true, // prevent duplicates
     },
     platform: {
       type: String,
-      enum: ["android", "ios"],
+      enum: ["android", "ios", "web"],
       required: true,
     },
-    deviceInfo: String, // optional: "Samsung Galaxy S23", "iPhone 15 Pro", etc.
-    active: {
-      type: Boolean,
-      default: true,
+    deviceId: {
+      type: String,
+      required: true,
+      unique: true,
     },
-    lastUsed: Date,
-    createdAt: {
-      type: Date,
-      default: Date.now,
-      // Optional: auto-remove very old/inactive tokens after 1 year
-      // expires: 31536000
-    },
+    deviceName: String, // optional: "Samsung Galaxy S23", "iPhone 15 Pro", etc.
+    lastUsed: Date, // track last usage
   },
-  { versionKey: false },
+  { timestamps: true, versionKey: false },
 );
 
-pushTokenSchema.index({ user: 1, active: 1 });
+pushTokenSchema.index({ "users.user": 1, "users.notificationActive": 1 });
+// Index to speed up queries that find stale logged-in sub documents
+pushTokenSchema.index({
+  "users.loggedInStatus": 1,
+  "users.lastLoggedInAt": 1,
+  "users.lastLoggedOutAt": 1,
+});
 
 module.exports = mongoose.model("PushToken", pushTokenSchema);

@@ -78,7 +78,10 @@ function resolveFromAddress() {
  */
 async function sendMail({ to, subject, text, html, attachments } = {}) {
   if (!to) {
-    throw new Error("`to` is required");
+    const err = new Error("`to` address is required to send email");
+    err.status = 404;
+    err.code = "MISSING_TO_ADDRESS";
+    throw err;
   }
 
   const mailOptions = {
@@ -124,7 +127,10 @@ async function sendMail({ to, subject, text, html, attachments } = {}) {
  */
 async function sendBulkMail(recipients = [], options = {}) {
   if (!Array.isArray(recipients) || recipients.length === 0) {
-    throw new Error("`recipients` must be a non-empty array");
+    const err = new Error("No recipients provided for bulk email");
+    err.status = 404;
+    err.code = "NO_BULK_EMAIL_RECIPIENTS";
+    throw err;
   }
 
   const {
@@ -138,6 +144,7 @@ async function sendBulkMail(recipients = [], options = {}) {
   /** @type {Array<Object>} */
   const results = [];
 
+  // Process in batches
   for (let i = 0; i < recipients.length; i += batchSize) {
     const batch = recipients.slice(i, i + batchSize);
 
@@ -152,6 +159,7 @@ async function sendBulkMail(recipients = [], options = {}) {
         attachments: recipient.attachments || defaultAttachments,
       };
 
+      // Send individual email
       return sendMail(payload)
         .then((info) => ({
           status: "fulfilled",
