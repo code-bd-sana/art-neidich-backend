@@ -408,6 +408,9 @@ async function registerToken(
           users: {
             user: userObjectId,
             notificationActive: true,
+            loggedInStatus: null,
+            lastLoggedInAt: null,
+            lastLoggedOutAt: null,
           },
         },
       },
