@@ -95,6 +95,5 @@ const activeOrInactivePushNotification = async (req, res, next) => {
 module.exports = {
   listNotifications,
   getNotification,
-  registerPushToken,
   activeOrInactivePushNotification,
 };
