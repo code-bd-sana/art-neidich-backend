@@ -452,9 +452,6 @@ async function loginUser(payload) {
         lastUsed: new Date(),
       },
     },
-    {
-      upsert: true,
-    },
   );
 
   return {
@@ -510,9 +507,6 @@ async function logoutUser(userId, payload) {
         "users.$.lastLoggedOutAt": new Date(), // set lastLoggedOutAt to now
         lastUsed: new Date(),
       },
-    },
-    {
-      upsert: true,
     },
   );
 
