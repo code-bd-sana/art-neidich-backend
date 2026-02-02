@@ -665,7 +665,7 @@ async function unSuspendUser(userId, currentUser) {
     const types = NotificationModel.notificationTypes || {};
 
     await notifyAdmins({
-      type: types.ACCOUNT_REINSTATED || "account_reinstated",
+      type: types.ACCOUNT_UNSUSPEND || "account_unsuspend",
       title: "Account reinstated",
       body: `${user.firstName} ${user.lastName} has been reinstated by an administrator.`,
       data: {

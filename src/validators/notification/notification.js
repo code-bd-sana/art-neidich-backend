@@ -46,7 +46,7 @@ const notificationPaginationSchema = z
         "registered_as_admin",
         "registered_as_inspector",
         "account_suspended",
-        "account_unsuspended",
+        "account_unsuspend",
         "custom",
       ])
       .optional(),
