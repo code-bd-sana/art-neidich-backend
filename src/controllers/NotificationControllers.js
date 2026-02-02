@@ -5,7 +5,6 @@ const NotificationToken = require("../models/NotificationTokenModel");
 const {
   allNotifications,
   getNotificationById,
-  registerToken,
   activeOrInactivePushNotification: onOrOffPushNotification,
 } = require("../services/NotificationServices");
 
@@ -60,40 +59,6 @@ const getNotification = async (req, res, next) => {
       success: true,
       message: "Notification fetched successfully",
       data: notification,
-      code: 200,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/**
- * Register a push token for the authenticated user
- * Supports multiple devices per user
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
-const registerPushToken = async (req, res, next) => {
-  try {
-    // Extract token details from validated request body
-    const { token, platform, deviceId, deviceName } = req.validated;
-
-    // Get user ID from authenticated request
-    const userId = req.user._id;
-
-    // Call service
-    const result = await registerToken(
-      userId,
-      token,
-      platform,
-      deviceId,
-      deviceName,
-    );
-
-    res.json({
-      success: true,
-      message: "Push token registered successfully",
-      data: result,
       code: 200,
     });
   } catch (err) {

@@ -5,7 +5,6 @@ const router = express.Router();
 const {
   listNotifications,
   getNotification,
-  registerPushToken,
   activeOrInactivePushNotification,
 } = require("../controllers/NotificationControllers");
 const { authenticate } = require("../middleware/auth");
@@ -51,22 +50,6 @@ router.get(
   "/:id",
   validate(mongoIdSchema, { target: "params" }),
   getNotification,
-);
-
-/**
- * Register a push token for the authenticated user
- *
- * @route POST /api/v1/notification/token
- * Private route to register a push token
- *
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-router.post(
-  "/token",
-  validate(registerPushTokenSchema, { target: "body" }),
-  registerPushToken,
 );
 
 /**

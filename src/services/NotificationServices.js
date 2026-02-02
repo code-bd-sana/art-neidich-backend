@@ -358,77 +358,6 @@ async function getNotificationById(notificationId, userId) {
 }
 
 /**
- * Register or update a device token for push notifications
- *
- * @param {string} userId User ID
- * @param {string} token FCM device token
- * @param {string} platform Platform: "android", "ios", or "web"
- * @param {string} deviceId Device ID
- * @param {string} deviceName Optional device information
- */
-async function registerToken(
-  userId,
-  token,
-  platform,
-  deviceId,
-  deviceName = null,
-) {
-  try {
-    // Convert userId to ObjectId
-    const userObjectId = new mongoose.Types.ObjectId(userId);
-
-    // Check if a PushToken document already exists for this deviceId and user
-    const existing = await PushToken.findOne({
-      deviceId,
-      "users.user": userObjectId,
-    });
-
-    // If already registered, skip
-    if (existing) {
-      console.log(
-        `User ${userId} already registered on device ${deviceId} — skipping`,
-      );
-      return null;
-    }
-
-    // Upsert the PushToken document
-    const result = await PushToken.findOneAndUpdate(
-      { deviceId },
-      {
-        $set: {
-          token,
-          platform,
-          deviceName,
-          lastUsed: new Date(),
-        },
-        $setOnInsert: {
-          createdAt: new Date(),
-        },
-        $addToSet: {
-          users: {
-            user: userObjectId,
-            notificationActive: true,
-            loggedInStatus: null,
-            lastLoggedInAt: null,
-            lastLoggedOutAt: null,
-          },
-        },
-      },
-      {
-        upsert: true,
-        new: true,
-        runValidators: true,
-      },
-    );
-
-    return result;
-  } catch (err) {
-    console.error("registerToken error:", err);
-    throw err;
-  }
-}
-
-/**
  * Active or Inactive a specific push notification for specific device and user
  * @param {string} userId User ID
  * @param {string} deviceId Device ID
@@ -480,6 +409,5 @@ module.exports = {
   sendToUser,
   allNotifications,
   getNotificationById,
-  registerToken,
   activeOrInactivePushNotification,
 };

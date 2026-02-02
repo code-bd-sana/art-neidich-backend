@@ -17,18 +17,6 @@ const pushTokenSchema = new mongoose.Schema(
           type: Boolean,
           default: true,
         }, // toggle notifications per user
-        loggedInStatus: {
-          type: Boolean,
-          default: null,
-        }, // track if user is logged in on this device
-        lastLoggedInAt: {
-          type: Date,
-          default: null,
-        }, // timestamp of last login status update
-        lastLoggedOutAt: {
-          type: Date,
-          default: null,
-        }, // timestamp of last logout status update
       },
     ],
     token: {
