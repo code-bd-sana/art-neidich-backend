@@ -666,11 +666,11 @@ async function unSuspendUser(userId, currentUser) {
 
     await notifyAdmins({
       type: types.ACCOUNT_UNSUSPEND || "account_unsuspend",
-      title: "Account reinstated",
-      body: `${user.firstName} ${user.lastName} has been reinstated by an administrator.`,
+      title: "Account un-suspend",
+      body: `${user.firstName} ${user.lastName} has been un-suspended by an administrator.`,
       data: {
         userId: new mongoose.Types.ObjectId(user._id),
-        action: "reinstated",
+        action: "un-suspended",
       },
       authorId: null,
     });
