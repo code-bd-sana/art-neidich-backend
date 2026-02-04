@@ -103,12 +103,13 @@ const activeOrInactivePushNotification = async (req, res, next) => {
     const userId = req.user._id;
 
     // Call service
-    await onOrOffPushNotification(userId, deviceId);
+    const notificationState = await onOrOffPushNotification(userId, deviceId);
 
     res.json({
       success: true,
       message: "Push notification active state toggled successfully",
       code: 200,
+      data: notificationState,
     });
   } catch (err) {
     next(err);

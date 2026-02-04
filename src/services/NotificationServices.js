@@ -446,7 +446,10 @@ async function activeOrInactivePushNotification(userId, deviceId) {
       throw err;
     }
 
-    return updated;
+    return {
+      deviceId: updated.deviceId,
+      notificationActive: !currentStatus,
+    };
   } catch (err) {
     console.error("toggle notification error:", err);
     throw err;
