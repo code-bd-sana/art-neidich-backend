@@ -329,6 +329,56 @@ async function allNotifications(query = {}, userId) {
 }
 
 /**
+ * Get user notification state for a specific device
+ *
+ * @param {string} userId User ID
+ * @param {string} deviceId Device ID
+ * @returns {object} Notification state object
+ */
+async function getNotificationState(userId, deviceId) {
+  // Convert userId to ObjectId
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  const result = await NotificationToken.aggregate([
+    // Match by device
+    {
+      $match: {
+        deviceId: deviceId,
+        "users.user": userObjectId,
+      },
+    },
+    // Unwind users array
+    {
+      $unwind: "$users",
+    },
+    // Match only the required user
+    {
+      $match: {
+        "users.user": userObjectId,
+      },
+    },
+    // Project only required fields
+    {
+      $project: {
+        _id: 0,
+        deviceId: 1,
+        notificationActive: "$users.notificationActive",
+      },
+    },
+  ]);
+
+  // If not found, throw error
+  if (!result || result.length === 0) {
+    const err = new Error("Notification state not found");
+    err.status = 404;
+    err.code = "NOTIFICATION_STATE_NOT_FOUND";
+    throw err;
+  }
+
+  return result[0];
+}
+
+/**
  * Get a single notification by ID for a user
  *
  * @param {string} notificationId Notification ID
@@ -408,6 +458,7 @@ module.exports = {
   sendToMany,
   sendToUser,
   allNotifications,
+  getNotificationState,
   getNotificationById,
   activeOrInactivePushNotification,
 };

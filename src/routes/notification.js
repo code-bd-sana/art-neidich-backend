@@ -6,6 +6,7 @@ const {
   listNotifications,
   getNotification,
   activeOrInactivePushNotification,
+  getNotificationState,
 } = require("../controllers/NotificationControllers");
 const { authenticate } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
@@ -34,6 +35,22 @@ router.get(
   "/",
   validate(notificationPaginationSchema, { target: "query" }),
   listNotifications,
+);
+
+/**
+ * Get user notification state
+ *
+ * @route GET /api/v1/notification-state/:deviceId
+ * Private route to get user notification state
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+router.get(
+  "/notification-state/:deviceId",
+  validate(mongoIdSchema, { target: "params" }),
+  getNotificationState,
 );
 
 /**

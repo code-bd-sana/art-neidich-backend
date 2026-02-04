@@ -5,6 +5,7 @@ const NotificationToken = require("../models/NotificationTokenModel");
 const {
   allNotifications,
   getNotificationById,
+  getNotificationState: fetchNotificationState,
   activeOrInactivePushNotification: onOrOffPushNotification,
 } = require("../services/NotificationServices");
 
@@ -32,6 +33,28 @@ const listNotifications = async (req, res, next) => {
       message: "Notification list fetched successfully",
       data: notifications,
       metaData: metaData,
+      code: 200,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getNotificationState = async (req, res, next) => {
+  try {
+    // Extract device ID from request parameters
+    const { deviceId } = req.params;
+
+    // Get user ID from authenticated request
+    const userId = req.user._id;
+
+    // Call service
+    const notificationState = await fetchNotificationState(userId, deviceId);
+
+    res.json({
+      success: true,
+      message: "Notification state fetched successfully",
+      data: notificationState,
       code: 200,
     });
   } catch (err) {
@@ -94,6 +117,7 @@ const activeOrInactivePushNotification = async (req, res, next) => {
 
 module.exports = {
   listNotifications,
+  getNotificationState,
   getNotification,
   activeOrInactivePushNotification,
 };
