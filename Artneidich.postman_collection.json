@@ -113,7 +113,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"deviceId\": \"device-123\",\n, \"token\": \"some-token-value\",\n, \"platform\": \"ios\",\n  \"email\": \"user0@example.com\",\n  \"password\": \"123456\"\n}"
+              "raw": "{\n  \"deviceId\": \"device-123\",\n \"token\": \"some-token-value\",\n \"platform\": \"ios\",\n  \"email\": \"user0@example.com\",\n  \"password\": \"123456\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
