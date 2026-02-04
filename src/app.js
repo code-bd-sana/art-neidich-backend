@@ -210,12 +210,13 @@ app.use(pathNotFoundHelper);
 // Centralized error handler (must be last middleware)
 app.use(errorHandler);
 
+/* 
 // Start background session cleaner to mark stale logged-in statuses false
 try {
   startSessionCleaner();
 } catch (err) {
   console.error("Failed to start session cleaner:", err);
-}
+} */
 
 // Module exports
 module.exports = app;

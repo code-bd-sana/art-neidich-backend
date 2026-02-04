@@ -5,7 +5,7 @@ const NotificationToken = require("../models/NotificationTokenModel");
 const {
   allNotifications,
   getNotificationById,
-  registerToken,
+  getNotificationState: fetchNotificationState,
   activeOrInactivePushNotification: onOrOffPushNotification,
 } = require("../services/NotificationServices");
 
@@ -33,6 +33,28 @@ const listNotifications = async (req, res, next) => {
       message: "Notification list fetched successfully",
       data: notifications,
       metaData: metaData,
+      code: 200,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getNotificationState = async (req, res, next) => {
+  try {
+    // Extract device ID from request parameters
+    const { deviceId } = req.params;
+
+    // Get user ID from authenticated request
+    const userId = req.user._id;
+
+    // Call service
+    const notificationState = await fetchNotificationState(userId, deviceId);
+
+    res.json({
+      success: true,
+      message: "Notification state fetched successfully",
+      data: notificationState,
       code: 200,
     });
   } catch (err) {
@@ -68,40 +90,6 @@ const getNotification = async (req, res, next) => {
 };
 
 /**
- * Register a push token for the authenticated user
- * Supports multiple devices per user
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
-const registerPushToken = async (req, res, next) => {
-  try {
-    // Extract token details from validated request body
-    const { token, platform, deviceId, deviceName } = req.validated;
-
-    // Get user ID from authenticated request
-    const userId = req.user._id;
-
-    // Call service
-    const result = await registerToken(
-      userId,
-      token,
-      platform,
-      deviceId,
-      deviceName,
-    );
-
-    res.json({
-      success: true,
-      message: "Push token registered successfully",
-      data: result,
-      code: 200,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/**
  * Active or Inactive a specific push notification for a device
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -129,7 +117,7 @@ const activeOrInactivePushNotification = async (req, res, next) => {
 
 module.exports = {
   listNotifications,
+  getNotificationState,
   getNotification,
-  registerPushToken,
   activeOrInactivePushNotification,
 };

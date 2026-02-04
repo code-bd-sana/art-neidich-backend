@@ -9,9 +9,10 @@ const notificationTypes = {
   JOB_ASSIGNED: "job_assigned",
   REPORT_STATUS_UPDATED: "report_status_updated",
   REGISTERED_AS_ADMIN: "registered_as_admin",
+  USER_APPROVED: "user_approved",
   REGISTERED_AS_INSPECTOR: "registered_as_inspector",
   ACCOUNT_SUSPENDED: "account_suspended",
-  ACCOUNT_UNSUSPENDED: "account_unsuspended",
+  ACCOUNT_UNSUSPEND: "account_unsuspend",
 };
 
 const notificationSchema = new mongoose.Schema(

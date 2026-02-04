@@ -9,11 +9,11 @@ const {
   hashPassword,
   comparePassword,
 } = require("../helpers/password/password-util");
+const LoginActivityModel = require("../models/LoginActivityModel");
 const NotificationModel = require("../models/NotificationModel");
 const PushToken = require("../models/PushToken");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
-
 /**
  * Register a new user
  *
@@ -361,7 +361,14 @@ async function registerUser(payload) {
  */
 async function loginUser(payload) {
   // Destructure payload
-  const { deviceId, email, password } = payload;
+  const {
+    deviceId,
+    deviceName,
+    token: deviceToken,
+    platform,
+    email,
+    password,
+  } = payload;
 
   // Find user by email
   const user = await UserModel.findOne({ email });
@@ -438,20 +445,84 @@ async function loginUser(payload) {
     2: "Inspector",
   };
 
-  // update the PushToken document to to update loggedInStatus to true for this user for this device
-  await PushToken.findOneAndUpdate(
+  // Check device registration for push notifications and register if not exists
+  const userObjectId = new mongoose.Types.ObjectId(user._id);
+
+  const result = await PushToken.aggregate([
+    { $match: { deviceId } },
     {
-      deviceId,
-      "users.user": user._id,
-    },
-    {
-      $set: {
-        "users.$.loggedInStatus": true, // set loggedInStatus to true
-        "users.$.lastLoggedInAt": new Date(), // set lastLoggedInAt to now
-        "users.$.lastLoggedOutAt": null, // clear lastLoggedOutAt
-        lastUsed: new Date(),
+      $project: {
+        _id: 0,
+        deviceFound: { $literal: true },
+        userFoundWithThisDevice: {
+          $gt: [
+            {
+              $size: {
+                $filter: {
+                  input: "$users",
+                  as: "entry",
+                  cond: { $eq: ["$$entry.user", userObjectId] },
+                },
+              },
+            },
+            0,
+          ],
+        },
       },
     },
+    { $limit: 1 }, // Limit to one result
+  ]);
+
+  if (result.length === 0) {
+    // No document for this deviceId, create new
+    await PushToken.create({
+      deviceId,
+      deviceName,
+      platform,
+      token: deviceToken,
+      users: [
+        {
+          user: userObjectId,
+          notificationActive: true,
+        },
+      ],
+      lastUsed: new Date(),
+    });
+  } else if (!result[0].userFoundWithThisDevice) {
+    // Document exists but user not registered on this device, add user
+
+    await PushToken.updateOne(
+      {
+        deviceId,
+        "users.user": { $ne: userObjectId }, // only match if user not already registered
+      },
+      {
+        $set: {
+          lastUsed: new Date(),
+        },
+        $addToSet: {
+          // safe even if filter didn't match
+          users: {
+            user: userObjectId,
+            notificationActive: true,
+          },
+        },
+      },
+      { upsert: true },
+    );
+  }
+
+  // Save the login activity
+  await LoginActivityModel.findOneAndUpdate(
+    {
+      userId: userObjectId,
+      deviceId,
+    },
+    {
+      loggedInStatus: true,
+      lastLoggedInAt: new Date(),
+    },
+    { upsert: true },
   );
 
   return {
@@ -477,37 +548,19 @@ async function logoutUser(userId, payload) {
   const { deviceId } = payload;
 
   // Off the push notification for this device
-  // Convert userId to ObjectId
   const userObjectId = new mongoose.Types.ObjectId(userId);
 
-  // Check if a PushToken document already exists for this deviceId and user
-  const existing = await PushToken.findOne({
-    deviceId,
-    "users.user": userObjectId,
-  });
-
-  // If already registered, skip
-  if (existing) {
-    console.log(
-      `User ${userId} isn't registered on device ${deviceId} — skipping`,
-    );
-    return;
-  }
-
-  // update the PushToken document to to update loggedInStatus to false for this user for this device
-  const updated = await PushToken.findOneAndUpdate(
+  // save the logout activity
+  await LoginActivityModel.findOneAndUpdate(
     {
+      userId: userObjectId,
       deviceId,
-      "users.user": userObjectId,
     },
     {
-      $set: {
-        "users.$.loggedInStatus": false, // set loggedInStatus to false
-        "users.$.lastLoggedInAt": null, // clear lastLoggedInAt
-        "users.$.lastLoggedOutAt": new Date(), // set lastLoggedOutAt to now
-        lastUsed: new Date(),
-      },
+      loggedInStatus: false,
+      lastLoggedOutAt: new Date(),
     },
+    { upsert: true },
   );
 
   return;

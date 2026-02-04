@@ -329,6 +329,56 @@ async function allNotifications(query = {}, userId) {
 }
 
 /**
+ * Get user notification state for a specific device
+ *
+ * @param {string} userId User ID
+ * @param {string} deviceId Device ID
+ * @returns {object} Notification state object
+ */
+async function getNotificationState(userId, deviceId) {
+  // Convert userId to ObjectId
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  const result = await NotificationToken.aggregate([
+    // Match by device
+    {
+      $match: {
+        deviceId: deviceId,
+        "users.user": userObjectId,
+      },
+    },
+    // Unwind users array
+    {
+      $unwind: "$users",
+    },
+    // Match only the required user
+    {
+      $match: {
+        "users.user": userObjectId,
+      },
+    },
+    // Project only required fields
+    {
+      $project: {
+        _id: 0,
+        deviceId: 1,
+        notificationActive: "$users.notificationActive",
+      },
+    },
+  ]);
+
+  // If not found, throw error
+  if (!result || result.length === 0) {
+    const err = new Error("Notification state not found");
+    err.status = 404;
+    err.code = "NOTIFICATION_STATE_NOT_FOUND";
+    throw err;
+  }
+
+  return result[0];
+}
+
+/**
  * Get a single notification by ID for a user
  *
  * @param {string} notificationId Notification ID
@@ -355,74 +405,6 @@ async function getNotificationById(notificationId, userId) {
   }
 
   return notification;
-}
-
-/**
- * Register or update a device token for push notifications
- *
- * @param {string} userId User ID
- * @param {string} token FCM device token
- * @param {string} platform Platform: "android", "ios", or "web"
- * @param {string} deviceId Device ID
- * @param {string} deviceName Optional device information
- */
-async function registerToken(
-  userId,
-  token,
-  platform,
-  deviceId,
-  deviceName = null,
-) {
-  try {
-    // Convert userId to ObjectId
-    const userObjectId = new mongoose.Types.ObjectId(userId);
-
-    // Check if a PushToken document already exists for this deviceId and user
-    const existing = await PushToken.findOne({
-      deviceId,
-      "users.user": userObjectId,
-    });
-
-    // If already registered, skip
-    if (existing) {
-      console.log(
-        `User ${userId} already registered on device ${deviceId} — skipping`,
-      );
-      return null;
-    }
-
-    // Upsert the PushToken document
-    const result = await PushToken.findOneAndUpdate(
-      { deviceId },
-      {
-        $set: {
-          token,
-          platform,
-          deviceName,
-          lastUsed: new Date(),
-        },
-        $setOnInsert: {
-          createdAt: new Date(),
-        },
-        $addToSet: {
-          users: {
-            user: userObjectId,
-            notificationActive: true,
-          },
-        },
-      },
-      {
-        upsert: true,
-        new: true,
-        runValidators: true,
-      },
-    );
-
-    return result;
-  } catch (err) {
-    console.error("registerToken error:", err);
-    throw err;
-  }
 }
 
 /**
@@ -476,7 +458,7 @@ module.exports = {
   sendToMany,
   sendToUser,
   allNotifications,
+  getNotificationState,
   getNotificationById,
-  registerToken,
   activeOrInactivePushNotification,
 };

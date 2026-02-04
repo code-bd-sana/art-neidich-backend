@@ -19,6 +19,22 @@ const notificationSchema = z
   .strict();
 
 /**
+ * Validation schema for deviceId parameter
+ *
+ * @type {import("zod").ZodObject}
+ */
+const deviceIdSchema = z
+  .object({
+    deviceId: z
+      .string({
+        invalid_type_error: "Device ID must be a string",
+      })
+      .max(100, { message: "Device ID must not exceed 100 characters" })
+      .trim(),
+  })
+  .strict();
+
+/**
  * Validation for notification and pagination
  *
  * @type {import("zod").ZodObject}
@@ -46,7 +62,7 @@ const notificationPaginationSchema = z
         "registered_as_admin",
         "registered_as_inspector",
         "account_suspended",
-        "account_unsuspended",
+        "account_unsuspend",
         "custom",
       ])
       .optional(),
@@ -87,25 +103,9 @@ const registerPushTokenSchema = z
   })
   .strict();
 
-/**
- * Validation schema for activating or deactivating push notifications
- *
- * @type {import("zod").ZodObject}
- */
-const activeOrInactivePushNotificationSchema = z
-  .object({
-    deviceId: z
-      .string({
-        invalid_type_error: "Device ID must be a string",
-      })
-      .max(100, { message: "Device ID must not exceed 100 characters" })
-      .trim(),
-  })
-  .strict();
-
 module.exports = {
   notificationSchema,
+  deviceIdSchema,
   notificationPaginationSchema,
   registerPushTokenSchema,
-  activeOrInactivePushNotificationSchema,
 };

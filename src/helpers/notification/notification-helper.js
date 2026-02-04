@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 
+const LoginActivityModel = require("../../models/LoginActivityModel");
 const NotificationModel = require("../../models/NotificationModel");
 const PushToken = require("../../models/PushToken");
 const UserModel = require("../../models/UserModel");
@@ -36,11 +37,31 @@ function extractUserIds(users) {
  * @returns {Promise<Array<string>>} - Array of device token strings
  */
 async function getActiveTokensForUsers(userIds) {
+  // Check the users login activity at first
+  const activeUserWithDeviceId = await LoginActivityModel.find({
+    userId: { $in: userIds },
+    loggedInStatus: true,
+  }).select("userId deviceId");
+
+  // Extract active user IDs (filter duplicates)
+  const activeUserIds = [
+    ...new Set(
+      activeUserWithDeviceId.map(
+        (activity) => new mongoose.Types.ObjectId(activity.userId),
+      ),
+    ),
+  ];
+
+  // Extract active device IDs (filter duplicates)
+  const activeDeviceIds = [
+    ...new Set(activeUserWithDeviceId.map((activity) => activity.deviceId)),
+  ];
+
   // Query for active tokens linked to the specified users with notificationActive and loggedInStatus true
   const tokenDocs = await PushToken.find({
-    "users.user": { $in: userIds },
+    "users.user": { $in: activeUserIds },
     "users.notificationActive": true,
-    "users.loggedInStatus": true,
+    deviceId: { $in: activeDeviceIds },
   }).select("token");
 
   return (tokenDocs || []).map((t) => t.token);

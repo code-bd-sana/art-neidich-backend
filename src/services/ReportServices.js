@@ -180,7 +180,7 @@ async function createReport(payload) {
       const types = NotificationModel.notificationTypes || {};
 
       await notifyAdmins({
-        type: types.NEW_REPORT || "new_report",
+        type: types.REPORT_SUBMITTED || "report_submitted",
         title: "New Report Submitted",
         body: `A new report has been submitted by ${payload.inspectorName || "an inspector"}.`,
         data: {
