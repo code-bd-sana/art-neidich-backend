@@ -14,7 +14,6 @@ const { mongoIdSchema } = require("../validators/common/mongoId");
 const {
   notificationSchema,
   notificationPaginationSchema,
-  registerPushTokenSchema,
   deviceIdSchema,
 } = require("../validators/notification/notification");
 
