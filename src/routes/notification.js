@@ -15,7 +15,7 @@ const {
   notificationSchema,
   notificationPaginationSchema,
   registerPushTokenSchema,
-  activeOrInactivePushNotificationSchema,
+  deviceIdSchema,
 } = require("../validators/notification/notification");
 
 // Apply authentication middleware to all routes in this router
@@ -49,7 +49,7 @@ router.get(
  */
 router.get(
   "/notification-state/:deviceId",
-  validate(mongoIdSchema, { target: "params" }),
+  validate(deviceIdSchema, { target: "params" }),
   getNotificationState,
 );
 
@@ -65,7 +65,7 @@ router.get(
  */
 router.put(
   "/:deviceId",
-  validate(activeOrInactivePushNotificationSchema, { target: "params" }),
+  validate(deviceIdSchema, { target: "params" }),
   activeOrInactivePushNotification,
 );
 
