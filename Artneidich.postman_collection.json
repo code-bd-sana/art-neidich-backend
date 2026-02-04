@@ -2672,31 +2672,29 @@
           ]
         },
         {
-          "name": "Register Push Token",
+          "name": "Get user notification state",
           "request": {
-            "method": "POST",
+            "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"deviceId\": \"device-123\",\n  \"token\": \"push-token-value\"\n}"
-            },
             "url": {
-              "raw": "{{baseUrl}}/notification/token",
+              "raw": "{{baseUrl}}/notification/notification-state/:deviceId",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "notification",
-                "token"
+                "notification-state",
+                ":deviceId"
+              ],
+              "variable": [
+                {
+                  "key": "deviceId"
+                }
               ]
             }
           },
@@ -2718,7 +2716,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n    \"success\": true,\n    \"message\": \"Push token registered\",\n    \"code\": 200\n}"
+              "body": "{\n    \"success\": true,\n    \"message\": \"Notification state fetched successfully\",\n, \"data\": {},\n    \"code\": 200\n}"
             }
           ]
         },
