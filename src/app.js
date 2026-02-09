@@ -20,6 +20,8 @@ const { startSessionCleaner } = require("./services/SessionCleaner");
 
 // Express app initialization
 const app = express();
+// Trust first proxy hop (e.g., load balancer) so X-Forwarded-For is honored
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
