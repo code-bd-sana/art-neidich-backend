@@ -302,6 +302,11 @@ async function allNotifications(query = {}, userId) {
   // Build query to fetch notifications for the user
   const q = {
     $or: [
+      {
+        recipients: {
+          $in: [new mongoose.Types.ObjectId(userId)],
+        },
+      },
       { recipient: new mongoose.Types.ObjectId(userId) },
       { authorId: new mongoose.Types.ObjectId(userId) },
     ],
@@ -390,6 +395,11 @@ async function getNotificationById(notificationId, userId) {
   const notification = await NotificationModel.findOne({
     _id: new mongoose.Types.ObjectId(notificationId),
     $or: [
+      {
+        recipients: {
+          $in: [new mongoose.Types.ObjectId(userId)],
+        },
+      },
       { recipient: new mongoose.Types.ObjectId(userId) },
       { authorId: new mongoose.Types.ObjectId(userId) },
     ],
