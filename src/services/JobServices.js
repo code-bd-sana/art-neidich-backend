@@ -7,6 +7,7 @@ const {
 const JobModel = require("../models/JobModel");
 const NotificationModel = require("../models/NotificationModel");
 const ReportModel = require("../models/ReportModel");
+const UserModel = require("../models/UserModel");
 
 /**
  * Create a new job
@@ -17,6 +18,15 @@ const ReportModel = require("../models/ReportModel");
 async function createJob(payload) {
   // Create job
   const created = await JobModel.create(payload);
+
+  const inspector = await UserModel.findById(created.inspector).lean();
+
+  if (!inspector) {
+    const err = new Error("Assigned inspector not found");
+    err.status = 404;
+    err.code = "INSPECTOR_NOT_FOUND";
+    throw err;
+  }
 
   // If created successfully, notify the inspector and admin users
   if (created && created._id) {
@@ -30,7 +40,7 @@ async function createJob(payload) {
           userId: inspectorId,
           type: types.JOB_ASSIGNED || "job_assigned",
           title: "You have a new job assigned",
-          body: `${created.orderId || created.streetAddress || "A new job"} has been assigned to you.`,
+          body: `${created.orderId || created.streetAddress || "A new job"} has been assigned to ${inspector.firstName} ${inspector.lastName}.`,
           data: {
             jobId: new mongoose.Types.ObjectId(created._id),
             action: "job_assigned",
