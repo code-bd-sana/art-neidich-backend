@@ -24,8 +24,7 @@ const termsSchema = new mongoose.Schema(
     effectiveDate: {
       type: Date,
       required: true,
-      default: Date.now,
-    },
+    }, // Expiration date for the terms, if applicable
     isActive: {
       type: Boolean,
       default: true,

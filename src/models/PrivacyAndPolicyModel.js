@@ -24,8 +24,7 @@ const privacyPolicySchema = new mongoose.Schema(
     effectiveDate: {
       type: Date,
       required: true,
-      default: Date.now,
-    },
+    }, // Expiration date for the privacy policy, if applicable
     isActive: {
       type: Boolean,
       default: true,
