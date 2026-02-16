@@ -29,7 +29,7 @@ async function createTermsAndCondition(payload) {
  * @returns {Promise<Object|null>} The active terms and condition document or null if none found
  */
 async function getActiveTermsAndCondition() {
-  return await TermsAndCondition.findOne({
+  const activeTerms = await TermsAndCondition.findOne({
     $or: [
       { effectiveDate: { $exists: false } }, // If effectiveDate is not set, consider it active
       { effectiveDate: { $gte: new Date() } }, // If effectiveDate is in the future, consider it active
@@ -37,6 +37,11 @@ async function getActiveTermsAndCondition() {
   }).sort({
     createdAt: -1,
   });
+
+  // If no active terms found, return the last created terms as fallback
+  if (!activeTerms) {
+    return await TermsAndCondition.findOne().sort({ createdAt: -1 });
+  }
 }
 
 /**
