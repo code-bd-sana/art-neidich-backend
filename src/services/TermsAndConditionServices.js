@@ -42,6 +42,8 @@ async function getActiveTermsAndCondition() {
   if (!activeTerms) {
     return await TermsAndCondition.findOne().sort({ createdAt: -1 });
   }
+
+  return activeTerms;
 }
 
 /**
@@ -64,14 +66,12 @@ async function getAllTermsAndCondition(query = {}) {
     .limit(limit);
 
   return {
-    data: terms,
+    totalTerms: terms,
     metaData: {
       page,
       limit,
       totalItems: total,
       totalPages: Math.ceil(total / limit),
-      hasNextPage: page < Math.ceil(total / limit),
-      hasPrevPage: page > 1,
     },
   };
 }

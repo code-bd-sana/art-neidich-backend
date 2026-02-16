@@ -71,10 +71,10 @@ async function getAllTermsAndConditionController(req, res, next) {
     const { totalTerms, metaData } = await getAllTermsAndCondition(query);
     return res.status(200).json({
       success: true,
+      code: 200,
       message: "Terms and conditions retrieved successfully",
       data: totalTerms,
       metaData,
-      code: 200,
     });
   } catch (err) {
     return next(err);
