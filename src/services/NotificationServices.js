@@ -23,33 +23,42 @@ function initFirebase() {
   console.log("[NotificationService] initFirebase: starting initialization");
 
   try {
+    // Extract individual Firebase credentials from env
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+    // Handle private key escape sequences – convert literal \n to actual newlines
+    if (privateKey) {
+      privateKey = privateKey.replace(/\\n/g, "\n");
+    }
+
+    if (!projectId || !clientEmail || !privateKey) {
+      throw new Error(
+        `Missing Firebase credentials. projectId: ${!!projectId}, clientEmail: ${!!clientEmail}, privateKey: ${!!privateKey}`,
+      );
+    }
+
+    // Create the full service account credential object for Firebase Admin
     const serviceAccount = {
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY
-        ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
-        : undefined,
+      type: "service_account",
+      project_id: projectId,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || "unknown",
+      private_key: privateKey,
+      client_email: clientEmail,
+      client_id: process.env.FIREBASE_CLIENT_ID || "unknown",
+      auth_uri: "https://accounts.google.com/o/oauth2/auth",
+      token_uri: "https://oauth2.googleapis.com/token",
+      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+      client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL || "",
     };
 
-    // Debug logs – super important to check
-    console.log("[Firebase Debug] projectId    →", serviceAccount.projectId);
-    console.log("[Firebase Debug] clientEmail →", serviceAccount.clientEmail);
+    console.log("[Firebase] Initializing with projectId:", projectId);
+    console.log("[Firebase] Client email:", clientEmail);
     console.log(
-      "[Firebase Debug] privateKey starts →",
-      serviceAccount.privateKey?.substring(0, 60) || "MISSING!",
+      "[Firebase] Private key format valid:",
+      privateKey.includes("BEGIN PRIVATE KEY"),
     );
-    console.log(
-      "[Firebase Debug] privateKey ends   →",
-      serviceAccount.privateKey?.slice(-20) || "MISSING!",
-    );
-
-    if (
-      !serviceAccount.projectId ||
-      !serviceAccount.clientEmail ||
-      !serviceAccount.privateKey
-    ) {
-      throw new Error("Missing Firebase credential environment variables");
-    }
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
