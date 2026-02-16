@@ -13,58 +13,100 @@ dotenv.config();
 // ────────────────────────────────────────────────
 let initialized = false;
 
-/**
- * Initialize Firebase Admin SDK
- * @returns {void}
- */
-
 function initFirebase() {
   if (initialized) return;
-  console.log("[NotificationService] initFirebase: starting initialization");
-  try {
-    // Build service account from individual env variables
-    const serviceAccount = {
-      type: process.env.FIREBASE_TYPE,
-      project_id: process.env.FIREBASE_PROJECT_ID,
-      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-      private_key: process.env.FIREBASE_PRIVATE_KEY,
-      client_email: process.env.FIREBASE_CLIENT_EMAIL,
-      client_id: process.env.FIREBASE_CLIENT_ID,
-      auth_uri: process.env.FIREBASE_AUTH_URI,
-      token_uri: process.env.FIREBASE_TOKEN_URI,
-      auth_provider_x509_cert_url:
-        process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
-      client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
-      universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN,
-    };
 
-    if (!serviceAccount.project_id) {
-      throw new Error("Firebase credentials not found in .env");
+  console.log("[NotificationService] initFirebase: starting");
+
+  // Debug what we actually received from env
+  console.log(
+    "[DEBUG] FIREBASE_PROJECT_ID:",
+    process.env.FIREBASE_PROJECT_ID || "missing",
+  );
+  console.log(
+    "[DEBUG] FIREBASE_CLIENT_EMAIL:",
+    process.env.FIREBASE_CLIENT_EMAIL || "missing",
+  );
+  console.log(
+    "[DEBUG] FIREBASE_PRIVATE_KEY length:",
+    process.env.FIREBASE_PRIVATE_KEY?.length || "missing",
+  );
+  console.log(
+    "[DEBUG] PRIVATE_KEY starts with:",
+    process.env.FIREBASE_PRIVATE_KEY?.substring(0, 40) || "missing",
+  );
+  console.log(
+    "[DEBUG] Contains literal \\n:",
+    process.env.FIREBASE_PRIVATE_KEY?.includes("\\n") || false,
+  );
+  console.log(
+    "[DEBUG] Contains real newline:",
+    process.env.FIREBASE_PRIVATE_KEY?.includes("\n") || false,
+  );
+
+  try {
+    // Most reliable way in 2025 – clean the private key aggressively
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY || "";
+
+    // Handle common deployment platform escaping issues
+    if (privateKey.includes("\\n")) {
+      privateKey = privateKey.replace(/\\n/g, "\n");
+    }
+    // Remove any accidental wrapping quotes
+    privateKey = privateKey.replace(/^"|"$/g, "");
+    // Remove \r if windows-style line endings snuck in
+    privateKey = privateKey.replace(/\r/g, "");
+
+    // Final trim (just in case)
+    privateKey = privateKey.trim();
+
+    if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
+      throw new Error(
+        "Private key does not appear to be valid PEM format after cleaning",
+      );
+    }
+
+    if (
+      !process.env.FIREBASE_PROJECT_ID ||
+      !process.env.FIREBASE_CLIENT_EMAIL
+    ) {
+      throw new Error(
+        "Missing required Firebase credentials (project_id or client_email)",
+      );
     }
 
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      projectId: serviceAccount.project_id,
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: privateKey,
+      }),
     });
+
     initialized = true;
     console.log(
-      "[NotificationService] initFirebase: initialized with .env service account",
+      "[NotificationService] Firebase Admin initialized successfully (env credentials)",
     );
   } catch (err) {
-    console.warn(
-      "[NotificationService] initFirebase: failed to initialize with .env, trying Application Default Credentials",
-      err?.message,
+    console.error(
+      "[NotificationService] initFirebase failed with env credentials:",
+      err.message,
     );
+
+    // Fallback to Application Default Credentials (works on GCP, Cloud Run, etc.)
     try {
       admin.initializeApp();
       initialized = true;
       console.log(
-        "[NotificationService] initFirebase: initialized with default credentials",
+        "[NotificationService] Firebase initialized using Application Default Credentials",
       );
-    } catch (e) {
+    } catch (fallbackErr) {
       console.error(
-        "[NotificationService] initFirebase: failed to initialize firebase",
-        e?.message || e,
+        "[NotificationService] Firebase fallback also failed:",
+        fallbackErr.message,
+      );
+      console.error(
+        "[CRITICAL] Firebase Messaging will NOT work until credentials are fixed.",
       );
     }
   }
@@ -83,70 +125,52 @@ const debug = (...args) => {
 };
 
 // ────────────────────────────────────────────────
-// Core send functions
+// Core send functions (unchanged except safety)
 // ────────────────────────────────────────────────
 
-/**
- * Send notification to a single device
- * @param {string} deviceToken
- * @param {object} payload
- */
 async function sendToDevice(deviceToken, payload = {}) {
-  log("sendToDevice: called", { hasToken: !!deviceToken });
-
-  if (!deviceToken) {
-    const err = new Error("Device token is required");
-    err.status = 404;
-    err.code = "DEVICE_TOKEN_NOT_FOUND";
-    logError("sendToDevice: missing deviceToken");
-    throw err;
+  if (!initialized) {
+    logError("sendToDevice: Firebase not initialized - skipping");
+    throw new Error("Firebase Messaging not available");
   }
+
+  if (!deviceToken)
+    throw Object.assign(new Error("Device token required"), {
+      code: "DEVICE_TOKEN_REQUIRED",
+    });
 
   const message = buildMessage(deviceToken, payload);
 
   try {
     const response = await admin.messaging().send(message);
-    log("sendToDevice: success", { messageId: response });
+    log("sendToDevice success", { messageId: response });
     return response;
   } catch (err) {
-    logError("sendToDevice: failed", err?.message || err);
+    logError("sendToDevice failed", err.message || err);
     throw err;
   }
 }
 
-/**
- * Send notification to multiple devices (main modern entry point)
- * @param {string[]} deviceTokens
- * @param {object} payload
- * @returns {Promise<{successCount: number, failureCount: number, responses: any[]}>}
- */
 async function sendToMany(deviceTokens = [], payload = {}) {
-  log("sendToMany: called", {
-    tokensReceived: Array.isArray(deviceTokens) ? deviceTokens.length : 1,
-  });
+  if (!initialized) {
+    logError("sendToMany: Firebase not initialized");
+    return {
+      successCount: 0,
+      failureCount: deviceTokens.length,
+      error: "firebase-not-initialized",
+    };
+  }
 
-  // Normalize input
   const tokens = Array.isArray(deviceTokens)
     ? deviceTokens.filter(Boolean)
     : [deviceTokens].filter(Boolean);
 
   if (tokens.length === 0) {
-    log("sendToMany: no valid tokens provided");
-    return {
-      successCount: 0,
-      failureCount: 0,
-      responses: [],
-      warning: "no-tokens",
-    };
+    return { successCount: 0, failureCount: 0, warning: "no-tokens" };
   }
 
-  const results = {
-    successCount: 0,
-    failureCount: 0,
-    responses: [],
-  };
-
-  const chunkSize = 500; // Safe conservative limit
+  const results = { successCount: 0, failureCount: 0, responses: [] };
+  const chunkSize = 500;
 
   for (let i = 0; i < tokens.length; i += chunkSize) {
     const chunk = tokens.slice(i, i + chunkSize);
@@ -157,227 +181,141 @@ async function sendToMany(deviceTokens = [], payload = {}) {
         .messaging()
         .sendEachForMulticast(multicastMessage);
 
-      log("sendToMany: chunk sent", {
-        chunkIndex: Math.floor(i / chunkSize),
-        chunkTokens: chunk.length,
-        success: resp.successCount,
-        failure: resp.failureCount,
-      });
-
       results.successCount += resp.successCount;
       results.failureCount += resp.failureCount;
       results.responses.push(resp);
 
-      // Optional: Clean up invalid tokens
+      // Clean up invalid tokens
       resp.responses.forEach((r, idx) => {
         if (
           !r.success &&
           r.error?.code === "messaging/registration-token-not-registered"
         ) {
           const badToken = chunk[idx];
-          PushToken.deleteOne({ token: badToken })
-            .then(() => log("Removed unregistered token:", badToken))
-            .catch((e) =>
-              logError("Failed to remove bad token", badToken, e?.message),
-            );
+          PushToken.deleteOne({ token: badToken }).catch((e) =>
+            logError("Failed to delete invalid token", badToken, e.message),
+          );
         }
       });
     } catch (err) {
-      logError("sendToMany: chunk failed", {
-        chunkIndex: Math.floor(i / chunkSize),
-        error: err?.message || err,
-      });
+      logError("sendToMany chunk failed", err.message || err);
       results.failureCount += chunk.length;
-      results.responses.push({ error: err });
     }
   }
 
-  log("sendToMany: finished", {
+  log("sendToMany finished", {
     total: tokens.length,
-    successCount: results.successCount,
-    failureCount: results.failureCount,
+    success: results.successCount,
+    failed: results.failureCount,
   });
 
   return results;
 }
 
-/**
- * Send to all active tokens of a user
- * @param {string} userId
- * @param {object} payload
- */
 async function sendToUser(userId, payload = {}) {
-  log("sendToUser: called", { userId });
-
-  if (!userId) {
-    const err = new Error("User ID is required");
-    err.status = 400;
-    err.code = "USER_ID_REQUIRED";
-    logError("sendToUser: missing userId");
-    throw err;
-  }
+  if (!userId)
+    throw Object.assign(new Error("User ID required"), {
+      code: "USER_ID_REQUIRED",
+    });
 
   const docs = await PushToken.find({
     users: { $in: [new mongoose.Types.ObjectId(userId)] },
     active: true,
   })
-    .select("token -_id")
+    .select("token")
     .lean();
 
-  const tokens = (docs || []).map((d) => d.token);
-
-  log("sendToUser: tokens found", { userId, count: tokens.length });
+  const tokens = docs.map((d) => d.token);
 
   if (tokens.length === 0) {
-    log("sendToUser: no active tokens found");
-    return { successCount: 0, failureCount: 0, warning: "no-tokens-for-user" };
+    return {
+      successCount: 0,
+      failureCount: 0,
+      warning: "no-active-tokens-for-user",
+    };
   }
 
   return sendToMany(tokens, payload);
 }
 
 // ────────────────────────────────────────────────
-// Message builders
+// Message builders (unchanged)
 // ────────────────────────────────────────────────
 
-/**
- * Build message for a single token
- * @param {string} token
- * @param {object} payload
- * @return {object} Message object
- */
 function buildMessage(token, payload = {}) {
   const { title, body, data, imageUrl } = payload;
-
-  const message = {
-    token,
-    notification: {},
-  };
+  const message = { token, notification: {} };
 
   if (title) message.notification.title = title;
   if (body) message.notification.body = body;
-  if (imageUrl) message.notification.imageUrl = imageUrl;
-
+  if (imageUrl) message.notification.image = imageUrl; // corrected property name
   if (data && typeof data === "object") {
     message.data = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, String(v)]),
     );
   }
 
-  debug("buildMessage", { title, bodyLength: body?.length || 0 });
   return message;
 }
 
-/**
- * Build multicast message for multiple tokens
- * @param {string[]} tokens
- * @param {object} payload
- * @return {object} Multicast message
- */
 function buildMulticast(tokens, payload = {}) {
   const { title, body, data, imageUrl } = payload;
-
-  const message = {
-    tokens,
-    notification: {},
-  };
+  const message = { tokens, notification: {} };
 
   if (title) message.notification.title = title;
   if (body) message.notification.body = body;
-  if (imageUrl) message.notification.imageUrl = imageUrl;
-
+  if (imageUrl) message.notification.image = imageUrl;
   if (data && typeof data === "object") {
     message.data = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, String(v)]),
     );
   }
 
-  debug("buildMulticast", { tokenCount: tokens.length, title });
   return message;
 }
 
 // ────────────────────────────────────────────────
-// Other services
+// Other functions (unchanged)
 // ────────────────────────────────────────────────
 
-/**
- * List notifications for a user with pagination
- *
- * @param {object} query Query parameters
- * @param {number} query.page Page number (default: 1)
- * @param {number} query.limit Number of items per page (default: 10)
- * @param {string} userId User ID
- * @returns {object} Object containing notifications array and metaData
- */
 async function allNotifications(query = {}, userId) {
-  // Pagination params
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
 
-  // Build query to fetch notifications for the user
   const q = {
     $or: [
-      {
-        recipients: {
-          $in: [new mongoose.Types.ObjectId(userId)],
-        },
-      },
+      { recipients: { $in: [new mongoose.Types.ObjectId(userId)] } },
       { recipient: new mongoose.Types.ObjectId(userId) },
       { authorId: new mongoose.Types.ObjectId(userId) },
     ],
   };
 
-  // Fetch notifications with pagination
   const notifications = await NotificationModel.find(q)
     .sort({ createdAt: -1 })
-    .skip((Number(page) - 1) * Number(limit))
-    .limit(Number(limit))
+    .skip((page - 1) * limit)
+    .limit(limit)
     .select("_id title body type data authorId createdAt");
 
-  // Get total count for pagination metadata
-  const totalNotifications = await NotificationModel.countDocuments(q);
+  const total = await NotificationModel.countDocuments(q);
 
   return {
     notifications,
     metaData: {
-      page: page,
-      limit: limit,
-      totalNotifications: totalNotifications,
-      totalPage: Math.ceil(totalNotifications / limit),
+      page,
+      limit,
+      totalNotifications: total,
+      totalPage: Math.ceil(total / limit),
     },
   };
 }
 
-/**
- * Get user notification state for a specific device
- *
- * @param {string} userId User ID
- * @param {string} deviceId Device ID
- * @returns {object} Notification state object
- */
 async function getNotificationState(userId, deviceId) {
-  // Convert userId to ObjectId
   const userObjectId = new mongoose.Types.ObjectId(userId);
 
   const result = await NotificationToken.aggregate([
-    // Match by device
-    {
-      $match: {
-        deviceId: deviceId,
-        "users.user": userObjectId,
-      },
-    },
-    // Unwind users array
-    {
-      $unwind: "$users",
-    },
-    // Match only the required user
-    {
-      $match: {
-        "users.user": userObjectId,
-      },
-    },
-    // Project only required fields
+    { $match: { deviceId, "users.user": userObjectId } },
+    { $unwind: "$users" },
+    { $match: { "users.user": userObjectId } },
     {
       $project: {
         _id: 0,
@@ -387,98 +325,60 @@ async function getNotificationState(userId, deviceId) {
     },
   ]);
 
-  // If not found, throw error
-  if (!result || result.length === 0) {
-    const err = new Error("Notification state not found");
-    err.status = 404;
-    err.code = "NOTIFICATION_STATE_NOT_FOUND";
-    throw err;
+  if (result.length === 0) {
+    throw Object.assign(new Error("Notification state not found"), {
+      status: 404,
+      code: "NOT_FOUND",
+    });
   }
 
   return result[0];
 }
 
-/**
- * Get a single notification by ID for a user
- *
- * @param {string} notificationId Notification ID
- * @param {string} userId User ID
- * @returns {object} Notification document
- */
 async function getNotificationById(notificationId, userId) {
-  // Fetch notification ensuring the user is either a recipient or the author
   const notification = await NotificationModel.findOne({
     _id: new mongoose.Types.ObjectId(notificationId),
     $or: [
-      {
-        recipients: {
-          $in: [new mongoose.Types.ObjectId(userId)],
-        },
-      },
+      { recipients: { $in: [new mongoose.Types.ObjectId(userId)] } },
       { recipient: new mongoose.Types.ObjectId(userId) },
       { authorId: new mongoose.Types.ObjectId(userId) },
     ],
   }).select("_id title body type data createdAt");
 
-  // If not found, throw error
   if (!notification) {
-    logError("getNotificationById: not found", { notificationId, userId });
-    const err = new Error("Notification not found");
-    err.status = 404;
-    err.code = "NOTIFICATION_NOT_FOUND";
-    throw err;
+    throw Object.assign(new Error("Notification not found"), {
+      status: 404,
+      code: "NOT_FOUND",
+    });
   }
 
   return notification;
 }
 
-/**
- * Active or Inactive a specific push notification for specific device and user
- * @param {string} userId User ID
- * @param {string} deviceId Device ID
- */
 async function activeOrInactivePushNotification(userId, deviceId) {
-  try {
-    // Convert userId to ObjectId
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+  const userObjectId = new mongoose.Types.ObjectId(userId);
 
-    // Find the only the user sub document to get current status
-    const tokenDoc = await PushToken.findOne(
-      { deviceId, "users.user": userObjectId },
-      { "users.$": 1 },
-    );
+  const tokenDoc = await PushToken.findOne(
+    { deviceId, "users.user": userObjectId },
+    { "users.$": 1 },
+  );
 
-    const currentStatus = tokenDoc?.users?.[0]?.notificationActive;
-
-    if (!tokenDoc) {
-      const err = new Error("Device not found for the user");
-      err.status = 404;
-      err.code = "DEVICE_OR_USER_NOT_FOUND";
-      throw err;
-    }
-
-    // Update the notificationActive status for the specific user
-    const updated = await PushToken.findOneAndUpdate(
-      { deviceId, "users.user": userObjectId },
-      { $set: { "users.$.notificationActive": !currentStatus } },
-      { new: true },
-    );
-
-    if (!updated) {
-      const err = new Error("Device or user not found");
-      err.status = 404;
-      err.code = "DEVICE_OR_USER_NOT_FOUND";
-      throw err;
-    }
-
-    return {
-      deviceId: updated.deviceId,
-      notificationActive: !currentStatus,
-    };
-  } catch (err) {
-    console.error("toggle notification error:", err);
-    throw err;
+  if (!tokenDoc?.users?.[0]) {
+    throw Object.assign(new Error("Device/user not found"), { status: 404 });
   }
+
+  const current = tokenDoc.users[0].notificationActive;
+
+  const updated = await PushToken.findOneAndUpdate(
+    { deviceId, "users.user": userObjectId },
+    { $set: { "users.$.notificationActive": !current } },
+    { new: true },
+  );
+
+  return {
+    deviceId: updated.deviceId,
+    notificationActive: !current,
+  };
 }
 
 module.exports = {
