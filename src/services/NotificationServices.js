@@ -26,9 +26,13 @@ function initFirebase() {
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
       // Parse the JSON string from the .env
       serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      // Merge project_id into the serviceAccount object for proper detection
+      const credentialObj = {
+        ...serviceAccount,
+        project_id: serviceAccount.project_id,
+      };
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        projectId: serviceAccount.project_id,
+        credential: admin.credential.cert(credentialObj),
       });
       initialized = true;
       console.log(
