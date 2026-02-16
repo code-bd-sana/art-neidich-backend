@@ -1,11 +1,12 @@
-const path = require("path");
-
+const dotenv = require("dotenv");
 const admin = require("firebase-admin");
 const mongoose = require("mongoose");
 
 const NotificationModel = require("../models/NotificationModel");
 const NotificationToken = require("../models/NotificationTokenModel");
 const PushToken = require("../models/PushToken");
+
+dotenv.config();
 
 // ────────────────────────────────────────────────
 // Firebase initialization
@@ -16,31 +17,31 @@ let initialized = false;
  * Initialize Firebase Admin SDK
  * @returns {void}
  */
+
 function initFirebase() {
   if (initialized) return;
-
   console.log("[NotificationService] initFirebase: starting initialization");
-
   try {
-    // Prefer local service account file
-    const saPath = path.resolve(process.cwd(), "fhainspectorapp.json");
-    const serviceAccount = require(saPath);
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-
-    initialized = true;
-    console.log(
-      "[NotificationService] initFirebase: initialized with service account",
-    );
+    let serviceAccount;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      // Parse the JSON string from the .env
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      initialized = true;
+      console.log(
+        "[NotificationService] initFirebase: initialized with .env service account",
+      );
+    } else {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT not found in .env");
+    }
   } catch (err) {
     console.warn(
-      "[NotificationService] initFirebase: service account not found, trying Application Default Credentials",
+      "[NotificationService] initFirebase: failed to initialize with .env, trying Application Default Credentials",
     );
-
     try {
-      admin.initializeApp(); // Uses ADC (e.g. on GCP, or GOOGLE_APPLICATION_CREDENTIALS env var)
+      admin.initializeApp();
       initialized = true;
       console.log(
         "[NotificationService] initFirebase: initialized with default credentials",
@@ -50,7 +51,6 @@ function initFirebase() {
         "[NotificationService] initFirebase: failed to initialize firebase",
         e?.message || e,
       );
-      // Continue — callers will receive errors when sending
     }
   }
 }
