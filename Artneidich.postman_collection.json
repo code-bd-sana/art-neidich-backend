@@ -2892,7 +2892,7 @@
       "name": "Terms And Condition",
       "item": [
         {
-          "name": "Get All Terms And Condition",
+          "name": "Get All Terms And Conditions",
           "protocolProfileBehavior": {
             "disableBodyPruning": true
           },
@@ -3943,6 +3943,1074 @@
                 }
               ],
               "body": "{\n    \"success\": true,\n    \"message\": \"Terms and condition deleted successfully\",\n    \"code\": 200\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Privacy And Policy",
+      "item": [
+        {
+          "name": "Get All Privacy And Policies",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/privacy-and-policy?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "privacy-and-policy"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "New Request",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/privacy-and-policy?page=1&limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "privacy-and-policy"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "99"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "60"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "413"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"19d-fXzZuDyHceaPLgQQCQ7U8gbecx0\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 11:02:01 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Privacy and policy list retrieved successfully\",\n    \"code\": 200,\n    \"data\": [\n        {\n            \"_id\": \"6992f7ef5c7facbfa1825542\",\n            \"title\": \"New Privacy And Policy V.0.1\",\n            \"version\": \"1.0\",\n            \"content\": \"This is a test Privacy and Policy\",\n            \"effectiveDate\": \"2027-02-16T10:36:06.000Z\",\n            \"isActive\": true,\n            \"createdAt\": \"2026-02-16T10:56:47.362Z\",\n            \"updatedAt\": \"2026-02-16T10:56:47.362Z\"\n        }\n    ],\n    \"total\": 1,\n    \"page\": 1,\n    \"limit\": 10,\n    \"totalPages\": 1\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Active Privacy And policy",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/privacy-and-policy/active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "privacy-and-policy",
+                "active"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "New Request",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/privacy-and-policy/active",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "privacy-and-policy",
+                    "active"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "96"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "19"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "368"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"170-IO0igARL9hq+I2/gvd3QFkzWc3Y\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 11:24:54 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Active privacy and policy retrieved successfully\",\n    \"code\": 200,\n    \"data\": {\n        \"_id\": \"6992f7ef5c7facbfa1825542\",\n        \"title\": \"New Privacy And Policy V.0.1\",\n        \"version\": \"1.0\",\n        \"content\": \"This is a test Privacy and Policy\",\n        \"effectiveDate\": \"2027-02-16T10:36:06.000Z\",\n        \"isActive\": true,\n        \"createdAt\": \"2026-02-16T10:56:47.362Z\",\n        \"updatedAt\": \"2026-02-16T10:56:47.362Z\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Privacy And Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/privacy-and-policy",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "privacy-and-policy"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/privacy-and-policy",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "privacy-and-policy"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "98"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "21"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "359"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"167-+uPQzoBmvqCkUhwDnzg2u0Z9vzo\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 10:56:47 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Privacy and policy created successfully\",\n    \"code\": 200,\n    \"data\": {\n        \"title\": \"New Privacy And Policy V.0.1\",\n        \"version\": \"1.0\",\n        \"content\": \"This is a test Privacy and Policy\",\n        \"effectiveDate\": \"2027-02-16T10:36:06.000Z\",\n        \"isActive\": true,\n        \"_id\": \"6992f7ef5c7facbfa1825542\",\n        \"createdAt\": \"2026-02-16T10:56:47.362Z\",\n        \"updatedAt\": \"2026-02-16T10:56:47.362Z\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Privacy And Policy By Id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/privacy-and-policy/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "privacy-and-policy",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "6992f7ef5c7facbfa1825542"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/privacy-and-policy/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "privacy-and-policy",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "6992f7ef5c7facbfa1825542"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "97"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "48"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "359"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"167-BiqwKbQTBknbAYAiOyAETFqKXgs\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 11:24:24 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Privacy and policy updated successfully\",\n    \"code\": 200,\n    \"data\": {\n        \"_id\": \"6992f7ef5c7facbfa1825542\",\n        \"title\": \"New Privacy And Policy V.0.1\",\n        \"version\": \"1.0\",\n        \"content\": \"This is a test Privacy and Policy\",\n        \"effectiveDate\": \"2027-02-16T10:36:06.000Z\",\n        \"isActive\": true,\n        \"createdAt\": \"2026-02-16T10:56:47.362Z\",\n        \"updatedAt\": \"2026-02-16T10:56:47.362Z\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Privacy And Policy By Id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/privacy-and-policy/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "privacy-and-policy",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "6992f7c75c7facbfa182553e"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/privacy-and-policy/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "privacy-and-policy",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "6992f7c75c7facbfa182553e"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "99"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "60"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "79"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"4f-ZhZJ+rsLI0evC+q5TFaPeG3Fn5E\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 10:58:06 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Privacy and policy deleted successfully\",\n    \"code\": 200\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Privacy And Policy By Id",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/privacy-and-policy/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "privacy-and-policy",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "6992f7ef5c7facbfa1825542"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\":\"New Privacy And Policy V.0.1\",\n    \"content\": \"This is a test Privacy and Policy\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/privacy-and-policy/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "privacy-and-policy",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "6992f7ef5c7facbfa1825542"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "99"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "60"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "361"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"169-IGyBTLW6n3xMJboo6fRQAF/VMms\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 11:26:50 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Privacy and policy retrieved successfully\",\n    \"code\": 200,\n    \"data\": {\n        \"_id\": \"6992f7ef5c7facbfa1825542\",\n        \"title\": \"New Privacy And Policy V.0.1\",\n        \"version\": \"1.0\",\n        \"content\": \"This is a test Privacy and Policy\",\n        \"effectiveDate\": \"2027-02-16T10:36:06.000Z\",\n        \"isActive\": true,\n        \"createdAt\": \"2026-02-16T10:56:47.362Z\",\n        \"updatedAt\": \"2026-02-16T10:56:47.362Z\"\n    }\n}"
             }
           ]
         }
