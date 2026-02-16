@@ -16,53 +16,73 @@ let initialized = false;
 function initFirebase() {
   if (initialized) return;
 
-  console.log("[NotificationService] initFirebase: starting");
+  const LOG_PREFIX = "[NotificationService][INIT]";
+  console.log(`${LOG_PREFIX} Starting Firebase initialization`);
 
-  // Debug what we actually received from env
+  // ─── Debug: Show exactly what we received ───────────────────────────────
   console.log(
-    "[DEBUG] FIREBASE_PROJECT_ID:",
-    process.env.FIREBASE_PROJECT_ID || "missing",
+    `${LOG_PREFIX} FIREBASE_PROJECT_ID:`,
+    process.env.FIREBASE_PROJECT_ID || "MISSING",
   );
   console.log(
-    "[DEBUG] FIREBASE_CLIENT_EMAIL:",
-    process.env.FIREBASE_CLIENT_EMAIL || "missing",
+    `${LOG_PREFIX} FIREBASE_CLIENT_EMAIL:`,
+    process.env.FIREBASE_CLIENT_EMAIL || "MISSING",
   );
   console.log(
-    "[DEBUG] FIREBASE_PRIVATE_KEY length:",
-    process.env.FIREBASE_PRIVATE_KEY?.length || "missing",
+    `${LOG_PREFIX} FIREBASE_PRIVATE_KEY length:`,
+    process.env.FIREBASE_PRIVATE_KEY?.length || "MISSING",
   );
   console.log(
-    "[DEBUG] PRIVATE_KEY starts with:",
-    process.env.FIREBASE_PRIVATE_KEY?.substring(0, 40) || "missing",
+    `${LOG_PREFIX} FIREBASE_PRIVATE_KEY first 80 chars:`,
+    process.env.FIREBASE_PRIVATE_KEY?.substring(0, 80) || "MISSING",
   );
   console.log(
-    "[DEBUG] Contains literal \\n:",
+    `${LOG_PREFIX} Contains literal \\n:`,
     process.env.FIREBASE_PRIVATE_KEY?.includes("\\n") || false,
   );
   console.log(
-    "[DEBUG] Contains real newline:",
+    `${LOG_PREFIX} Contains real newline:`,
     process.env.FIREBASE_PRIVATE_KEY?.includes("\n") || false,
+  );
+  console.log(
+    `${LOG_PREFIX} Starts with {"key":`,
+    process.env.FIREBASE_PRIVATE_KEY?.startsWith('{"key":') || false,
   );
 
   try {
-    // Most reliable way in 2025 – clean the private key aggressively
     let privateKey = process.env.FIREBASE_PRIVATE_KEY || "";
 
-    // Handle common deployment platform escaping issues
-    if (privateKey.includes("\\n")) {
-      privateKey = privateKey.replace(/\\n/g, "\n");
+    // Handle the JSON-wrapped format we recommended for Render
+    if (privateKey.startsWith('{"key":')) {
+      try {
+        const parsed = JSON.parse(privateKey);
+        privateKey = parsed.key;
+        console.log(`${LOG_PREFIX} Successfully parsed JSON-wrapped key`);
+      } catch (parseErr) {
+        console.error(
+          `${LOG_PREFIX} JSON parse failed for wrapped key:`,
+          parseErr.message,
+        );
+        // continue with fallback cleaning anyway
+      }
     }
-    // Remove any accidental wrapping quotes
-    privateKey = privateKey.replace(/^"|"$/g, "");
-    // Remove \r if windows-style line endings snuck in
-    privateKey = privateKey.replace(/\r/g, "");
 
-    // Final trim (just in case)
-    privateKey = privateKey.trim();
+    // Aggressive cleaning – covers most Render / platform issues
+    privateKey = privateKey
+      .replace(/\\n/g, "\n") // literal \n → real newline
+      .replace(/\\r/g, "") // remove \r if present
+      .replace(/\r/g, "") // just in case
+      .replace(/^["']|["']$/g, "") // remove wrapping quotes if any
+      .replace(/^key:/, "") // in case someone pasted "key:-----..."
+      .trim();
 
-    if (!privateKey.includes("-----BEGIN PRIVATE KEY-----")) {
+    // Basic validation
+    if (
+      !privateKey.includes("-----BEGIN PRIVATE KEY-----") ||
+      !privateKey.includes("-----END PRIVATE KEY-----")
+    ) {
       throw new Error(
-        "Private key does not appear to be valid PEM format after cleaning",
+        "Private key does not contain valid PEM markers after cleaning",
       );
     }
 
@@ -70,9 +90,7 @@ function initFirebase() {
       !process.env.FIREBASE_PROJECT_ID ||
       !process.env.FIREBASE_CLIENT_EMAIL
     ) {
-      throw new Error(
-        "Missing required Firebase credentials (project_id or client_email)",
-      );
+      throw new Error("Missing projectId or clientEmail");
     }
 
     admin.initializeApp({
@@ -84,29 +102,28 @@ function initFirebase() {
     });
 
     initialized = true;
-    console.log(
-      "[NotificationService] Firebase Admin initialized successfully (env credentials)",
-    );
+    console.log(`${LOG_PREFIX} Firebase Admin SDK initialized SUCCESSFULLY`);
   } catch (err) {
+    console.error(`${LOG_PREFIX} Initialization FAILED:`, err.message || err);
     console.error(
-      "[NotificationService] initFirebase failed with env credentials:",
-      err.message,
+      `${LOG_PREFIX} Stack:`,
+      err.stack?.substring(0, 300) || "no stack",
     );
 
-    // Fallback to Application Default Credentials (works on GCP, Cloud Run, etc.)
+    // Optional ADC fallback (only useful if deployed on Google Cloud)
     try {
       admin.initializeApp();
       initialized = true;
       console.log(
-        "[NotificationService] Firebase initialized using Application Default Credentials",
+        `${LOG_PREFIX} Fallback to Application Default Credentials succeeded`,
       );
     } catch (fallbackErr) {
       console.error(
-        "[NotificationService] Firebase fallback also failed:",
+        `${LOG_PREFIX} ADC fallback also failed:`,
         fallbackErr.message,
       );
       console.error(
-        "[CRITICAL] Firebase Messaging will NOT work until credentials are fixed.",
+        "FIREBASE MESSAGING WILL NOT WORK UNTIL CREDENTIALS ARE FIXED",
       );
     }
   }
@@ -125,19 +142,18 @@ const debug = (...args) => {
 };
 
 // ────────────────────────────────────────────────
-// Core send functions (unchanged except safety)
+// Core send functions
 // ────────────────────────────────────────────────
 
 async function sendToDevice(deviceToken, payload = {}) {
-  if (!initialized) {
-    logError("sendToDevice: Firebase not initialized - skipping");
-    throw new Error("Firebase Messaging not available");
-  }
+  if (!initialized)
+    throw new Error("Firebase not initialized – cannot send notification");
 
-  if (!deviceToken)
-    throw Object.assign(new Error("Device token required"), {
+  if (!deviceToken) {
+    throw Object.assign(new Error("Device token is required"), {
       code: "DEVICE_TOKEN_REQUIRED",
     });
+  }
 
   const message = buildMessage(deviceToken, payload);
 
@@ -156,7 +172,7 @@ async function sendToMany(deviceTokens = [], payload = {}) {
     logError("sendToMany: Firebase not initialized");
     return {
       successCount: 0,
-      failureCount: deviceTokens.length,
+      failureCount: Array.isArray(deviceTokens) ? deviceTokens.length : 1,
       error: "firebase-not-initialized",
     };
   }
@@ -166,7 +182,7 @@ async function sendToMany(deviceTokens = [], payload = {}) {
     : [deviceTokens].filter(Boolean);
 
   if (tokens.length === 0) {
-    return { successCount: 0, failureCount: 0, warning: "no-tokens" };
+    return { successCount: 0, failureCount: 0, warning: "no-valid-tokens" };
   }
 
   const results = { successCount: 0, failureCount: 0, responses: [] };
@@ -180,12 +196,11 @@ async function sendToMany(deviceTokens = [], payload = {}) {
       const resp = await admin
         .messaging()
         .sendEachForMulticast(multicastMessage);
-
       results.successCount += resp.successCount;
       results.failureCount += resp.failureCount;
       results.responses.push(resp);
 
-      // Clean up invalid tokens
+      // Clean up unregistered tokens
       resp.responses.forEach((r, idx) => {
         if (
           !r.success &&
@@ -198,13 +213,16 @@ async function sendToMany(deviceTokens = [], payload = {}) {
         }
       });
     } catch (err) {
-      logError("sendToMany chunk failed", err.message || err);
+      logError(
+        `sendToMany chunk ${Math.floor(i / chunkSize)} failed`,
+        err.message || err,
+      );
       results.failureCount += chunk.length;
     }
   }
 
-  log("sendToMany finished", {
-    total: tokens.length,
+  log("sendToMany completed", {
+    totalTokens: tokens.length,
     success: results.successCount,
     failed: results.failureCount,
   });
@@ -213,16 +231,13 @@ async function sendToMany(deviceTokens = [], payload = {}) {
 }
 
 async function sendToUser(userId, payload = {}) {
-  if (!userId)
-    throw Object.assign(new Error("User ID required"), {
-      code: "USER_ID_REQUIRED",
-    });
+  if (!userId) throw new Error("User ID is required");
 
   const docs = await PushToken.find({
     users: { $in: [new mongoose.Types.ObjectId(userId)] },
     active: true,
   })
-    .select("token")
+    .select("token -_id")
     .lean();
 
   const tokens = docs.map((d) => d.token);
@@ -239,7 +254,7 @@ async function sendToUser(userId, payload = {}) {
 }
 
 // ────────────────────────────────────────────────
-// Message builders (unchanged)
+// Message builders
 // ────────────────────────────────────────────────
 
 function buildMessage(token, payload = {}) {
@@ -248,8 +263,9 @@ function buildMessage(token, payload = {}) {
 
   if (title) message.notification.title = title;
   if (body) message.notification.body = body;
-  if (imageUrl) message.notification.image = imageUrl; // corrected property name
-  if (data && typeof data === "object") {
+  if (imageUrl) message.notification.image = imageUrl; // note: correct property is "image"
+
+  if (data && typeof data === "object" && data !== null) {
     message.data = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, String(v)]),
     );
@@ -265,7 +281,8 @@ function buildMulticast(tokens, payload = {}) {
   if (title) message.notification.title = title;
   if (body) message.notification.body = body;
   if (imageUrl) message.notification.image = imageUrl;
-  if (data && typeof data === "object") {
+
+  if (data && typeof data === "object" && data !== null) {
     message.data = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, String(v)]),
     );
