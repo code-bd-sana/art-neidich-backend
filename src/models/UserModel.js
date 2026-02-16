@@ -1,8 +1,20 @@
-const mongoose = require("mongoose");
-const { nanoid } = require("nanoid");
-const { customAlphabet } = require("nanoid");
+const crypto = require("crypto");
 
-const nanoidLower = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 10);
+const mongoose = require("mongoose");
+
+const USER_ID_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
+const USER_ID_LENGTH = 10;
+
+const createUserId = () => {
+  const bytes = crypto.randomBytes(USER_ID_LENGTH);
+  let id = "";
+
+  for (let i = 0; i < USER_ID_LENGTH; i += 1) {
+    id += USER_ID_ALPHABET[bytes[i] % USER_ID_ALPHABET.length];
+  }
+
+  return id;
+};
 
 /**
  * User schema for authentication and authorization
@@ -20,7 +32,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
       required: true,
-      default: () => nanoidLower(),
+      default: () => createUserId(),
     },
     firstName: {
       type: String,
