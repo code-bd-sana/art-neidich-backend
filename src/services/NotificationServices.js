@@ -17,44 +17,65 @@ let initialized = false;
  * Initialize Firebase Admin SDK
  * @returns {void}
  */
-
 function initFirebase() {
   if (initialized) return;
+
   console.log("[NotificationService] initFirebase: starting initialization");
+
   try {
-    let serviceAccount;
-    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      // Parse the JSON string from the .env
-      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-      // Merge project_id into the serviceAccount object for proper detection
-      const credentialObj = {
-        ...serviceAccount,
-        project_id: serviceAccount.project_id,
-      };
-      admin.initializeApp({
-        credential: admin.credential.cert(credentialObj),
-      });
-      initialized = true;
-      console.log(
-        "[NotificationService] initFirebase: initialized with .env service account",
-      );
-    } else {
-      throw new Error("FIREBASE_SERVICE_ACCOUNT not found in .env");
-    }
-  } catch (err) {
-    console.warn(
-      "[NotificationService] initFirebase: failed to initialize with .env, trying Application Default Credentials",
+    const serviceAccount = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY
+        ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
+        : undefined,
+    };
+
+    // Debug logs – super important to check
+    console.log("[Firebase Debug] projectId    →", serviceAccount.projectId);
+    console.log("[Firebase Debug] clientEmail →", serviceAccount.clientEmail);
+    console.log(
+      "[Firebase Debug] privateKey starts →",
+      serviceAccount.privateKey?.substring(0, 60) || "MISSING!",
     );
+    console.log(
+      "[Firebase Debug] privateKey ends   →",
+      serviceAccount.privateKey?.slice(-20) || "MISSING!",
+    );
+
+    if (
+      !serviceAccount.projectId ||
+      !serviceAccount.clientEmail ||
+      !serviceAccount.privateKey
+    ) {
+      throw new Error("Missing Firebase credential environment variables");
+    }
+
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+
+    initialized = true;
+    console.log(
+      "[NotificationService] Firebase Admin initialized successfully with env vars",
+    );
+  } catch (err) {
+    console.error(
+      "[NotificationService] Firebase initialization failed:",
+      err.message || err,
+    );
+
+    // Optional fallback to ADC (if on GCP or GOOGLE_APPLICATION_CREDENTIALS set)
     try {
       admin.initializeApp();
       initialized = true;
       console.log(
-        "[NotificationService] initFirebase: initialized with default credentials",
+        "[NotificationService] Fallback to default credentials succeeded",
       );
-    } catch (e) {
+    } catch (fallbackErr) {
       console.error(
-        "[NotificationService] initFirebase: failed to initialize firebase",
-        e?.message || e,
+        "[NotificationService] Fallback also failed:",
+        fallbackErr.message || fallbackErr,
       );
     }
   }
