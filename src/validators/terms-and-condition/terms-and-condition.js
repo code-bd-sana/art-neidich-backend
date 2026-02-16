@@ -34,7 +34,25 @@ const updateTermsAndConditionSchema = createTermsAndConditionSchema
   .partial()
   .strict();
 
+const searchTermsAndConditionSchema = z
+  .object({
+    page: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 1))
+      .refine((val) => val > 0, { message: "Page must be a positive integer" }),
+    limit: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : 10))
+      .refine((val) => val > 0, {
+        message: "Limit must be a positive integer",
+      }),
+  })
+  .strict();
+
 module.exports = {
   createTermsAndConditionSchema,
   updateTermsAndConditionSchema,
+  searchTermsAndConditionSchema,
 };

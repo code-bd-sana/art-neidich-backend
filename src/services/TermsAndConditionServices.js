@@ -45,6 +45,38 @@ async function getActiveTermsAndCondition() {
 }
 
 /**
+ * Get all terms and condition with pagination and optional version filter
+ *
+ * @param {Object} query - The query parameters for pagination and filtering
+ * @returns {Promise<Object>} An object containing paginated terms and condition data
+ */
+async function getAllTermsAndCondition(query = {}) {
+  // Calculate pagination parameters
+  const page = Math.max(Number(query.page) || 1, 1);
+  const limit = Math.max(Number(query.limit) || 10, 1);
+  const skip = (page - 1) * limit;
+
+  const total = await TermsAndCondition.countDocuments();
+
+  const terms = await TermsAndCondition.find()
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  return {
+    data: terms,
+    metaData: {
+      page,
+      limit,
+      totalItems: total,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPrevPage: page > 1,
+    },
+  };
+}
+
+/**
  * Get terms and condition by ID
  *
  * @param {String} id - The ID of the terms and condition to retrieve
@@ -137,6 +169,7 @@ module.exports = {
   createTermsAndCondition,
   getActiveTermsAndCondition,
   getTermsAndConditionById,
+  getAllTermsAndCondition,
   updateTermsAndCondition,
   deleteTermsAndCondition,
 };
