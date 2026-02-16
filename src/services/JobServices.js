@@ -34,7 +34,7 @@ async function createJob(payload) {
       const inspectorId = created.inspector || null;
       const types = NotificationModel.notificationTypes || {};
 
-      // Notify inspector if assigned
+      // Notify inspector about new job assignment
       if (inspectorId) {
         await notifyUser({
           userId: inspectorId,
