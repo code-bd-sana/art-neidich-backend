@@ -127,6 +127,14 @@ async function updateTermsAndCondition(id, payload) {
   terms.isActive =
     payload.isActive !== undefined ? payload.isActive : terms.isActive;
 
+  if (payload.isActive) {
+    // Deactivate other active terms
+    await TermsAndCondition.updateMany(
+      { _id: { $ne: id }, isActive: true },
+      { isActive: false },
+    );
+  }
+
   // Save the updated terms and condition
   return await terms.save();
 }
