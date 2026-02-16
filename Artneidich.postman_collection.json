@@ -23,7 +23,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"user@example.com\",\n  \"password\": \"123456\",\n  \"role\": 2\n}"
+              "raw": "{\n  \"firstName\": \"Joy\",\n  \"lastName\": \"Sarkar\",\n  \"email\": \"developer.joysarkar@gmail.com\",\n  \"password\": \"123456\",\n  \"role\": 2\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
@@ -113,7 +113,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"deviceId\": \"device-123\",\n \"token\": \"some-token-value\",\n \"platform\": \"ios\",\n  \"email\": \"user0@example.com\",\n  \"password\": \"123456\"\n}"
+              "raw": "{\n  \"deviceId\": \"device-122133\",\n  \"token\": \"cq34r512r324523f234g52fsadf3f5tfgheegfawdf\",\n  \"platform\": \"ios\",\n  \"email\": \"user0@example.com\",\n  \"password\": \"123456\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
@@ -866,7 +866,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/user?page=1&limit=10&search=&role=&isSuspended=&isApproved=",
+              "raw": "{{baseUrl}}/user?page=1&limit=10&search=&role=1",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -891,18 +891,20 @@
                 },
                 {
                   "key": "role",
-                  "value": "",
+                  "value": "1",
                   "description": "Filter by user role (0, 1, or 2)"
                 },
                 {
                   "key": "isSuspended",
-                  "value": "",
-                  "description": "Filter by suspension status (true or false)"
+                  "value": "false",
+                  "description": "Filter by suspension status (true or false)",
+                  "disabled": true
                 },
                 {
                   "key": "isApproved",
-                  "value": "",
-                  "description": "Filter by approval status (true or false)"
+                  "value": "true",
+                  "description": "Filter by approval status (true or false)",
+                  "disabled": true
                 }
               ]
             }
@@ -1105,7 +1107,8 @@
               ],
               "variable": [
                 {
-                  "key": "id"
+                  "key": "id",
+                  "value": "695a2ebe3984f17d3b981e7b"
                 }
               ]
             }
@@ -1173,7 +1176,8 @@
               ],
               "variable": [
                 {
-                  "key": "id"
+                  "key": "id",
+                  "value": "695a2ebe3984f17d3b981e7b"
                 }
               ]
             }
@@ -2073,7 +2077,7 @@
       ]
     },
     {
-      "name": "ImageLabel",
+      "name": "Image Label",
       "item": [
         {
           "name": "Create Image Label",
@@ -2644,7 +2648,8 @@
               ],
               "variable": [
                 {
-                  "key": "id"
+                  "key": "id",
+                  "value": ""
                 }
               ]
             }
@@ -2672,29 +2677,31 @@
           ]
         },
         {
-          "name": "Get user notification state",
+          "name": "Register Push Token",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "Authorization",
                 "value": "Bearer {{authToken}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"device-123\",\n  \"token\": \"push-token-value\"\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/notification/notification-state/:deviceId",
+              "raw": "{{baseUrl}}/notification/token",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "notification",
-                "notification-state",
-                ":deviceId"
-              ],
-              "variable": [
-                {
-                  "key": "deviceId"
-                }
+                "token"
               ]
             }
           },
@@ -2716,7 +2723,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n    \"success\": true,\n    \"message\": \"Notification state fetched successfully\",\n, \"data\": {},\n    \"code\": 200\n}"
+              "body": "{\n    \"success\": true,\n    \"message\": \"Push token registered\",\n    \"code\": 200\n}"
             }
           ]
         },
@@ -2876,6 +2883,1066 @@
               ],
               "cookie": [],
               "body": "{\n    \"message\": \"Files uploaded successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Terms And Condition",
+      "item": [
+        {
+          "name": "Get All Terms And Condition",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseUrl}}/terms-and-condition?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "terms-and-condition"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/terms-and-condition?page=1&limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "terms-and-condition"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "96"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "6"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "421"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"1a5-EAaSvT1NqH0kCTOCSaReUPoJAU8\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 10:37:12 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"code\": 200,\n    \"message\": \"Terms and conditions retrieved successfully\",\n    \"data\": [\n        {\n            \"_id\": \"6992f3235e2da65ccf49afa4\",\n            \"title\": \"Terms and Conditions\",\n            \"version\": \"1.0\",\n            \"content\": \"This is a test terms and condition\",\n            \"effectiveDate\": \"2027-02-16T10:36:06.000Z\",\n            \"isActive\": true,\n            \"createdAt\": \"2026-02-16T10:36:19.494Z\",\n            \"updatedAt\": \"2026-02-16T10:36:19.494Z\"\n        }\n    ],\n    \"metaData\": {\n        \"page\": 1,\n        \"limit\": 10,\n        \"totalItems\": 1,\n        \"totalPages\": 1\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Terms And Condition By Id",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseUrl}}/terms-and-condition/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "terms-and-condition",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "6992f3235e2da65ccf49afa4"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/terms-and-condition/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "terms-and-condition",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "6992f3235e2da65ccf49afa4"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "97"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "43"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "355"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"163-xvXQx/mOzCHfSowel93XfM1tcSw\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 10:36:34 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Terms and condition retrieved successfully\",\n    \"code\": 200,\n    \"data\": {\n        \"_id\": \"6992f3235e2da65ccf49afa4\",\n        \"title\": \"Terms and Conditions\",\n        \"version\": \"1.0\",\n        \"content\": \"This is a test terms and condition\",\n        \"effectiveDate\": \"2027-02-16T10:36:06.000Z\",\n        \"isActive\": true,\n        \"createdAt\": \"2026-02-16T10:36:19.494Z\",\n        \"updatedAt\": \"2026-02-16T10:36:19.494Z\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create A Terms And Condition",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\":\"New Trems And Condition V.0.1\",\n    \"content\": \"This is a test terms and condition\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/terms-and-condition",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "terms-and-condition"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"content\": \"This is a test terms and condition\",\n    \"version\": \"1.0\",\n    \"effectiveDate\": \"2027-02-16T10:36:06Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/terms-and-condition",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "terms-and-condition"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "98"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "58"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "353"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"161-6g9vixHLer33C7JOCoU3YSGwyCE\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 10:36:19 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Terms and condition created successfully\",\n    \"code\": 200,\n    \"data\": {\n        \"title\": \"Terms and Conditions\",\n        \"version\": \"1.0\",\n        \"content\": \"This is a test terms and condition\",\n        \"effectiveDate\": \"2027-02-16T10:36:06.000Z\",\n        \"isActive\": true,\n        \"_id\": \"6992f3235e2da65ccf49afa4\",\n        \"createdAt\": \"2026-02-16T10:36:19.494Z\",\n        \"updatedAt\": \"2026-02-16T10:36:19.494Z\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Active Terms And Condition",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseUrl}}/terms-and-condition/active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "terms-and-condition",
+                "active"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/terms-and-condition/active",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "terms-and-condition",
+                    "active"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "99"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "60"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "362"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"16a-8yImfEXat1IiU55pNrwKRtRVj/w\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 10:39:24 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Active terms and condition retrieved successfully\",\n    \"code\": 200,\n    \"data\": {\n        \"_id\": \"6992f3235e2da65ccf49afa4\",\n        \"title\": \"Terms and Conditions\",\n        \"version\": \"1.0\",\n        \"content\": \"This is a test terms and condition\",\n        \"effectiveDate\": \"2027-02-16T10:36:06.000Z\",\n        \"isActive\": true,\n        \"createdAt\": \"2026-02-16T10:36:19.494Z\",\n        \"updatedAt\": \"2026-02-16T10:36:19.494Z\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Updated Terms And Condition By Id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"title\": \"Terms and Conditions updated\""
+            },
+            "url": {
+              "raw": "{{baseUrl}}/terms-and-condition/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "terms-and-condition",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "6992f3235e2da65ccf49afa4"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Terms and Conditions updated\"\r\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/terms-and-condition/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "terms-and-condition",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "6992f3235e2da65ccf49afa4"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "99"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "60"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "361"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"169-Swc+E8ecit42Yv1ry53jGPfOYEs\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 10:42:40 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Terms and condition updated successfully\",\n    \"code\": 200,\n    \"data\": {\n        \"_id\": \"6992f3235e2da65ccf49afa4\",\n        \"title\": \"Terms and Conditions updated\",\n        \"version\": \"1.0\",\n        \"content\": \"This is a test terms and condition\",\n        \"effectiveDate\": \"2027-02-16T10:36:06.000Z\",\n        \"isActive\": true,\n        \"createdAt\": \"2026-02-16T10:36:19.494Z\",\n        \"updatedAt\": \"2026-02-16T10:42:40.586Z\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Terms And COndition By Id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseUrl}}/terms-and-condition/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "terms-and-condition",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "6992f3235e2da65ccf49afa4"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{authToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/terms-and-condition/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "terms-and-condition",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "6992f3235e2da65ccf49afa4"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "100;w=60"
+                },
+                {
+                  "key": "RateLimit-Limit",
+                  "value": "100"
+                },
+                {
+                  "key": "RateLimit-Remaining",
+                  "value": "98"
+                },
+                {
+                  "key": "RateLimit-Reset",
+                  "value": "16"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "80"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"50-230U1qkkoupTZLbk+ToEnCPZAE0\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 16 Feb 2026 10:43:24 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [
+                {
+                  "expires": "Invalid Date",
+                  "domain": "",
+                  "path": ""
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Terms and condition deleted successfully\",\n    \"code\": 200\n}"
             }
           ]
         }
