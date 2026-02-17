@@ -127,22 +127,6 @@ async function updateTermsAndPolicy(id, payload) {
 }
 
 /**
- * Delete a specific terms and policy version by ID
- *
- * @param {string} id - The ID of the terms and policy version to delete
- * @returns {Promise<Object>} The deleted terms and policy document
- */
-async function deleteTermsAndPolicy(id) {
-  const deleted = await TermsModel.findByIdAndDelete(id);
-  if (!deleted) {
-    const err = new Error("Terms and policy not found");
-    err.code = 404;
-    throw err;
-  }
-  return deleted;
-}
-
-/**
  * Get the acceptance status of the currently active terms and policy for a specific user
  *
  * @param {string} userId - The ID of the user to check acceptance status for
@@ -192,6 +176,5 @@ module.exports = {
   getTermsAndPolicyById,
   getTermsAndPolicies,
   updateTermsAndPolicy,
-  deleteTermsAndPolicy,
   getMyAcceptedTermsAndPolicyStatus,
 };
