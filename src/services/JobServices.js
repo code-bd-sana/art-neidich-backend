@@ -23,8 +23,7 @@ async function createJob(payload) {
 
   if (!inspector) {
     const err = new Error("Assigned inspector not found");
-    err.status = 404;
-    err.code = "INSPECTOR_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -417,8 +416,7 @@ async function getJobById(id) {
   // If no job found, throw error
   if (!result || result.length === 0) {
     const err = new Error("Job not found");
-    err.status = 404;
-    err.code = "JOB_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -1068,8 +1066,7 @@ async function updateJob(id, payload) {
   // If report exists, throw error
   if (reportExists) {
     const err = new Error("Cannot update job with existing report");
-    err.status = 400;
-    err.code = "JOB_UPDATE_NOT_ALLOWED";
+    err.code = 400;
     throw err;
   }
 
@@ -1083,8 +1080,7 @@ async function updateJob(id, payload) {
   // If no document matched, throw error
   if (!result || result.length === 0) {
     const err = new Error("Job not found");
-    err.status = 404;
-    err.code = "JOB_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -1104,8 +1100,7 @@ async function deleteJob(id) {
   // If not found, throw error
   if (!existing) {
     const err = new Error("Job not found");
-    err.status = 404;
-    err.code = "JOB_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 

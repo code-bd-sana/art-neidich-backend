@@ -79,8 +79,7 @@ function resolveFromAddress() {
 async function sendMail({ to, subject, text, html, attachments } = {}) {
   if (!to) {
     const err = new Error("`to` address is required to send email");
-    err.status = 404;
-    err.code = "MISSING_TO_ADDRESS";
+    err.code = 404;
     throw err;
   }
 
@@ -128,8 +127,7 @@ async function sendMail({ to, subject, text, html, attachments } = {}) {
 async function sendBulkMail(recipients = [], options = {}) {
   if (!Array.isArray(recipients) || recipients.length === 0) {
     const err = new Error("No recipients provided for bulk email");
-    err.status = 404;
-    err.code = "NO_BULK_EMAIL_RECIPIENTS";
+    err.code = 404;
     throw err;
   }
 

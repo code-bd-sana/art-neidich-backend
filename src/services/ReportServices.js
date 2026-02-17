@@ -27,14 +27,14 @@ async function createReport(payload) {
   // Job existence check
   if (!(await JobModel.exists({ _id: jobId }))) {
     const err = new Error("Associated job not found");
-    err.status = 404;
+    err.code = 404;
     throw err;
   }
 
   // Duplicate report check
   if (await ReportModel.exists({ job: jobId })) {
     const err = new Error("A report already exists for this job");
-    err.status = 400;
+    err.code = 400;
     throw err;
   }
 
@@ -44,7 +44,7 @@ async function createReport(payload) {
   // Require at least 1 image
   if (imagesInput.length < 1) {
     const err = new Error("At least 1 image is required");
-    err.status = 400;
+    err.code = 400;
     throw err;
   }
 
@@ -68,8 +68,7 @@ async function createReport(payload) {
     const labelStr = labelMap.get(img.imageLabel);
     if (!labelStr) {
       const err = new Error("Image label not found");
-      err.status = 400;
-      err.code = "IMAGE_LABEL_NOT_FOUND";
+      err.code = 400;
       throw err;
     }
     return {
@@ -136,7 +135,7 @@ async function createReport(payload) {
 
         // Throw error after cleanup
         const err = new Error("At least 1 image is required");
-        err.status = 400;
+        err.code = 400;
         throw err;
       }
 
@@ -572,8 +571,7 @@ async function getReportById(id) {
   // If no report found
   if (!report) {
     const err = new Error("Report not found");
-    err.status = 404;
-    err.code = "REPORT_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -607,8 +605,7 @@ async function updateReportStatus(id, updateData) {
   // If no report found to update
   if (!updated) {
     const err = new Error("Report not found");
-    err.status = 404;
-    err.code = "REPORT_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -647,8 +644,7 @@ async function deleteReport(id) {
   // If not found, throw error
   if (!report) {
     const err = new Error("Report not found");
-    err.status = 404;
-    err.code = "REPORT_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
   await ReportModel.findByIdAndDelete(id);

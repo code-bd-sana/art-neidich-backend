@@ -72,8 +72,7 @@ async function updateProfile(userId, updateData) {
   // If user not found, throw error
   if (!updatedUser) {
     const err = new Error("User not found");
-    err.status = 404;
-    err.code = "USER_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -276,8 +275,7 @@ async function getUserById(userId) {
   // If user not found, throw error
   if (!result || result.length === 0) {
     const err = new Error("User not found");
-    err.status = 404;
-    err.code = "USER_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -297,8 +295,7 @@ async function approveUser(userId) {
   // If user not found, throw error
   if (!user) {
     const err = new Error("User not found");
-    err.status = 404;
-    err.code = "USER_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -423,24 +420,21 @@ async function suspendUser(userId, currentUser) {
   // If user not found, throw error
   if (!user) {
     const err = new Error("User not found");
-    err.status = 404;
-    err.code = "USER_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
   // Prevent suspending root users
   if (user.role === 0) {
     const err = new Error("Cannot suspend a root user");
-    err.status = 400;
-    err.code = "CANNOT_SUSPEND_ROOT";
+    err.code = 400;
     throw err;
   }
 
   // Prevent suspending users with same role as current user
   if (user.role === currentUser.role) {
     const err = new Error("Cannot suspend a user with same role as yours");
-    err.status = 400;
-    err.code = "CANNOT_SUSPEND_SAME_ROLE";
+    err.code = 400;
     throw err;
   }
 
@@ -559,24 +553,21 @@ async function unSuspendUser(userId, currentUser) {
   // If user not found, throw error
   if (!user) {
     const err = new Error("User not found");
-    err.status = 404;
-    err.code = "USER_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
   // Prevent un-suspending root users
   if (user.role === 0) {
     const err = new Error("Cannot un-suspend a root user");
-    err.status = 400;
-    err.code = "CANNOT_UNSUSPEND_ROOT";
+    err.code = 400;
     throw err;
   }
 
   // Prevent un-suspending users with same role as current user
   if (user.role === currentUser.role) {
     const err = new Error("Cannot un-suspend a user with same role as yours");
-    err.status = 400;
-    err.code = "CANNOT_UNSUSPEND_SAME_ROLE";
+    err.code = 400;
     throw err;
   }
 
@@ -692,24 +683,21 @@ async function deleteUser(userId, currentUser) {
   // If user not found, throw error
   if (!user) {
     const err = new Error("User not found");
-    err.status = 404;
-    err.code = "USER_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
   // Prevent deleting root users
   if (user.role === 0) {
     const err = new Error("Cannot delete a root user");
-    err.status = 400;
-    err.code = "CANNOT_DELETE_ROOT";
+    err.code = 400;
     throw err;
   }
 
   // Prevent deleting users with same role as current user
   if (user.role === currentUser.role) {
     const err = new Error("Cannot delete a user with same role as yours");
-    err.status = 400;
-    err.code = "CANNOT_DELETE_SAME_ROLE";
+    err.code = 400;
     throw err;
   }
 

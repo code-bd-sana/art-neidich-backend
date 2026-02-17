@@ -35,8 +35,7 @@ async function registerUser(payload) {
   // If exists, throw error
   if (existing) {
     const err = new Error("Email already in use");
-    err.status = 400;
-    err.code = "EMAIL_IN_USE";
+    err.code = 400;
     throw err;
   }
 
@@ -304,8 +303,7 @@ async function registerUser(payload) {
       const err = new Error(
         "Failed to send welcome email. Registration aborted.",
       );
-      err.status = 500;
-      err.code = "WELCOME_EMAIL_FAILED";
+      err.code = 500;
       throw err;
     }
 
@@ -402,16 +400,14 @@ async function loginUser(payload) {
   // If user not found, throw error
   if (!user) {
     const err = new Error("Invalid email or password");
-    err.status = 401;
-    err.code = "INVALID_CREDENTIALS";
+    err.code = 401;
     throw err;
   }
 
   // Guard against missing values before calling bcrypt.compare
   if (!password || typeof password !== "string" || !password.length) {
     const err = new Error("Invalid email or password");
-    err.status = 401;
-    err.code = "INVALID_CREDENTIALS";
+    err.code = 401;
     throw err;
   }
 
@@ -422,24 +418,21 @@ async function loginUser(payload) {
     !user.password.length
   ) {
     const err = new Error("Invalid email or password");
-    err.status = 401;
-    err.code = "INVALID_CREDENTIALS";
+    err.code = 401;
     throw err;
   }
 
   // New check for suspended users
   if (user.isSuspended) {
     const err = new Error("User account is suspended");
-    err.status = 403;
-    err.code = "USER_SUSPENDED";
+    err.code = 403;
     throw err;
   }
 
   // Check for approved users
   if (!user.isApproved) {
     const err = new Error("User account is not approved");
-    err.status = 403;
-    err.code = "USER_NOT_APPROVED";
+    err.code = 403;
     throw err;
   }
 
@@ -449,8 +442,7 @@ async function loginUser(payload) {
   // If passwords do not match, throw error
   if (!match) {
     const err = new Error("Invalid email or password");
-    err.status = 401;
-    err.code = "INVALID_CREDENTIALS";
+    err.code = 401;
     throw err;
   }
 
@@ -609,8 +601,7 @@ async function initiateForgotPassword(payload) {
   // can respond with a generic success message.
   if (!user) {
     const err = new Error("User with this email does not exist");
-    err.status = 401;
-    err.code = "USER_NOT_FOUND";
+    err.code = 401;
     throw err;
   }
 
@@ -970,16 +961,14 @@ async function resetUserPassword(payload) {
     // Validate token and expiry
     if (!user) {
       const err = new Error("Invalid or expired reset token");
-      err.status = 400;
-      err.code = "INVALID_RESET_TOKEN";
+      err.code = 400;
       throw err;
     }
 
     // Check expiry
     if (!user.resetTokenExpiry || Date.now() > user.resetTokenExpiry) {
       const err = new Error("Reset token has expired");
-      err.status = 400;
-      err.code = "RESET_TOKEN_EXPIRED";
+      err.code = 400;
       throw err;
     }
 
@@ -1004,8 +993,7 @@ async function resetUserPassword(payload) {
     // Validate OTP and expiry
     if (!user) {
       const err = new Error("Invalid or expired OTP");
-      err.status = 400;
-      err.code = "INVALID_OTP";
+      err.code = 400;
       throw err;
     }
 
@@ -1015,8 +1003,7 @@ async function resetUserPassword(payload) {
       Date.now() > user.resetPasswordOTPExpiry
     ) {
       const err = new Error("OTP has expired");
-      err.status = 400;
-      err.code = "OTP_EXPIRED";
+      err.code = 400;
       throw err;
     }
 
@@ -1038,8 +1025,7 @@ async function resetUserPassword(payload) {
   const user = await UserModel.findOne({ email });
   if (!user || !user.resetPasswordVerified) {
     const err = new Error("Either reset token or OTP must be provided");
-    err.status = 400;
-    err.code = "MISSING_RESET_CREDENTIALS";
+    err.code = 400;
     throw err;
   }
 
@@ -1049,8 +1035,7 @@ async function resetUserPassword(payload) {
     Date.now() > user.resetPasswordVerifiedExpiry
   ) {
     const err = new Error("OTP verification has expired");
-    err.status = 400;
-    err.code = "VERIFICATION_EXPIRED";
+    err.code = 400;
     throw err;
   }
 
@@ -1084,8 +1069,7 @@ async function changeUserPassword(userId, payload) {
   // If user not found, throw error
   if (!user) {
     const err = new Error("User not found");
-    err.status = 404;
-    err.code = "USER_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -1095,8 +1079,7 @@ async function changeUserPassword(userId, payload) {
   // If passwords do not match, throw error
   if (!match) {
     const err = new Error("Current password is incorrect");
-    err.status = 400;
-    err.code = "INCORRECT_CURRENT_PASSWORD";
+    err.code = 400;
     throw err;
   }
 
@@ -1105,8 +1088,7 @@ async function changeUserPassword(userId, payload) {
     const err = new Error(
       "New password must be different from current password",
     );
-    err.status = 400;
-    err.code = "SAME_PASSWORD";
+    err.code = 400;
     throw err;
   }
 
@@ -1132,7 +1114,7 @@ async function verifyOtp(payload) {
   const user = await UserModel.findOne({ email });
 
   const err = new Error("Invalid or expired OTP");
-  err.status = 400;
+  err.code = 400;
 
   if (!user) {
     throw err;

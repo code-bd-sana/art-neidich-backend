@@ -27,8 +27,7 @@ async function createImageLabel(payload, user) {
   // If duplicate found, throw error
   if (existing) {
     const err = new Error("Label already exists");
-    err.status = 400;
-    err.code = "LABEL_EXISTS";
+    err.code = 400;
     throw err;
   }
 
@@ -338,8 +337,7 @@ async function getImageLabel(id) {
   // If not found, throw error
   if (!label || !label.length) {
     const err = new Error("Image label not found");
-    err.status = 404;
-    err.code = "LABEL_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -368,8 +366,7 @@ async function updateImageLabel(id, payload, userId) {
     // If duplicate found, throw error
     if (existing) {
       const err = new Error("Label already exists");
-      err.status = 400;
-      err.code = "LABEL_EXISTS";
+      err.code = 400;
       throw err;
     }
   }
@@ -389,8 +386,7 @@ async function updateImageLabel(id, payload, userId) {
   // If not found, throw error
   if (!updateResult) {
     const err = new Error("Image label not found");
-    err.status = 404;
-    err.code = "LABEL_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 
@@ -485,8 +481,7 @@ async function deleteImageLabel(id) {
   // If not found, throw error
   if (!existing) {
     const err = new Error("Image label not found");
-    err.status = 404;
-    err.code = "LABEL_NOT_FOUND";
+    err.code = 404;
     throw err;
   }
 

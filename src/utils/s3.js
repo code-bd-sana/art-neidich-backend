@@ -85,8 +85,7 @@ async function uploadBuffer(buffer, key, contentType, folderPrefix = "") {
   // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
-    err.status = 500;
-    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    err.code = 500;
     throw err;
   }
 
@@ -123,8 +122,7 @@ async function uploadStream(stream, key, contentType, folderPrefix = "") {
   // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
-    err.status = 500;
-    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    err.code = 500;
     throw err;
   }
 
@@ -161,8 +159,7 @@ async function deleteObject(key) {
   // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
-    err.status = 500;
-    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    err.code = 500;
     throw err;
   }
 
@@ -185,8 +182,7 @@ async function getObjectStream(key) {
   // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
-    err.status = 500;
-    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    err.code = 500;
     throw err;
   }
 
@@ -212,8 +208,7 @@ async function getSignedDownloadUrl(key, expiresIn = 900) {
   // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
-    err.status = 500;
-    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    err.code = 500;
     throw err;
   }
 
@@ -238,8 +233,7 @@ async function uploadBuffers(items, concurrency = 5) {
   // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
-    err.status = 500;
-    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    err.code = 500;
     throw err;
   }
 
@@ -315,8 +309,7 @@ async function uploadStreams(items, concurrency = 5) {
   // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
-    err.status = 500;
-    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    err.code = 500;
     throw err;
   }
 
@@ -390,8 +383,7 @@ async function deleteObjects(keys) {
   // Sanity check for bucket
   if (!bucket) {
     const err = new Error("S3 bucket not configured");
-    err.status = 500;
-    err.code = "S3_BUCKET_NOT_CONFIGURED";
+    err.code = 500;
     throw err;
   }
 
