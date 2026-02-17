@@ -13,11 +13,11 @@ const AcknowledgeModel = require("../models/AcknowledgeModel");
 const LoginActivityModel = require("../models/LoginActivityModel");
 const NotificationModel = require("../models/NotificationModel");
 const PushToken = require("../models/PushToken");
-const TermsAndConditionModel = require("../models/TermsAndConditionModel");
 const UserModel = require("../models/UserModel");
+const UserTermsAcceptanceModel = require("../models/UserTermsAcceptanceModel");
 const { sendMail } = require("../utils/mailer");
 
-const { getActiveTermsAndCondition } = require("./TermsAndConditionServices");
+const { getActiveTermsAndPolicy } = require("./TermsAndPolicyServices");
 
 /**
  * Register a new user
@@ -329,23 +329,36 @@ async function registerUser(payload) {
     }
 
     // User agreed with the terms and conditions during registration, so we can create an acknowledgment record for them and that
-    const activeTerms = await getActiveTermsAndCondition();
+    const activeTerms = await getActiveTermsAndPolicy("TERMS");
+    const activePrivacy = await getActiveTermsAndPolicy("PRIVACY");
 
     // If there are no active terms, mark the last previous version as acknowledged for this user
     if (!activeTerms) {
-      const lastTerms = await TermsAndConditionModel.findOne().sort({
+      const lastTerms = await UserTermsAcceptanceModel.findOne().sort({
         createdAt: -1,
       });
       if (lastTerms) {
-        await AcknowledgeModel.create({
+        await UserTermsAcceptanceModel.create({
           userId: new mongoose.Types.ObjectId(newUser._id),
-          termsId: new mongoose.Types.ObjectId(lastTerms._id),
+          termsType: "TERMS",
+          acceptedVersion: lastTerms.acceptedVersion,
+        });
+        await UserTermsAcceptanceModel.create({
+          userId: new mongoose.Types.ObjectId(newUser._id),
+          termsType: "PRIVACY",
+          acceptedVersion: lastTerms.acceptedVersion,
         });
       }
     } else {
-      await AcknowledgeModel.create({
+      await UserTermsAcceptanceModel.create({
         userId: new mongoose.Types.ObjectId(newUser._id),
-        termsId: new mongoose.Types.ObjectId(activeTerms._id),
+        termsType: "TERMS",
+        acceptedVersion: activeTerms.version,
+      });
+      await UserTermsAcceptanceModel.create({
+        userId: new mongoose.Types.ObjectId(newUser._id),
+        termsType: "PRIVACY",
+        acceptedVersion: activePrivacy.version,
       });
     }
 

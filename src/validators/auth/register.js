@@ -17,6 +17,9 @@ const registerSchema = z
           "Role must be one of the following values: 1 (admin), 2 (inspector)",
       }),
     }),
+    acceptTermsAndPolicy: z.boolean().refine((val) => val === true, {
+      message: "You must accept the terms and policy to register",
+    }),
   })
   .strict();
 
