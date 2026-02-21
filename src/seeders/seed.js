@@ -219,7 +219,10 @@ async function seed() {
 
     // 3) Seed Jobs
     const TOTAL_JOBS = 800;
-    const formTypes = ["RCI Residential Building Code Inspection", "UnKnown"];
+    const formTypes = [
+      "RCI Residential Building Code Inspection",
+      "92015 - FHA Inspection",
+    ];
     const feeStatusOptions = [
       "Standard",
       "Rush Order",

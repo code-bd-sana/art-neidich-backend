@@ -8,10 +8,13 @@ const jobSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    // RCI Residential Building Code Inspection, UnKnown(TODO: this will change)
+    // RCI Residential Building Code Inspection
     formType: {
       type: String,
-      enum: ["RCI Residential Building Code Inspection", "Unknown"],
+      enum: [
+        "RCI Residential Building Code Inspection",
+        "92015 - FHA Inspection",
+      ],
       required: true,
     },
     feeStatus: {
@@ -81,7 +84,7 @@ const jobSchema = new mongoose.Schema(
       ref: "User",
     },
   },
-  { timestamps: true, versionKey: false }
+  { timestamps: true, versionKey: false },
 );
 
 const JobModel = mongoose.model("Job", jobSchema);
