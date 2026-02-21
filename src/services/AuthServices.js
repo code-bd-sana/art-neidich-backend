@@ -9,7 +9,6 @@ const {
   hashPassword,
   comparePassword,
 } = require("../helpers/password/password-util");
-const AcknowledgeModel = require("../models/AcknowledgeModel");
 const LoginActivityModel = require("../models/LoginActivityModel");
 const NotificationModel = require("../models/NotificationModel");
 const PushToken = require("../models/PushToken");
@@ -326,40 +325,6 @@ async function registerUser(payload) {
     } catch (e) {
       // swallow notification errors to avoid blocking registration
       console.error("Notification send error:", e);
-    }
-
-    // User agreed with the terms and conditions during registration, so we can create an acknowledgment record for them and that
-    const activeTerms = await getActiveTermsAndPolicy("TERMS");
-    const activePrivacy = await getActiveTermsAndPolicy("PRIVACY");
-
-    // If there are no active terms, mark the last previous version as acknowledged for this user
-    if (!activeTerms) {
-      const lastTerms = await UserTermsAcceptanceModel.findOne().sort({
-        createdAt: -1,
-      });
-      if (lastTerms) {
-        await UserTermsAcceptanceModel.create({
-          userId: new mongoose.Types.ObjectId(newUser._id),
-          termsType: "TERMS",
-          acceptedVersion: lastTerms.acceptedVersion,
-        });
-        await UserTermsAcceptanceModel.create({
-          userId: new mongoose.Types.ObjectId(newUser._id),
-          termsType: "PRIVACY",
-          acceptedVersion: lastTerms.acceptedVersion,
-        });
-      }
-    } else {
-      await UserTermsAcceptanceModel.create({
-        userId: new mongoose.Types.ObjectId(newUser._id),
-        termsType: "TERMS",
-        acceptedVersion: activeTerms.version,
-      });
-      await UserTermsAcceptanceModel.create({
-        userId: new mongoose.Types.ObjectId(newUser._id),
-        termsType: "PRIVACY",
-        acceptedVersion: activePrivacy.version,
-      });
     }
 
     return {
