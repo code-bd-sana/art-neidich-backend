@@ -2,24 +2,31 @@ const JobModel = require("../models/JobModel");
 const ReportModel = require("../models/ReportModel");
 
 /**
- * Get admin overview statistics (all-time)
+ * Admin overview stats
  *
- * @returns {Promise<Object>}
+ * In-Progress Job Definition:
+ * Job exists but NO report created yet
  */
 async function adminOverview() {
+  const reportedJobIds = await ReportModel.distinct("job");
+
+  const completedJobIds = await ReportModel.distinct("job", {
+    status: "completed",
+  });
+
   const [totalJobs, inProgressJobs, overDueJobs, completedJobs] =
     await Promise.all([
       /* ============================
-         Total jobs (all-time)
+         Total jobs
       ============================ */
       JobModel.countDocuments(),
 
       /* ============================
          In-progress jobs
-         (report exists but not completed)
+         (no report exists yet)
       ============================ */
-      ReportModel.countDocuments({
-        status: { $in: ["submitted", "rejected"] },
+      JobModel.countDocuments({
+        _id: { $nin: reportedJobIds },
       }),
 
       /* ============================
@@ -28,15 +35,11 @@ async function adminOverview() {
       ============================ */
       JobModel.countDocuments({
         dueDate: { $lt: new Date() },
-        _id: {
-          $nin: await ReportModel.distinct("job", {
-            status: "completed",
-          }),
-        },
+        _id: { $nin: completedJobIds },
       }),
 
       /* ============================
-         Completed jobs (all-time)
+         Completed jobs
       ============================ */
       ReportModel.countDocuments({
         status: "completed",
@@ -47,7 +50,7 @@ async function adminOverview() {
     totalJobs,
     inProgressJobs,
     overDueJobs,
-    completedJobs: completedJobs,
+    completedJobs,
   };
 }
 

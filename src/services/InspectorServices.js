@@ -4,27 +4,35 @@ const ReportModel = require("../models/ReportModel");
 /**
  * Get inspector overview statistics (all-time)
  *
- * @param {Object} payload
- * @param {import('mongoose').Types.ObjectId} inspector
- * @returns {Promise<Object>}
+ * In-progress Definition:
+ * Job assigned to inspector but NO report created yet
  */
 async function inspectorOverview(inspector) {
+  const inspectorReportedJobs = await ReportModel.distinct("job", {
+    inspector,
+  });
+
+  const inspectorCompletedJobs = await ReportModel.distinct("job", {
+    inspector,
+    status: "completed",
+  });
+
   const [totalJobs, inProgressJobs, overDueJobs, completedJobs] =
     await Promise.all([
       /* ============================
          Total jobs
       ============================ */
       JobModel.countDocuments({
-        inspector: inspector,
+        inspector,
       }),
 
       /* ============================
          In-progress jobs
-         (report exists but not completed)
+         (no report yet)
       ============================ */
-      ReportModel.countDocuments({
-        inspector: inspector,
-        status: { $in: ["submitted", "rejected"] },
+      JobModel.countDocuments({
+        inspector,
+        _id: { $nin: inspectorReportedJobs },
       }),
 
       /* ============================
@@ -32,20 +40,16 @@ async function inspectorOverview(inspector) {
          (dueDate passed & not completed)
       ============================ */
       JobModel.countDocuments({
-        inspector: inspector,
+        inspector,
         dueDate: { $lt: new Date() },
-        _id: {
-          $nin: await ReportModel.distinct("job", {
-            status: "completed",
-          }),
-        },
+        _id: { $nin: inspectorCompletedJobs },
       }),
 
       /* ============================
          Completed jobs
       ============================ */
       ReportModel.countDocuments({
-        inspector: inspector,
+        inspector,
         status: "completed",
       }),
     ]);
@@ -54,7 +58,7 @@ async function inspectorOverview(inspector) {
     totalJobs,
     inProgressJobs,
     overDueJobs,
-    completedJobs: completedJobs,
+    completedJobs,
   };
 }
 
