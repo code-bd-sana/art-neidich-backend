@@ -79,6 +79,7 @@ async function emailSupport(payload) {
     MAIL_PASS,
     MAIL_FROM_NAME,
     MAIL_FROM,
+    MAIL_FROM_SUPPORT,
   } = process.env;
 
   /**
@@ -96,7 +97,7 @@ async function emailSupport(payload) {
 
   // Send the email to support/admin
   await sendMail({
-    to: process.env.MAIL_USER_SUPPORT, // support email
+    to: MAIL_FROM_SUPPORT, // support email
     from: resolveFromAddress(), // sender = inspector
     subject: `Support request from Inspector - ${inspector.firstName} ${inspector.lastName}`,
     html: emailHtml,
