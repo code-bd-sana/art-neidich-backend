@@ -69,10 +69,35 @@ async function emailSupport(payload) {
 </html>
   `;
 
+  /**
+   * Environment configuration
+   */
+  const {
+    MAIL_HOST,
+    MAIL_PORT,
+    MAIL_USER,
+    MAIL_PASS,
+    MAIL_FROM_NAME,
+    MAIL_FROM,
+  } = process.env;
+
+  /**
+   * Resolves the "from" address
+   * @returns {string}
+   */
+  function resolveFromAddress() {
+    // Prefer explicit MAIL_FROM, fall back to MAIL_USER
+    const fromEmail = MAIL_FROM || MAIL_USER || "no-reply@localhost";
+    if (MAIL_FROM_NAME) {
+      return `${MAIL_FROM_NAME} <${fromEmail}>`;
+    }
+    return fromEmail;
+  }
+
   // Send the email to support/admin
   await sendMail({
     to: process.env.MAIL_USER_SUPPORT, // support email
-    from: inspector.email, // sender = inspector
+    from: resolveFromAddress(), // sender = inspector
     subject: `Support request from Inspector - ${inspector.firstName} ${inspector.lastName}`,
     html: emailHtml,
   });
