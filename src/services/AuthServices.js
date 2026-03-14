@@ -13,7 +13,6 @@ const LoginActivityModel = require("../models/LoginActivityModel");
 const NotificationModel = require("../models/NotificationModel");
 const PushToken = require("../models/PushToken");
 const UserModel = require("../models/UserModel");
-const UserTermsAcceptanceModel = require("../models/UserTermsAcceptanceModel");
 const { sendMail } = require("../utils/mailer");
 
 const { getActiveTermsAndPolicy } = require("./TermsAndPolicyServices");
