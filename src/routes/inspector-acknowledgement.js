@@ -45,7 +45,11 @@ router.get("/my-status", authenticate, getMyTermsAndPolicyStatusController);
  * @route GET /api/v1/inspector-acknowledgement/:id
  * Public route
  */
-router.get("/:id", validate(mongoIdSchema, { target: "params" }), getTermsAndConditionByIdController);
+router.get(
+  "/:id",
+  validate(mongoIdSchema, { target: "params" }),
+  getTermsAndConditionByIdController,
+);
 
 /**
  * Get all terms and policies (with pagination)
@@ -65,7 +69,7 @@ router.post(
   "/",
   authenticate,
   authorizeRoles(0, 1),
-  createTermsAndPolicyController
+  createTermsAndPolicyController,
 );
 
 /**
@@ -79,7 +83,7 @@ router.put(
   authenticate,
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
-  updateTermsAndPolicyController
+  updateTermsAndPolicyController,
 );
 
 module.exports = router;
