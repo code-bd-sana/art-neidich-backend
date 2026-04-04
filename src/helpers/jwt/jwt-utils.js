@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 /**
  * Generates a JWT token for the given user ID.
  * @param {string} userId - The user ID to be included in the token.
- * @returns {Promise<string>} - A promise that resolves to the generated JWT token.
+ * @returns {Promise<string>} - A promise that resolves to the generated JWT token string.
  */
 const generateToken = async (userData) => {
   try {
