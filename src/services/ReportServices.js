@@ -9,6 +9,9 @@ const JobModel = require("../models/JobModel");
 const NotificationModel = require("../models/NotificationModel");
 const ReportModel = require("../models/ReportModel");
 const { uploadStreams, deleteObjects } = require("../utils/s3");
+const puppeteer = require("puppeteer");
+const fs = require("fs");
+const { sendMail } = require("../utils/mailer");
 
 /**
  * Create a new report
@@ -194,7 +197,12 @@ async function createReport(payload) {
     }
 
     // 8. Return the complete report
-    return await getReportById(report._id);
+    const createdReport = await getReportById(report._id);
+
+    //report send to mail admin mail
+    reportSendToMail(createdReport.data ?? createdReport); 
+
+    return createdReport;
   } catch (err) {
     // Cleanup images if report was created but upload failed
     if (uploadedResults.length > 0) {
@@ -650,10 +658,279 @@ async function deleteReport(id) {
   await ReportModel.findByIdAndDelete(id);
 }
 
+async function reportSendToMail(report) {
+  try {
+    const toEmail = report.job?.createdBy?.email;
+    if (!toEmail) {
+      console.error("reportSendToMail: email not found in report!");
+      return;
+    }
+
+    const pdfBuffer = await generateReportPDF(report);
+    await sendMail({
+      to: toEmail,
+      subject: `Inspection Report - Order ID: ${report.job?.orderId || report._id}`,
+      html: `<p>Dear ${report.job?.createdBy?.firstName || "Sir/Madam"},</p>
+             <p>Please find the attached inspection report.</p>
+             <p><strong>Order ID:</strong> ${report.job?.orderId || "N/A"}</p>
+             <p><strong>Inspector:</strong> ${report.inspector?.firstName} ${report.inspector?.lastName}</p>`,
+      attachments: [
+        {
+          filename: `report-${report._id}.pdf`,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("reportSendToMail error:", err.message);
+  }
+}
+
+async function generateReportPDF(report) {
+  const browser = await puppeteer.launch({
+    headless: "new",
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+
+  const page = await browser.newPage();
+  const html = buildReportHTML(report);
+  await page.setContent(html, { waitUntil: "networkidle0" });
+
+  const pdfBuffer = await page.pdf({
+    format: "A4",
+    printBackground: true,
+    margin: { top: "15mm", bottom: "15mm", left: "12mm", right: "12mm" },
+    displayHeaderFooter: true,
+    headerTemplate: `<span></span>`,
+    footerTemplate: `
+    <div style="
+      width: 100%;
+      font-size: 9px;
+      color: #888;
+      text-align: center;
+      padding-bottom: 4px;
+    ">
+      <span class="pageNumber"></span>
+    </div>
+  `,
+  });
+
+  await browser.close();
+  return pdfBuffer;
+}
+
+function loadBase64(filePath) {
+  try {
+    return `data:image/png;base64,${fs.readFileSync(filePath).toString("base64")}`;
+  } catch {
+    return "";
+  }
+}
+
+const LOGO_TOP = loadBase64(
+  path.join(__dirname, "../../public/images/logo.png"),
+);
+const LOGO_FOOTER_LEFT = loadBase64(
+  path.join(__dirname, "../../public/images/footer-logo-left.png"),
+);
+const LOGO_FOOTER_RIGHT = loadBase64(
+  path.join(__dirname, "../../public/images/footer-logo-right.png"),
+);
+
+function buildReportHTML(report) {
+  const job = report.job || {};
+  const inspector = report.inspector || {};
+  const images = report.images || [];
+
+  const imageGroupsHTML = images
+    .map(
+      (group) => `
+      <div class="room-section">
+        <h2 class="room-title">${group.imageLabel}</h2>
+        <div class="image-grid">
+          ${group.images
+            .map(
+              (img) => `
+            <div class="image-box">
+              <img src="${img?.url}" alt="${img?.alt || img?.fileName}" />
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+      </div>
+    `,
+    )
+    .join("");
+
+  return `<!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8"/>
+        <style>
+          * { margin:0; padding:0; box-sizing:border-box; }
+          body { font-family: Roboto, sans-serif; font-size: 13px; color: #222; background:#fff; }
+
+          /* ── HEADER ── */
+          .header {
+            text-align: center;
+            margin-bottom: 40px;
+          }
+          .header img.top-logo {
+            height: 52px;
+            margin-bottom: 6px;
+          }
+          .header .company-sub {
+            font-size: 10px;
+            color: #474747;
+            margin-bottom: 2px;
+          }
+          .header .report-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2D8D7C;
+            margin-bottom: 2px;
+          }
+          .header .fha-line {
+            font-size: 12px;
+            color: #474747;
+          }
+
+          /* ── META INFO ── */
+          .meta-section {
+            margin-bottom: 30px;
+          }
+          .meta-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+          }
+          .meta-row .meta-left { flex: 1; }
+          .meta-row .meta-right { text-align: right; }
+          .meta-label { font-weight: bold; }
+
+          .line{
+            border: 1px solid #EFEFF1;
+            margin-bottom: 30px;
+          }
+          /* ── ROOM SECTION ── */
+          .room-section {
+            margin-bottom: 28px;
+            page-break-inside: avoid;
+          }
+          .room-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 10px;
+          }
+          .image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+          .image-box {
+            width: calc(50% - 5px);
+          }
+          .image-box img {
+            width: 100%;
+            height: 215px;
+            object-fit: cover;
+            border-radius: 3px;
+          }
+
+          /* ── FOOTER ── */
+          .footer {
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+          }
+          .footer img {
+            height: 38px;
+          }
+          .footer-text {
+            flex: 1;
+            text-align: center;
+            font-size: 9.5px;
+            color: #444;
+            line-height: 1.6;
+          }
+          .footer-text .footer-main {
+            font-weight: bold;
+            margin-bottom: 2px;
+            font-size: 12px;
+          }
+
+         
+        </style>
+      </head>
+      <body>
+
+        <!-- HEADER -->
+        <div class="header">
+          ${LOGO_TOP ? `<img class="top-logo" src="${LOGO_TOP}" alt="Logo" />` : ""}
+          <p class="company-sub">A Division of Lone Star Building Inspection, Inc.</p>
+          <p class="report-title">Inspection report</p>
+          <p class="fha-line">Attachment to FHA form # ${job.formType?.match(/\d+/)?.[0] || job.orderId || "N/A"}</p>
+        </div>
+
+        <!-- META INFO -->
+        <div class="meta-section">
+          <div class="meta-row">
+            <div class="meta-left">
+              <span class="meta-label">Type of Inspection:</span>
+              ${job.formType || "N/A"}
+            </div>
+            <div class="meta-right">
+              <span class="meta-label">Date of Inspection:</span>
+              ${new Date(report.createdAt).toLocaleDateString("en-US", {
+                month: "2-digit",
+                day: "2-digit",
+                year: "numeric",
+              })}
+            </div>
+          </div>
+          <div class="meta-row">
+            <div class="meta-left">
+              <span class="meta-label">Subject Property:</span>
+              ${job.streetAddress || "N/A"}
+            </div>
+            <div class="meta-right">
+              <span class="meta-label">Case:</span>
+              # ${job.fhaCaseDetailsNo || "N/A"}
+            </div>
+          </div>
+        </div>
+
+        <div class="line"></div>
+
+        <!-- IMAGE GROUPS -->
+        ${imageGroupsHTML}
+
+        <!-- FOOTER -->
+        <div class="footer">
+          ${LOGO_FOOTER_LEFT ? `<img src="${LOGO_FOOTER_LEFT}" alt="Footer Logo Left" />` : ""}
+          <div class="footer-text">
+            <i class="footer-main">All Utilities Are On And Tested Unless Otherwise Noted</i>
+            <p>TREC Lic. # 10546 | TSBPE Lic. # I-3836 | Code Enforcement Lic. # 7055 | HUD-FHA Fee Reg.#</p>
+            <p>D683 & 203K - D0931</p>
+          </div>
+          ${LOGO_FOOTER_RIGHT ? `<img src="${LOGO_FOOTER_RIGHT}" alt="Footer Logo Right" />` : ""}
+        </div>
+
+      </body>
+    </html>`;
+}
+
 module.exports = {
   createReport,
   getAllReports,
   updateReportStatus,
   getReportById,
   deleteReport,
+  generateReportPDF,
 };

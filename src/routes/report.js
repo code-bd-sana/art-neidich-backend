@@ -16,9 +16,7 @@ const { validate } = require("../utils/validator");
 const { mongoIdSchema } = require("../validators/common/mongoId");
 const {
   createReportSchema,
-  updateReportSchema,
   updateReportStatusSchema,
-  reportStatusSchema,
   reportPaginationSchema,
   handleGroupedImages,
 } = require("../validators/report/report");
