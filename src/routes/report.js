@@ -11,6 +11,11 @@ const {
   updateReportStatusController,
   getReportPdfController,
 } = require("../controllers/ReportControllers");
+const {
+  getArchivedReportsController,
+  restoreArchivedReportsController,
+  permanentlyDeleteArchivedReportsController,
+} = require("../controllers/ReportArchiveControllers");
 const { authenticate, authorizeRoles } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
 const { mongoIdSchema } = require("../validators/common/mongoId");
@@ -20,6 +25,10 @@ const {
   reportPaginationSchema,
   handleGroupedImages,
 } = require("../validators/report/report");
+const {
+  restoreArchiveSchema,
+  permanentDeleteSchema,
+} = require("../validators/report/archive");
 
 // Multer setup for in-memory upload
 const storage = multer.memoryStorage();
@@ -111,6 +120,60 @@ router.delete(
   authorizeRoles(0, 1),
   validate(mongoIdSchema, { target: "params" }),
   deleteReportController,
+);
+
+/**
+ * Archive Management Routes
+ * ========================
+ */
+
+/**
+ * Get archived reports with pagination and search
+ *
+ * @route GET /api/v1/report/archive/list
+ * Private route - only root (0) and admin (1) can view archived reports
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+router.get(
+  "/archive/list",
+  authorizeRoles(0, 1),
+  validate(reportPaginationSchema, { target: "query" }),
+  getArchivedReportsController,
+);
+
+/**
+ * Restore archived reports
+ *
+ * @route POST /api/v1/report/archive/restore
+ * Private route - only root (0) and admin (1) can restore reports
+ *
+ * @param {Object} req.body - { reportIds: ["id1", "id2", ...] }
+ * @returns {Object} - { restoredCount, reportIds }
+ */
+router.post(
+  "/archive/restore",
+  authorizeRoles(0, 1),
+  validate(restoreArchiveSchema, { target: "body" }),
+  restoreArchivedReportsController,
+);
+
+/**
+ * Permanently delete archived reports
+ *
+ * @route DELETE /api/v1/report/archive/permanent
+ * Private route - only root (0) and admin (1) can permanently delete reports
+ *
+ * @param {Object} req.body - { reportIds: ["id1", "id2", ...] }
+ * @returns {Object} - { deletedCount, reportIds }
+ */
+router.delete(
+  "/archive/permanent",
+  authorizeRoles(0, 1),
+  validate(permanentDeleteSchema, { target: "body" }),
+  permanentlyDeleteArchivedReportsController,
 );
 
 module.exports = router;
