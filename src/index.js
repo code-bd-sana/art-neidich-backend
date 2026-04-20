@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 
 const app = require("./app");
 const { logError } = require("./helpers/logger");
+const { scheduleArchiveJobReports } = require("./cronJobs/archiveJobReports");
 
 dotenv.config();
 
@@ -14,6 +15,9 @@ const server = app.listen(process.env.PORT, async () => {
     .connect(process.env.DB_CONNECTION_URI)
     .then(() => {
       console.log("Database connected successfully");
+
+      // Initialize cron jobs after database connection
+      scheduleArchiveJobReports();
     })
 
     // catch errors

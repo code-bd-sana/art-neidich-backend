@@ -596,6 +596,7 @@ async function getReportById(id) {
 async function updateReportStatus(id, updateData) {
   // Extract status and lastUpdatedBy
   const { status, lastUpdatedBy } = updateData;
+  const isCompleted = status === 'completed';
 
   // Update the report status
   const updated = await ReportModel.findByIdAndUpdate(
@@ -605,6 +606,7 @@ async function updateReportStatus(id, updateData) {
         status,
         lastUpdatedBy,
         updatedAt: new Date(),
+        ...(isCompleted && { completedAt: new Date() }),
       },
     },
     { new: true },

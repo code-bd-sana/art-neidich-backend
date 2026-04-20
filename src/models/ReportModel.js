@@ -1,24 +1,22 @@
 const mongoose = require("mongoose");
 
-// models/ReportModel.js
 const reportSchema = new mongoose.Schema(
   {
     inspector: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
     job: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Job",
       required: true,
+      index: true,
     },
     images: [
       {
-        imageLabel: {
-          type: String, // String (e.g. "front", "roof_left", "damage_1")
-          required: true,
-        },
+        imageLabel: { type: String, required: true },
         url: { type: String, required: true },
         key: { type: String, required: true },
         fileName: { type: String, required: true },
@@ -34,12 +32,16 @@ const reportSchema = new mongoose.Schema(
     ],
     status: {
       type: String,
-      enum: ["submitted", "completed", "rejected"],
+      enum: ["submitted", "completed", "rejected", "archived"],
       default: "submitted",
+      index: true,
     },
-    noteForAdmin: { type: String, default: "" },
+    noteForAdmin: { type: String, trim: true, default: "" },
+    completedAt: { type: Date, default: null, index: true },
   },
   { timestamps: true, versionKey: false },
 );
+
+reportSchema.index({ status: 1, completedAt: 1 });
 
 module.exports = mongoose.model("Report", reportSchema);
