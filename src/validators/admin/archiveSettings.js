@@ -11,8 +11,8 @@ const updateArchiveSettingsSchema = z.object({
       required_error: "autoArchiveDays is required",
       invalid_type_error: "autoArchiveDays must be a number",
     })
-    .refine((val) => [7, 15, 30].includes(val), {
-      message: "autoArchiveDays must be one of: 7, 15, 30",
+    .refine((val) => [7, 15, 30, 60, 120].includes(val), {
+      message: "autoArchiveDays must be one of: 7, 15, 30, 60, 120",
     }),
 });
 
