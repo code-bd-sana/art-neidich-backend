@@ -132,20 +132,32 @@ async function createImageLabel(payload, user) {
  * }>}
  */
 async function getImageLabels(query = {}) {
-  // Parse pagination parameters
+  // Pagination params
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
   const search = query.search?.trim();
 
-  // Build match stage
+  // Sorting params (default: label ascending)
+  const sortBy = query.sortBy?.trim() || "label";
+  const order = query.order?.toLowerCase() || "asc";
+
+  const sortStage = {
+    [sortBy]: order === "desc" ? -1 : 1,
+  };
+
+  // Match stage
   const matchStage = {};
+
   if (search) {
     const esc = escapeRegExp(search);
-    matchStage.label = { $regex: esc, $options: "i" };
+    matchStage.label = {
+      $regex: esc,
+      $options: "i",
+    };
   }
 
-  // Build aggregation pipeline
+  // Aggregation pipeline
   const pipeline = [
     { $match: matchStage },
 
@@ -169,21 +181,36 @@ async function getImageLabels(query = {}) {
         as: "lastUpdatedBy",
       },
     },
-    { $unwind: { path: "$lastUpdatedBy", preserveNullAndEmptyArrays: true } },
+    {
+      $unwind: {
+        path: "$lastUpdatedBy",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
 
-    // Map roles
+    // Map role values
     {
       $addFields: {
         "createdBy.role": {
           $switch: {
             branches: [
-              { case: { $eq: ["$createdBy.role", 0] }, then: "Super Admin" },
-              { case: { $eq: ["$createdBy.role", 1] }, then: "Admin" },
-              { case: { $eq: ["$createdBy.role", 2] }, then: "Inspector" },
+              {
+                case: { $eq: ["$createdBy.role", 0] },
+                then: "Super Admin",
+              },
+              {
+                case: { $eq: ["$createdBy.role", 1] },
+                then: "Admin",
+              },
+              {
+                case: { $eq: ["$createdBy.role", 2] },
+                then: "Inspector",
+              },
             ],
             default: "Unknown",
           },
         },
+
         "lastUpdatedBy.role": {
           $switch: {
             branches: [
@@ -191,8 +218,14 @@ async function getImageLabels(query = {}) {
                 case: { $eq: ["$lastUpdatedBy.role", 0] },
                 then: "Super Admin",
               },
-              { case: { $eq: ["$lastUpdatedBy.role", 1] }, then: "Admin" },
-              { case: { $eq: ["$lastUpdatedBy.role", 2] }, then: "Inspector" },
+              {
+                case: { $eq: ["$lastUpdatedBy.role", 1] },
+                then: "Admin",
+              },
+              {
+                case: { $eq: ["$lastUpdatedBy.role", 2] },
+                then: "Inspector",
+              },
             ],
             default: "Unknown",
           },
@@ -200,12 +233,13 @@ async function getImageLabels(query = {}) {
       },
     },
 
-    // Project safe fields
+    // Safe projection
     {
       $project: {
         label: 1,
         createdAt: 1,
         updatedAt: 1,
+
         createdBy: {
           _id: "$createdBy._id",
           firstName: "$createdBy.firstName",
@@ -213,6 +247,7 @@ async function getImageLabels(query = {}) {
           email: "$createdBy.email",
           role: "$createdBy.role",
         },
+
         lastUpdatedBy: {
           _id: "$lastUpdatedBy._id",
           firstName: "$lastUpdatedBy.firstName",
@@ -223,10 +258,12 @@ async function getImageLabels(query = {}) {
       },
     },
 
-    // Sort
-    { $sort: { createdAt: -1 } },
+    // Dynamic sorting
+    {
+      $sort: sortStage,
+    },
 
-    // Facet for pagination
+    // Pagination + total count
     {
       $facet: {
         labels: [{ $skip: skip }, { $limit: limit }],
@@ -236,7 +273,12 @@ async function getImageLabels(query = {}) {
   ];
 
   // Execute aggregation
-  const result = await ImageLabelModel.aggregate(pipeline);
+  const result = await ImageLabelModel.aggregate(pipeline)
+  .collation({
+    locale: "en",
+    strength: 2,
+  });;
+
   const labels = result[0]?.labels || [];
   const totalLabel = result[0]?.metaData[0]?.totalLabel || 0;
 
@@ -247,6 +289,8 @@ async function getImageLabels(query = {}) {
       limit,
       totalLabel,
       totalPage: Math.ceil(totalLabel / limit),
+      sortBy,
+      order,
     },
   };
 }
