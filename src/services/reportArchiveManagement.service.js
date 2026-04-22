@@ -9,28 +9,22 @@ const { deleteObjects } = require("../utils/s3");
  * Enriches reports with full job details fetched in parallel
  *
  * @param {Object} query - Query parameters
- * @param {number} query.page - Page number (default: 1)
- * @param {number} query.limit - Items per page (default: 10)
- * @param {string} query.search - Search term (optional)
+ * @param {number} [query.page=1] - Page number for pagination
+ * @param {number} [query.limit=10] - Number of reports per page
+ * @param {string} [query.search] - Search term (optional)
  * @returns {Promise<Object>} - { reports, metaData }
  * @throws {Error} If database operations fail
  */
-async function getArchivedReports(query) {
+async function getArchivedReports(query = {}) {
   /* ---------------- PAGINATION ---------------- */
 
-  const page = parseInt(query.page, 10) || 1;
-  const limit = parseInt(query.limit, 10) || 10;
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  /* ---------------- BASE MATCH ---------------- */
+  /* ---------------- BUILD LOOKUP PIPELINE FOR JOB JOIN AND SEARCH ---------------- */
 
-  const matchStage = {
-    status: "archived",
-  };
-
-  /* ---------------- SEARCH ---------------- */
-
-  let lookupPipeline = [
+  const lookupPipeline = [
     {
       $lookup: {
         from: "jobs",
@@ -47,11 +41,11 @@ async function getArchivedReports(query) {
     },
   ];
 
+  /* ADD SEARCH FILTER IF PROVIDED */
+
   if (query.search && query.search.trim()) {
     const search = query.search.trim();
-
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
     const regex = new RegExp(escapedSearch, "i");
 
     lookupPipeline.push({
@@ -66,61 +60,48 @@ async function getArchivedReports(query) {
     });
   }
 
-  /* ---------------- PIPELINES ---------------- */
+  /* BUILD AGGREGATION PIPELINE WITH FACET FOR PAGINATION AND COUNTING */
 
-  const countPipeline = [
-    { $match: matchStage },
+  const pipeline = [
+    { $match: { status: "archived" } },
     ...lookupPipeline,
-    {
-      $count: "total",
-    },
-  ];
-
-  const dataPipeline = [
-    { $match: matchStage },
-    ...lookupPipeline,
-
     {
       $sort: {
         createdAt: -1,
       },
     },
-
     {
-      $skip: skip,
-    },
-
-    {
-      $limit: limit,
-    },
-
-    {
-      $project: {
-        _id: 1,
-        status: 1,
-        createdAt: 1,
-        completedAt: 1,
-
-        job: {
-          _id: "$job._id",
-        },
+      $facet: {
+        reports: [
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              _id: 1,
+              status: 1,
+              createdAt: 1,
+              completedAt: 1,
+              job: {
+                _id: "$job._id",
+              },
+            },
+          },
+        ],
+        metaData: [{ $count: "total" }],
       },
     },
   ];
 
-  /* ---------------- EXECUTE ---------------- */
+  /* EXECUTE AGGREGATION PIPELINE */
 
-  const [reports, countResult] = await Promise.all([
-    ReportModel.aggregate(dataPipeline),
-    ReportModel.aggregate(countPipeline),
-  ]);
+  const result = await ReportModel.aggregate(pipeline);
 
-  /* ---------------- TOTAL ---------------- */
+  /* EXTRACT REPORTS AND TOTAL COUNT */
 
-  const total =
-    countResult && countResult.length > 0 ? countResult[0].total : 0;
+  const reports = result[0]?.reports || [];
+  const totalReports = result[0]?.metaData[0]?.total || 0;
 
-  /* ---------------- FETCH ALL JOBS ONCE ---------------- */
+  /* FETCH ALL JOBS ONCE */
 
   const uniqueJobIds = [
     ...new Set(
@@ -130,11 +111,11 @@ async function getArchivedReports(query) {
 
   const jobs = await jobServices.getJobsByIds(uniqueJobIds);
 
-  /* ---------------- CREATE JOB MAP ---------------- */
+  /* CREATE JOB MAP FOR ENRICHMENT */
 
   const jobMap = new Map(jobs.map((job) => [job._id.toString(), job]));
 
-  /* ---------------- ENRICH REPORTS ---------------- */
+  /* ENRICH REPORTS WITH FULL JOB DETAILS */
 
   const enrichedReports = reports.map((report) => {
     const jobId = report?.job?._id?.toString();
@@ -145,17 +126,13 @@ async function getArchivedReports(query) {
     };
   });
 
-  /* ---------------- META ---------------- */
-
-  const totalPages = Math.ceil(total / limit);
+  /* CONSTRUCT METADATA */
 
   const metaData = {
-    currentPage: page,
-    totalPages,
-    totalItems: total,
-    itemsPerPage: limit,
-    hasNextPage: page < totalPages,
-    hasPreviousPage: page > 1,
+    page,
+    limit,
+    totalReports,
+    totalPage: Math.ceil(totalReports / limit),
   };
 
   return {
