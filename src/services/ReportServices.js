@@ -232,7 +232,9 @@ async function getAllReports(query) {
   const page = parseInt(query.page, 10) || 1;
   const limit = parseInt(query.limit, 10) || 10;
   const skip = (page - 1) * limit;
-  const matchStage = {};
+  const matchStage = {
+    status: { $ne: "archived" } // Exclude archived reports
+  };
 
   // Optional filtering by status
   if (query.status && query.status !== "all") {

@@ -844,6 +844,15 @@ async function getJobs(query = {}) {
   });
 
   // -------------------------
+  // Exclude archived reports
+  // -------------------------
+  pipeline.push({
+    $match: {
+      reportStatus: { $ne: "archived" },
+    },
+  });
+
+  // -------------------------
   // Filter by status
   // -------------------------
   if (statusFilter && statusFilter !== "all") {
