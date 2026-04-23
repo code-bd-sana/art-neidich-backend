@@ -1120,8 +1120,8 @@ async function verifyOtp(payload) {
   user.resetPasswordVerifiedExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
   // Clear the OTP to prevent replay
-  user.resetPasswordOTP = null;
-  user.resetPasswordOTPExpiry = null;
+  // user.resetPasswordOTP = null;
+  // user.resetPasswordOTPExpiry = null;
   await user.save();
 
   return;

@@ -28,8 +28,21 @@ const { verifyOtpSchema } = require("../validators/auth/verifyOtp");
 const forgotPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 3, // limit each IP to 3 requests per windowMs
-  message:
-    "Too many password reset requests from this IP, please try again after 15 minutes",
+  keyGenerator: (req) => req.body.email,
+  // message: "Too many password reset requests from this IP, please try again after 15 minutes",
+  standardHeaders: true,
+  legacyHeaders: false,
+
+  handler: (req, res, next) => {
+    const error = new Error(
+      "Too many password reset requests. Please try again after 15 minutes."
+    );
+
+    error.statusCode = 429;
+    error.code = 429;
+
+    return next(error);
+  },
 });
 
 /**
