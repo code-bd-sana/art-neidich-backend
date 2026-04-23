@@ -4,6 +4,7 @@ const { notifyAdmins } = require("../helpers/notification/notification-helper");
 const NotificationModel = require("../models/NotificationModel");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
+const DeletedUserModel = require("../models/DeletedUserModel"); 
 
 /**
  * Get user profile
@@ -678,32 +679,162 @@ async function unSuspendUser(userId, currentUser) {
  * @param {string} userId
  * @returns {Promise<void>}
  */
-async function deleteUser(userId, currentUser) {
-  const user = await UserModel.findById(userId);
+// async function old_deleteUser(userId, currentUser) {
+//   const user = await UserModel.findById(userId);
+//   // If user not found, throw error
+//   if (!user) {
+//     const err = new Error("User not found");
+//     err.code = 404;
+//     throw err;
+//   }
+
+//   // Prevent deleting root users
+//   if (user.role === 0) {
+//     const err = new Error("Cannot delete a root user");
+//     err.code = 400;
+//     throw err;
+//   }
+
+//   // Prevent deleting users with same role as current user
+//   if (user.role === currentUser.role) {
+//     const err = new Error("Cannot delete a user with same role as yours");
+//     err.code = 400;
+//     throw err;
+//   }
+
+//   // Delete the user
+//   await UserModel.findByIdAndDelete(userId);
+
+//   // Email template for account deletion notification
+//   const emailHtml = `<!DOCTYPE html>
+// <html lang="en">
+// <head>
+//     <meta charset="UTF-8">
+//     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//     <title>Account Deleted</title>
+//     <style>
+//         body {
+//             font-family: Arial, sans-serif; 
+//             background-color: #f4f4f4;
+//             margin: 0;
+//             padding: 0;
+//         }
+//         .container {
+//             max-width: 600px;
+//             margin: 30px auto;
+//             background-color: #ffffff;
+//             padding: 20px;
+//             border-radius: 8px;
+//             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+//         }
+//         .header {
+//             text-align: center;
+//             padding-bottom: 20px;
+//             border-bottom: 1px solid #e2e8f0;
+//         }
+//         .header h1 {
+//             margin: 0;
+//             color: #e53e3e;
+//         }
+//         .content {
+//             padding: 20px 0;
+//         }
+//         .content h2 {
+//             color: #e53e3e;
+//         }
+//         .content p {
+//             font-size: 16px;  
+//             line-height: 1.5;
+//             color: #4a5568;
+//         }
+//         .footer {
+//             text-align: center;
+//             padding-top: 20px;
+//             border-top: 1px solid #e2e8f0;
+//             font-size: 14px;
+//             color: #a0aec0;
+//         }
+//     </style>
+// </head>
+// <body>
+//     <div class="container">
+//         <div class="header">
+//             <h1>Property Inspector Pro</h1>
+//         </div>
+//         <div class="content">
+//             <h2>⚠️ Your Account Has Been Deleted</h2>
+//             <p>Dear User, ${user.firstName + " " + user.lastName}</p>
+//             <p>We regret to inform you that your account has been deleted from our system. If you believe this is a mistake or have any questions, please contact our support team for assistance.</p>
+//         </div>
+//         <div class="footer">
+//             <p>Thank you for your understanding.</p>
+//         </div>
+//     </div>
+// </body>
+// </html>
+// `;
+
+//   // Send deletion email
+//   await sendMail({
+//     to: user.email,
+//     subject: "Your Account Has Been Deleted",
+//     html: emailHtml,
+//   });
+
+//   return;
+// }
+
+async function deleteUser(userIdToDelete, currentUser) {
+  // Find the user to be deleted
+  const userToDelete = await UserModel.findById(userIdToDelete);
+ 
   // If user not found, throw error
-  if (!user) {
+  if (!userToDelete) {
     const err = new Error("User not found");
     err.code = 404;
     throw err;
   }
-
-  // Prevent deleting root users
-  if (user.role === 0) {
-    const err = new Error("Cannot delete a root user");
+ 
+  // Authorization Logic Based on Roles
+  // Role 0 = Super Admin, 1 = Admin, 2 = User
+ 
+  if (currentUser.role === 0) {
+    // Super Admin (0) can delete anyone except themselves
+    if (userIdToDelete === currentUser._id.toString()) {
+      const err = new Error("Super Admin cannot delete their own account");
+      err.code = 400;
+      throw err;
+    }
+    // Super admin can delete any user, proceed to deletion
+  } else if (currentUser.role === 1 || currentUser.role === 2) {
+    // Admin (1) and User (2) can only delete their own account
+    if (userIdToDelete !== currentUser._id.toString()) {
+      const err = new Error(
+        "You can only delete your own account"
+      );
+      err.code = 403;
+      throw err;
+    }
+  } else {
+    // Invalid role
+    const err = new Error("Invalid user role");
     err.code = 400;
     throw err;
   }
-
-  // Prevent deleting users with same role as current user
-  if (user.role === currentUser.role) {
-    const err = new Error("Cannot delete a user with same role as yours");
-    err.code = 400;
-    throw err;
-  }
-
-  // Delete the user
-  await UserModel.findByIdAndDelete(userId);
-
+ 
+  // Before deleting, save user info to deleted_users collection
+  const deletedUserRecord = new DeletedUserModel({
+    firstName: userToDelete.firstName,
+    lastName: userToDelete.lastName,
+    email: userToDelete.email,
+    deletedAt: new Date(),
+  });
+ 
+  await deletedUserRecord.save();
+ 
+  // Delete the user from UserModel
+  await UserModel.findByIdAndDelete(userIdToDelete);
+ 
   // Email template for account deletion notification
   const emailHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -761,8 +892,8 @@ async function deleteUser(userId, currentUser) {
             <h1>Property Inspector Pro</h1>
         </div>
         <div class="content">
-            <h2>⚠️ Your Account Has Been Deleted</h2>
-            <p>Dear User, ${user.firstName + " " + user.lastName}</p>
+            <h2>Your Account Has Been Deleted</h2>
+            <p>Dear ${userToDelete.firstName} ${userToDelete.lastName},</p>
             <p>We regret to inform you that your account has been deleted from our system. If you believe this is a mistake or have any questions, please contact our support team for assistance.</p>
         </div>
         <div class="footer">
@@ -772,14 +903,14 @@ async function deleteUser(userId, currentUser) {
 </body>
 </html>
 `;
-
+ 
   // Send deletion email
   await sendMail({
-    to: user.email,
+    to: userToDelete.email,
     subject: "Your Account Has Been Deleted",
     html: emailHtml,
   });
-
+ 
   return;
 }
 

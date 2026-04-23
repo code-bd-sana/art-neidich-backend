@@ -208,20 +208,38 @@ async function unSuspendUserController(req, res, next) {
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
+// async function old_deleteUserController(req, res, next) {
+//   try {
+//     // Prevent self-deletion
+//     if (req.params.id === req.user.id) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "You cannot delete yourself",
+//         code: 400,
+//       });
+//     }
+
+//     // Call service
+//     await deleteUser(req.params.id, req.user);
+
+//     res.status(200).json({
+//       success: true,
+//       message: "User deleted successfully",
+//       code: 200,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// }
+
 async function deleteUserController(req, res, next) {
   try {
-    // Prevent self-deletion
-    if (req.params.id === req.user.id) {
-      return res.status(400).json({
-        success: false,
-        message: "You cannot delete yourself",
-        code: 400,
-      });
-    }
-
-    // Call service
-    await deleteUser(req.params.id, req.user);
-
+    const userIdToDelete = req.params.id;
+    const currentUser = req.user;
+ 
+    // Call service with both user ID and current user info
+    await deleteUser(userIdToDelete, currentUser);
+ 
     res.status(200).json({
       success: true,
       message: "User deleted successfully",

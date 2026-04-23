@@ -149,9 +149,10 @@ router.patch(
  */
 router.delete(
   "/:id",
-  authorizeRoles(0), // Only root (0) can delete users
+  authenticate,
   validate(mongoIdSchema, { target: "params" }),
   deleteUserController
 );
+ 
 
 module.exports = router;
