@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
+
 const JobModel = require("../models/JobModel");
 const ReportModel = require("../models/ReportModel");
-const jobServices = require("./JobServices");
 const { deleteObjects } = require("../utils/s3");
+
+const jobServices = require("./JobServices");
 
 /**
  * Get archived reports with pagination, search, and filtering

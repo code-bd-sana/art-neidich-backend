@@ -4,6 +4,11 @@ const multer = require("multer");
 const router = express.Router();
 
 const {
+  getArchivedReportsController,
+  restoreArchivedReportsController,
+  permanentlyDeleteArchivedReportsController,
+} = require("../controllers/ReportArchiveControllers");
+const {
   createReportController,
   getReportsController,
   getReportByIdController,
@@ -11,24 +16,19 @@ const {
   updateReportStatusController,
   getReportPdfController,
 } = require("../controllers/ReportControllers");
-const {
-  getArchivedReportsController,
-  restoreArchivedReportsController,
-  permanentlyDeleteArchivedReportsController,
-} = require("../controllers/ReportArchiveControllers");
 const { authenticate, authorizeRoles } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
 const { mongoIdSchema } = require("../validators/common/mongoId");
+const {
+  restoreArchiveSchema,
+  permanentDeleteSchema,
+} = require("../validators/report/archive");
 const {
   createReportSchema,
   updateReportStatusSchema,
   reportPaginationSchema,
   handleGroupedImages,
 } = require("../validators/report/report");
-const {
-  restoreArchiveSchema,
-  permanentDeleteSchema,
-} = require("../validators/report/archive");
 
 // Multer setup for in-memory upload
 const storage = multer.memoryStorage();
