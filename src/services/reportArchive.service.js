@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
-const ReportModel = require("../models/ReportModel");
+
 const ArchiveSettingsModel = require("../models/ArchiveSettingsModel");
+const ReportModel = require("../models/ReportModel");
 
 /**
  * Archive completed reports based on archival policy
