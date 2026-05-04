@@ -200,7 +200,7 @@ async function createReport(payload) {
     const createdReport = await getReportById(report._id);
 
     //report send to mail admin mail
-    reportSendToMail(createdReport.data ?? createdReport); 
+    reportSendToMail(createdReport.data ?? createdReport);
 
     return createdReport;
   } catch (err) {
@@ -233,7 +233,7 @@ async function getAllReports(query) {
   const limit = parseInt(query.limit, 10) || 10;
   const skip = (page - 1) * limit;
   const matchStage = {
-    status: { $ne: "archived" } // Exclude archived reports
+    status: { $ne: "archived" }, // Exclude archived reports
   };
 
   // Optional filtering by status
@@ -598,7 +598,7 @@ async function getReportById(id) {
 async function updateReportStatus(id, updateData) {
   // Extract status and lastUpdatedBy
   const { status, lastUpdatedBy } = updateData;
-  const isCompleted = status === 'completed';
+  const isCompleted = status === "completed";
 
   // Update the report status
   const updated = await ReportModel.findByIdAndUpdate(
@@ -664,7 +664,7 @@ async function deleteReport(id) {
 
 async function reportSendToMail(report) {
   try {
-    const toEmail = report.job?.createdBy?.email;
+    const toEmail = "inspect@artneidich.com"; //report.job?.createdBy?.email;
     if (!toEmail) {
       console.error("reportSendToMail: email not found in report!");
       return;
@@ -747,26 +747,36 @@ function buildReportHTML(report) {
   const inspector = report.inspector || {};
   const images = report.images || [];
 
-  const imageGroupsHTML = images
-    .map(
-      (group) => `
-      <div class="room-section">
-        <h2 class="room-title">${group.imageLabel}</h2>
-        <div class="image-grid">
-          ${group.images
-            .map(
-              (img) => `
+  const imageGroupsHTML = (() => {
+    const pairs = [];
+    for (let i = 0; i < images.length; i += 2) {
+      pairs.push([images[i], images[i + 1] || null]);
+    }
+
+    return pairs
+      .map(([left, right]) => {
+        const renderCell = (group) => {
+          if (!group) return `<div class="image-cell"></div>`;
+          const img = group.images?.[0];
+          return `
+          <div class="image-cell">
             <div class="image-box">
               <img src="${img?.url}" alt="${img?.alt || img?.fileName}" />
             </div>
-          `,
-            )
-            .join("")}
+            <p class="image-caption">${group.imageLabel}</p>
+          </div>
+        `;
+        };
+
+        return `
+        <div class="image-row">
+          ${renderCell(left)}
+          ${renderCell(right)}
         </div>
-      </div>
-    `,
-    )
-    .join("");
+      `;
+      })
+      .join("");
+  })();
 
   return `<!DOCTYPE html>
     <html>
@@ -828,19 +838,33 @@ function buildReportHTML(report) {
             font-weight: bold;
             margin-bottom: 10px;
           }
-          .image-grid {
+          .image-row {
             display: flex;
-            flex-wrap: wrap;
             gap: 10px;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+          }
+          .image-cell {
+            width: calc(50% - 5px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
           .image-box {
-            width: calc(50% - 5px);
+            width: 100%;
           }
           .image-box img {
             width: 100%;
             height: 215px;
             object-fit: cover;
             border-radius: 3px;
+          }
+          .image-caption {
+            margin-top: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            color: #333;
           }
 
           /* ── FOOTER ── */
@@ -917,13 +941,13 @@ function buildReportHTML(report) {
 
         <!-- FOOTER -->
         <div class="footer">
-          ${LOGO_FOOTER_LEFT ? `<img src="${LOGO_FOOTER_LEFT}" alt="Footer Logo Left" />` : ""}
+          ${LOGO_FOOTER_RIGHT ? `<img src="${LOGO_FOOTER_RIGHT}" alt="Footer Logo Right" />` : ""}
           <div class="footer-text">
             <i class="footer-main">All Utilities Are On And Tested Unless Otherwise Noted</i>
             <p>TREC Lic. # 10546 | TSBPE Lic. # I-3836 | Code Enforcement Lic. # 7055 | HUD-FHA Fee Reg.#</p>
             <p>D683 & 203K - D0931</p>
           </div>
-          ${LOGO_FOOTER_RIGHT ? `<img src="${LOGO_FOOTER_RIGHT}" alt="Footer Logo Right" />` : ""}
+          ${LOGO_FOOTER_LEFT ? `<img src="${LOGO_FOOTER_LEFT}" alt="Footer Logo Left" />` : ""}
         </div>
 
       </body>
