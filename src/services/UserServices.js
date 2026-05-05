@@ -4,7 +4,7 @@ const { notifyAdmins } = require("../helpers/notification/notification-helper");
 const NotificationModel = require("../models/NotificationModel");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
-const DeletedUserModel = require("../models/DeletedUserModel"); 
+const DeletedUserModel = require("../models/DeletedUserModel");
 
 /**
  * Get user profile
@@ -714,7 +714,7 @@ async function unSuspendUser(userId, currentUser) {
 //     <title>Account Deleted</title>
 //     <style>
 //         body {
-//             font-family: Arial, sans-serif; 
+//             font-family: Arial, sans-serif;
 //             background-color: #f4f4f4;
 //             margin: 0;
 //             padding: 0;
@@ -743,7 +743,7 @@ async function unSuspendUser(userId, currentUser) {
 //             color: #e53e3e;
 //         }
 //         .content p {
-//             font-size: 16px;  
+//             font-size: 16px;
 //             line-height: 1.5;
 //             color: #4a5568;
 //         }
@@ -787,54 +787,71 @@ async function unSuspendUser(userId, currentUser) {
 async function deleteUser(userIdToDelete, currentUser) {
   // Find the user to be deleted
   const userToDelete = await UserModel.findById(userIdToDelete);
- 
+
   // If user not found, throw error
   if (!userToDelete) {
     const err = new Error("User not found");
     err.code = 404;
     throw err;
   }
- 
+
+  const isSelf = userIdToDelete === currentUser._id.toString();
+
   // Authorization Logic Based on Roles
-  // Role 0 = Super Admin, 1 = Admin, 2 = User
- 
+  // Role 0 = Super Admin, 1 = Admin, 2 = Inspector
+
   if (currentUser.role === 0) {
     // Super Admin (0) can delete anyone except themselves
-    if (userIdToDelete === currentUser._id.toString()) {
+    if (isSelf) {
       const err = new Error("Super Admin cannot delete their own account");
       err.code = 400;
       throw err;
     }
-    // Super admin can delete any user, proceed to deletion
-  } else if (currentUser.role === 1 || currentUser.role === 2) {
-    // Admin (1) and User (2) can only delete their own account
-    if (userIdToDelete !== currentUser._id.toString()) {
-      const err = new Error(
-        "You can only delete your own account"
-      );
+  } else if (currentUser.role === 1) {
+    // Admin (1) can delete any Inspector (2) or any Admin (1), but NOT themselves
+    if (isSelf) {
+      const err = new Error("Admin cannot delete their own account");
+      err.code = 403;
+      throw err;
+    }
+    if (userToDelete.role === 0) {
+      const err = new Error("Admin cannot delete a Super Admin");
+      err.code = 403;
+      throw err;
+    }
+    // Admin can delete role 1 (other admins) and role 2 (inspectors) — allowed
+  } else if (currentUser.role === 2) {
+    // Inspector (2) can only delete their own account
+    if (!isSelf) {
+      const err = new Error("Inspectors can only delete their own account");
       err.code = 403;
       throw err;
     }
   } else {
-    // Invalid role
     const err = new Error("Invalid user role");
     err.code = 400;
     throw err;
   }
- 
+
   // Before deleting, save user info to deleted_users collection
   const deletedUserRecord = new DeletedUserModel({
     firstName: userToDelete.firstName,
     lastName: userToDelete.lastName,
     email: userToDelete.email,
     deletedAt: new Date(),
+    deletedBy: {
+      userId: currentUser._id,
+      role: currentUser.role,
+      email: currentUser.email, 
+      name: `${currentUser?.firstName} ${currentUser?.lastName}`, 
+    },
   });
- 
+
   await deletedUserRecord.save();
- 
+
   // Delete the user from UserModel
   await UserModel.findByIdAndDelete(userIdToDelete);
- 
+
   // Email template for account deletion notification
   const emailHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -903,14 +920,14 @@ async function deleteUser(userIdToDelete, currentUser) {
 </body>
 </html>
 `;
- 
+
   // Send deletion email
   await sendMail({
     to: userToDelete.email,
     subject: "Your Account Has Been Deleted",
     html: emailHtml,
   });
- 
+
   return;
 }
 

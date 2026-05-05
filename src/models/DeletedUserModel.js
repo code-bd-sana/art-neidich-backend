@@ -17,6 +17,16 @@ const deletedUserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  deletedBy: {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    role: { type: Number, required: true },
+    email?: {type: String},
+    name: {type: String}
+  },
 });
 
 // Optional: Add a TTL (Time To Live) index to auto-delete records after 90 days
