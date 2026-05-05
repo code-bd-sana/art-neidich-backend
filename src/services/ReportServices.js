@@ -453,7 +453,7 @@ async function getReportById(id) {
       $group: {
         _id: {
           reportId: "$_id",
-          imageLabel: "$images.imageLabel", // Keep the ObjectId
+          imageLabel: "$images.imageLabel",
         },
         inspector: { $first: "$inspector" },
         job: { $first: "$job" },
@@ -461,8 +461,10 @@ async function getReportById(id) {
         jobLastUpdatedBy: { $first: "$job.lastUpdatedBy" },
         status: { $first: "$status" },
         noteForAdmin: { $first: "$noteForAdmin" },
-        images: {
-          $push: {
+
+        // ONLY ONE IMAGE
+        image: {
+          $first: {
             fileName: "$images.fileName",
             url: "$images.url",
             key: "$images.key",
@@ -471,6 +473,7 @@ async function getReportById(id) {
             size: "$images.size",
           },
         },
+
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
       },
@@ -488,10 +491,11 @@ async function getReportById(id) {
         noteForAdmin: { $first: "$noteForAdmin" },
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
+
         images: {
           $push: {
-            imageLabel: "$_id.imageLabel", // Direct ObjectId
-            images: "$images",
+            imageLabel: "$_id.imageLabel",
+            image: "$image", // single object instead of array
           },
         },
       },
