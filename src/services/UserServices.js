@@ -843,7 +843,7 @@ async function deleteUser(userIdToDelete, currentUser) {
       userId: currentUser._id,
       role: currentUser.role,
       email: currentUser.email, 
-      name: `${currentUser?.firstName} ${currentUser?.lastName}`, 
+      name: `${currentUser.firstName} ${currentUser.lastName ?? ""}`, 
     },
   });
 
