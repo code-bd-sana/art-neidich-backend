@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
 
 const { notifyAdmins } = require("../helpers/notification/notification-helper");
+const DeletedUserModel = require("../models/DeletedUserModel");
 const NotificationModel = require("../models/NotificationModel");
 const UserModel = require("../models/UserModel");
 const { sendMail } = require("../utils/mailer");
-const DeletedUserModel = require("../models/DeletedUserModel");
 
 /**
  * Get user profile
@@ -842,8 +842,8 @@ async function deleteUser(userIdToDelete, currentUser) {
     deletedBy: {
       userId: currentUser._id,
       role: currentUser.role,
-      email: currentUser.email, 
-      name: `${currentUser.firstName} ${currentUser.lastName ?? ""}`, 
+      email: currentUser.email,
+      name: `${currentUser.firstName} ${currentUser.lastName ?? ""}`,
     },
   });
 
