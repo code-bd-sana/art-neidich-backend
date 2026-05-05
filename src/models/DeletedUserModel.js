@@ -24,8 +24,8 @@ const deletedUserSchema = new mongoose.Schema({
       required: true,
     },
     role: { type: Number, required: true },
-    email: { type: String },
-    name: { type: String },
+    email: {type: String},
+    name: {type: String}
   },
 });
 
