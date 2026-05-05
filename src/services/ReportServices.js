@@ -650,15 +650,32 @@ async function updateReportStatus(id, updateData) {
  * @returns {Promise<void>}
  */
 async function deleteReport(id) {
-  // Check if report exists
+  // 1. Find report
   const report = await ReportModel.findById(id);
 
-  // If not found, throw error
   if (!report) {
     const err = new Error("Report not found");
     err.code = 404;
     throw err;
   }
+
+  // 2. Extract S3 keys
+  const keys = (report.images || [])
+    .map((img) => img.key)
+    .filter((key) => key && key !== "pending");
+
+  // 3. Delete images from S3 (safe attempt)
+  if (keys.length > 0) {
+    try {
+      await deleteObjects(keys);
+    } catch (err) {
+      console.error("S3 deletion failed:", err.message);
+      // Optional: decide if you want to block deletion or not
+      // For now, we proceed to delete DB anyway
+    }
+  }
+
+  // 4. Delete report from DB
   await ReportModel.findByIdAndDelete(id);
 }
 
