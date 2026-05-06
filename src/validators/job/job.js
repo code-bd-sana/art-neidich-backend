@@ -61,6 +61,10 @@ const createJobSchema = z
  */
 const updateJobSchema = createJobSchema
   .partial()
+  .extend({
+    dueDate: z.coerce.date().optional(),
+    siteContactEmail: z.union([z.string().email(), z.literal("")]).optional(),
+  })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",
   });
