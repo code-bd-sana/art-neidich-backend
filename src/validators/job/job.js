@@ -11,7 +11,7 @@ const createJobSchema = z
   .object({
     inspector: mongoIdSchema.shape.id,
     formType: z.enum([
-      "RCI Residential Building Code Inspection",
+      // "RCI Residential Building Code Inspection",
       "92051 - FHA Inspection",
     ]),
     feeStatus: z.enum([

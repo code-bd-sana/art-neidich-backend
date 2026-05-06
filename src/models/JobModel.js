@@ -12,7 +12,7 @@ const jobSchema = new mongoose.Schema(
     formType: {
       type: String,
       enum: [
-        "RCI Residential Building Code Inspection",
+        // "RCI Residential Building Code Inspection",
         "92051 - FHA Inspection",
       ],
       required: true,
