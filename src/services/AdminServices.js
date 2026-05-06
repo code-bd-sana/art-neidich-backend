@@ -54,12 +54,6 @@ async function adminOverview() {
       }),
     ]);
 
-  console.log(
-    totalJobs,
-    inProgressJobs,
-    overDueJobs,
-    completedJobs,
-  );
   return {
     totalJobs,
     inProgressJobs,
