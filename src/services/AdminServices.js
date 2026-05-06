@@ -15,6 +15,10 @@ async function adminOverview() {
     status: "completed",
   });
 
+  const archivedJobIds = await ReportModel.distinct("job", {
+    status: "archived",
+  });
+
   const [totalJobs, inProgressJobs, overDueJobs, completedJobs] =
     await Promise.all([
       /* ============================
@@ -34,23 +38,37 @@ async function adminOverview() {
       }),
 
       /* ============================
-         Overdue jobs
-         (dueDate passed & not completed)
+        In-progress jobs
+        (no report exists yet)
+      ============================ */
+      JobModel.countDocuments({
+        _id: { $nin: [...reportedJobIds, ...archivedJobIds] },
+      }),
+
+      /* ============================
+        Overdue jobs
+        (dueDate passed & not completed)
       ============================ */
       JobModel.countDocuments({
         status: { $ne: "archived" },
         dueDate: { $lt: new Date() },
-        _id: { $nin: completedJobIds },
+        _id: { $nin: [...completedJobIds, ...archivedJobIds] },
       }),
 
       /* ============================
-         Completed jobs
+        Completed jobs
       ============================ */
       ReportModel.countDocuments({
         status: "completed",
       }),
     ]);
 
+  console.log(
+    totalJobs,
+    inProgressJobs,
+    overDueJobs,
+    completedJobs,
+  );
   return {
     totalJobs,
     inProgressJobs,
