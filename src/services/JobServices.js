@@ -1067,27 +1067,18 @@ async function getJobs(query = {}) {
  * @returns {Promise<Object>}
  */
 async function updateJob(id, payload) {
-  // If any report exists for the job, prevent changing
-  const reportExists = await ReportModel.exists({
-    job: new mongoose.Types.ObjectId(id),
-  });
-
-  // If report exists, throw error
-  if (reportExists) {
-    const err = new Error("Cannot update job with existing report");
-    err.code = 400;
-    throw err;
-  }
-
-  // Update the document
-  const result = await JobModel.updateOne(
-    { _id: id },
+  // Update the document and return the refreshed job payload
+  const updated = await JobModel.findByIdAndUpdate(
+    id,
     { $set: payload },
-    { new: true },
+    {
+      new: true,
+      runValidators: true,
+    },
   );
 
   // If no document matched, throw error
-  if (!result || result.length === 0) {
+  if (!updated) {
     const err = new Error("Job not found");
     err.code = 404;
     throw err;
