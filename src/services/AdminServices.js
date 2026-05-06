@@ -22,19 +22,10 @@ async function adminOverview() {
   const [totalJobs, inProgressJobs, overDueJobs, completedJobs] =
     await Promise.all([
       /* ============================
-         Total jobs
+        Total jobs
       ============================ */
       JobModel.countDocuments({
-        status: { $ne: "archived" },
-      }),
-
-      /* ============================
-         In-progress jobs
-         (no report exists yet)
-      ============================ */
-      JobModel.countDocuments({
-        status: { $ne: "archived" },
-        _id: { $nin: reportedJobIds },
+        _id: { $nin: archivedJobIds },
       }),
 
       /* ============================
