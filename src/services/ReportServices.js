@@ -685,28 +685,30 @@ async function deleteReport(id) {
 
 async function reportSendToMail(report) {
   try {
-    const toEmail = "inspect@artneidich.com"; //report.job?.createdBy?.email;
+    const toEmail = "sahadatjhpi@gmail.com"; //"inspect@artneidich.com"; //report.job?.createdBy?.email;
     if (!toEmail) {
       console.error("reportSendToMail: email not found in report!");
       return;
     }
 
     const pdfBuffer = await generateReportPDF(report);
-    await sendMail({
+    const isSend = await sendMail({
       to: toEmail,
-      subject: `Inspection Report - Order ID: ${report.job?.orderId || report._id}`,
+      subject: `Inspection Report - ${report.job.streetAddress || report.job?.orderId } }`,
       html: `<p>Dear ${report.job?.createdBy?.firstName || "Sir/Madam"},</p>
              <p>Please find the attached inspection report.</p>
              <p><strong>Order ID:</strong> ${report.job?.orderId || "N/A"}</p>
-             <p><strong>Inspector:</strong> ${report.inspector?.firstName} ${report.inspector?.lastName}</p>`,
+             <p><strong>Inspector:</strong> ${report.inspector?.firstName} ${report.inspector?.lastName}</p>
+             <p><strong>Address:</strong> ${report.job?.streetAddress}</p>`,
       attachments: [
         {
-          filename: `report-${report._id}.pdf`,
+          filename: `${report.job.streetAddress ? report.job.streetAddress : "inspection-report"}.pdf`,
           content: pdfBuffer,
           contentType: "application/pdf",
         },
       ],
     });
+
   } catch (err) {
     console.error("reportSendToMail error:", err.message);
   }
@@ -722,257 +724,230 @@ async function generateReportPDF(report) {
   const html = buildReportHTML(report);
   await page.setContent(html, { waitUntil: "networkidle0" });
 
+  // Header এর জন্য ডাটাগুলো এক্সট্রাক্ট করা হচ্ছে
+  const job = report.job || {};
+  const inspectionDate = formatInspectionDate(report.createdAt || job.createdAt);
+  const caseNo = job.fhaCaseDetailsNo || "N/A";
+  const formType = job.formType || "92051 - FHA Inspection";
+  const streetAddress = job.streetAddress || "N/A";
+
+  // Puppeteer-এর জন্য Header Template (অবশ্যই inline CSS ব্যবহার করতে হবে)
+  const headerTemplate = `
+    <div style="font-family: Helvetica, Arial, sans-serif; font-size: 11px; width: 100%; color: #222325; padding: 0 30px; background: white; -webkit-print-color-adjust: exact;">
+      <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 8px;">
+        ${LOGO_TOP ? `<img src="${LOGO_TOP}" style="width: 100px; height: 58px; object-fit: contain; margin-bottom: 4px;" />` : ''}
+        <div style="font-size: 8px; color: #474747;">www.FHAInspection.com / www.artneidich.com</div>
+        <div style="font-size: 8px; color: #000;">A division of Lone Star Building Inspection, Inc.</div>
+        <div style="font-size: 10px; font-weight: bold;">Attachment to FHA Form 92051</div>
+      </div>
+      <div style="border-top: 1px solid #EFEFF1; margin: 6px 0 8px;"></div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
+        <div><strong>Date of Inspection:</strong> ${inspectionDate}</div>
+        <div><strong>FHA Case #</strong> ${caseNo}</div>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px;">
+        <div><strong>Type of Inspection:</strong> ${formType}</div>
+      </div>
+      <div style="font-size: 11px;"><strong>Subject Property:</strong> ${streetAddress}</div>
+    </div>
+  `;
+
+  // Puppeteer-এর জন্য Footer Template (এখানে pageNumber যুক্ত করা হয়েছে)
+  const footerTemplate = `
+    <div style="font-family: Helvetica, Arial, sans-serif; font-size: 8px; width: 100%; color: #333; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #000; -webkit-print-color-adjust: exact; background: white;">
+      ${LOGO_FOOTER_LEFT ? `<img src="${LOGO_FOOTER_LEFT}" style="width: 45px; height: 45px; object-fit: contain;" />` : `<div style="width: 45px;"></div>`}
+      <div style="text-align: center; flex: 1; margin: 0 10px; font-weight: bold; line-height: 1.4;">
+        All utilities are on and tested unless otherwise noted<br />
+        Properties without working utilities do not qualify for compliance<br />
+        TREC Lic. # 10546 | TSBPE Lic. # 3836 | Code Enforcement Lic. # 7055 | HUD-FHA Fee Reg.# D683 & 203K – D0931<br />
+        ICC Certified Residential Combination Inspector<br/>
+        <span style="color: #666; font-size: 9px; margin-top: 4px; display: block;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
+      </div>
+      ${LOGO_FOOTER_RIGHT ? `<img src="${LOGO_FOOTER_RIGHT}" style="width: 45px; height: 45px; object-fit: contain;" />` : `<div style="width: 45px;"></div>`}
+    </div>
+  `;
+
   const pdfBuffer = await page.pdf({
     format: "A4",
     printBackground: true,
-    margin: { top: "15mm", bottom: "15mm", left: "12mm", right: "12mm" },
-    displayHeaderFooter: true,
-    headerTemplate: `<span></span>`,
-    footerTemplate: `
-    <div style="
-      width: 100%;
-      font-size: 9px;
-      color: #888;
-      text-align: center;
-      padding-bottom: 4px;
-    ">
-      <span class="pageNumber"></span>
-    </div>
-  `,
+    displayHeaderFooter: true, // এটি চালু করতে হবে
+    headerTemplate: headerTemplate,
+    footerTemplate: footerTemplate,
+    margin: {
+      top: "160px", // Header-এর জন্য উপরের জায়গা (প্রয়োজনে বাড়াতে/কমাতে পারেন)
+      bottom: "85px", // Footer-এর জন্য নিচের জায়গা
+      left: "12mm",
+      right: "12mm",
+    },
   });
 
   await browser.close();
   return pdfBuffer;
 }
 
-function loadBase64(filePath) {
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
+function loadBase64(filePath, mime = "image/png") {
   try {
-    return `data:image/png;base64,${fs.readFileSync(filePath).toString("base64")}`;
+    return `data:${mime};base64,${fs.readFileSync(filePath).toString("base64")}`;
   } catch {
     return "";
   }
 }
 
-const LOGO_TOP = loadBase64(
-  path.join(__dirname, "../../public/images/logo.png"),
-);
-const LOGO_FOOTER_LEFT = loadBase64(
-  path.join(__dirname, "../../public/images/footer-logo-left.png"),
-);
-const LOGO_FOOTER_RIGHT = loadBase64(
-  path.join(__dirname, "../../public/images/footer-logo-right.png"),
-);
+const LOGO_TOP = loadBase64(path.join(__dirname, "../../public/images/logo.png"));
+const LOGO_FOOTER_LEFT = loadBase64(path.join(__dirname, "../../public/images/footer-logo-left.png"));
+const LOGO_FOOTER_RIGHT = loadBase64(path.join(__dirname, "../../public/images/footer-logo-right.png"));
+
+/** Format any date-like value → M-D-YYYY */
+function formatInspectionDate(value) {
+  if (!value) {
+    const t = new Date();
+    return `${t.getMonth() + 1}-${t.getDate()}-${t.getFullYear()}`;
+  }
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return `${value.getMonth() + 1}-${value.getDate()}-${value.getFullYear()}`;
+  }
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(raw)) {
+    const [year, month, day] = raw.slice(0, 10).split("-").map(Number);
+    return `${month}-${day}-${year}`;
+  }
+  const norm = raw.replace(/\//g, "-");
+  const match = norm.match(/^(\d{1,4})-(\d{1,2})-(\d{1,4})(?:\s.*)?$/);
+  if (match) {
+    const [, a, b, c] = match;
+    if (a.length === 4) return `${+b}-${+c}-${+a}`;
+    if (c.length === 4) return `${+a}-${+b}-${+c}`;
+  }
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return `${parsed.getMonth() + 1}-${parsed.getDate()}-${parsed.getFullYear()}`;
+  }
+  return raw;
+}
+
+function cleanImageUrl(url) {
+  return url ? url.split("?")[0] : null;
+}
+
+// ─── section renderer ─────────────────────────────────────────────────────────
+
+function renderSection(label, imgs) {
+  const renderImg = (img) => {
+    const src = cleanImageUrl(img?.url);
+    const alt = img?.alt || img?.fileName || "";
+    const note = img?.noteForAdmin;
+    return `
+      <div class="img-cell">
+        ${
+          src
+            ? `<img src="${src}" alt="${alt}" />`
+            : `<p class="img-unavailable">Image not available</p>`
+        }
+        ${note ? `<p class="img-note">Note: ${note}</p>` : ""}
+      </div>`;
+  };
+
+  const imagesHtml =
+    imgs.length === 1
+      ? `<div class="img-single">${renderImg(imgs[0])}</div>`
+      : `<div class="img-row">${renderImg(imgs[0])}${renderImg(imgs[1])}</div>`;
+
+  return `
+    <div class="section-block">
+      <p class="section-title">${label}</p>
+      ${imagesHtml}
+    </div>`;
+}
 
 function buildReportHTML(report) {
-  const job = report.job || {};
-  const inspector = report.inspector || {};
   const images = report.images || [];
 
-  const imageGroupsHTML = (() => {
-    const pairs = [];
-    for (let i = 0; i < images.length; i += 2) {
-      pairs.push([images[i], images[i + 1] || null]);
-    }
+  // Group images by label (preserve insertion order)
+  const labelMap = new Map();
+  for (const entry of images) {
+    const label = entry.imageLabel || "Unlabelled";
+    if (!labelMap.has(label)) labelMap.set(label, []);
+    labelMap.get(label).push(entry.image || {});
+  }
 
-    return pairs
-      .map(([left, right]) => {
-        const renderCell = (group) => {
-          if (!group) return `<div class="image-cell"></div>`;
-          const img = group.images?.[0];
-          return `
-          <div class="image-cell">
-            <div class="image-box">
-              <img src="${img?.url}" alt="${img?.alt || img?.fileName}" />
-            </div>
-            <p class="image-caption">${group.imageLabel}</p>
-          </div>
-        `;
-        };
-
-        return `
-        <div class="image-row">
-          ${renderCell(left)}
-          ${renderCell(right)}
-        </div>
-      `;
-      })
-      .join("");
-  })();
+  const sectionsHtml = [...labelMap.entries()]
+    .map(([label, imgs]) => renderSection(label, imgs))
+    .join("\n");
 
   return `<!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8"/>
-        <style>
-          * { margin:0; padding:0; box-sizing:border-box; }
-          body { font-family: Roboto, sans-serif; font-size: 13px; color: #222; background:#fff; }
+            <html lang="en">
+              <head>
+                <meta charset="UTF-8" />
+                <style>
+                  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+              
+                  body {
+                    font-family: Helvetica, Arial, sans-serif;
+                    font-size: 13px;
+                    color: #222325;
+                    background: #ffffff;
+                  }
+              
+                  /* ═══════════════════════════════════════════════════════
+                    SECTION BLOCKS (scrollable content)
+                    ═══════════════════════════════════════════════════════ */
+                  .section-block {
+                    padding: 10px 15px 15px 15px;
+                    margin-bottom: 20px;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                    display: block; 
+                  }
 
-          /* ── HEADER ── */
-          .header {
-            text-align: center;
-            margin-bottom: 40px;
-          }
-          .header img.top-logo {
-            height: 52px;
-            margin-bottom: 6px;
-          }
-          .header .company-sub {
-            font-size: 10px;
-            color: #474747;
-            margin-bottom: 2px;
-          }
-          .header .report-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2D8D7C;
-            margin-bottom: 2px;
-          }
-          .header .fha-line {
-            font-size: 12px;
-            color: #474747;
-          }
+                  .section-title {
+                    font-size: 15px;
+                    font-weight: bold;
+                    color: #222325;
+                    text-align: center;
+                    margin-bottom: 12px;
+                    text-transform: uppercase;
+                  }
+              
+                  .img-single {
+                    width: 75%;
+                    margin: 0 auto;
+                  }
+              
+                  .img-row {
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 14px;
+                  }
 
-          /* ── META INFO ── */
-          .meta-section {
-            margin-bottom: 30px;
-          }
-          .meta-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-          }
-          .meta-row .meta-left { flex: 1; }
-          .meta-row .meta-right { text-align: right; }
-          .meta-label { font-weight: bold; }
+                 
+                  .img-cell { flex: 1; break-inside: avoid; page-break-inside: avoid; }
+              
+                  .img-cell img {
+                    width: 100%;
+                    height: 210px;
+                    object-fit: cover;
+                    display: block;
+                  }
 
-          .line{
-            border: 1px solid #EFEFF1;
-            margin-bottom: 30px;
-          }
-          /* ── ROOM SECTION ── */
-          .room-section {
-            margin-bottom: 28px;
-            page-break-inside: avoid;
-          }
-          .room-title {
-            font-size: 15px;
-            font-weight: bold;
-            margin-bottom: 10px;
-          }
-          .image-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            page-break-inside: avoid;
-          }
-          .image-cell {
-            width: calc(50% - 5px);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-          }
-          .image-box {
-            width: 100%;
-          }
-          .image-box img {
-            width: 100%;
-            height: 215px;
-            object-fit: cover;
-            border-radius: 3px;
-          }
-          .image-caption {
-            margin-top: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            text-align: center;
-            color: #333;
-          }
-
-          /* ── FOOTER ── */
-          .footer {
-            margin-top: 30px;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-          }
-          .footer img {
-            height: 38px;
-          }
-          .footer-text {
-            flex: 1;
-            text-align: center;
-            font-size: 9.5px;
-            color: #444;
-            line-height: 1.6;
-          }
-          .footer-text .footer-main {
-            font-weight: bold;
-            margin-bottom: 2px;
-            font-size: 12px;
-          }
-
-         
-        </style>
-      </head>
-      <body>
-
-        <!-- HEADER -->
-        <div class="header">
-          ${LOGO_TOP ? `<img class="top-logo" src="${LOGO_TOP}" alt="Logo" />` : ""}
-          <p class="company-sub">A Division of Lone Star Building Inspection, Inc.</p>
-          <p class="report-title">Inspection report</p>
-          <p class="fha-line">Attachment to FHA form # ${job.formType?.match(/\d+/)?.[0] || job.orderId || "N/A"}</p>
-        </div>
-
-        <!-- META INFO -->
-        <div class="meta-section">
-          <div class="meta-row">
-            <div class="meta-left">
-              <span class="meta-label">Type of Inspection:</span>
-              ${job.formType || "N/A"}
-            </div>
-            <div class="meta-right">
-              <span class="meta-label">Date of Inspection:</span>
-              ${new Date(report.createdAt).toLocaleDateString("en-US", {
-                month: "2-digit",
-                day: "2-digit",
-                year: "numeric",
-              })}
-            </div>
-          </div>
-          <div class="meta-row">
-            <div class="meta-left">
-              <span class="meta-label">Subject Property:</span>
-              ${job.streetAddress || "N/A"}
-            </div>
-            <div class="meta-right">
-              <span class="meta-label">Case:</span>
-              # ${job.fhaCaseDetailsNo || "N/A"}
-            </div>
-          </div>
-        </div>
-
-        <div class="line"></div>
-
-        <!-- IMAGE GROUPS -->
-        ${imageGroupsHTML}
-
-        <!-- FOOTER -->
-        <div class="footer">
-          ${LOGO_FOOTER_RIGHT ? `<img src="${LOGO_FOOTER_RIGHT}" alt="Footer Logo Right" />` : ""}
-          <div class="footer-text">
-            <i class="footer-main">All Utilities Are On And Tested Unless Otherwise Noted</i>
-            <p>TREC Lic. # 10546 | TSBPE Lic. # I-3836 | Code Enforcement Lic. # 7055 | HUD-FHA Fee Reg.#</p>
-            <p>D683 & 203K - D0931</p>
-          </div>
-          ${LOGO_FOOTER_LEFT ? `<img src="${LOGO_FOOTER_LEFT}" alt="Footer Logo Left" />` : ""}
-        </div>
-
-      </body>
-    </html>`;
+                  .img-unavailable { color: red; font-size: 10px; }
+                  .img-note {
+                    font-size: 9px;
+                    color: #555555;
+                    margin-top: 5px;
+                    font-style: italic;
+                  }
+                </style>
+              </head>
+              <body>
+              
+                <!-- ═══ SCROLLABLE CONTENT ═══ -->
+              
+                ${sectionsHtml}
+              
+              </body>
+            </html>`;
 }
 
 module.exports = {
