@@ -685,7 +685,7 @@ async function deleteReport(id) {
 
 async function reportSendToMail(report) {
   try {
-    const toEmail = "sahadatjhpi@gmail.com"; //"inspect@artneidich.com"; //report.job?.createdBy?.email;
+    const toEmail = "inspect@artneidich.com"; //report.job?.createdBy?.email;
     if (!toEmail) {
       console.error("reportSendToMail: email not found in report!");
       return;

@@ -8,46 +8,42 @@ const ReportModel = require("../models/ReportModel");
  * Job assigned to inspector but NO report created yet
  */
 async function inspectorOverview(inspector) {
-  const inspectorReportedJobs = await ReportModel.distinct("job", {
+  const allReportedJobIds = await ReportModel.distinct("job", {
     inspector,
   });
 
-  const inspectorCompletedJobs = await ReportModel.distinct("job", {
+  const completedJobIds = await ReportModel.distinct("job", {
     inspector,
     status: "completed",
+  });
+
+  const archivedJobIds = await ReportModel.distinct("job", {
+    inspector,
+    status: "archived",
   });
 
   const [totalJobs, inProgressJobs, overDueJobs, completedJobs] =
     await Promise.all([
       /* ============================
          Total jobs
+         (Archived জবগুলো বাদ দিয়ে)
       ============================ */
       JobModel.countDocuments({
         inspector,
+        _id: { $nin: archivedJobIds },
       }),
 
-      /* ============================
-         In-progress jobs
-         (no report yet)
-      ============================ */
       JobModel.countDocuments({
         inspector,
-        _id: { $nin: inspectorReportedJobs },
+        _id: { $nin: allReportedJobIds },
       }),
 
-      /* ============================
-         Overdue jobs
-         (dueDate passed & not completed)
-      ============================ */
       JobModel.countDocuments({
         inspector,
         dueDate: { $lt: new Date() },
-        _id: { $nin: inspectorCompletedJobs },
+        _id: { $nin: [...completedJobIds, ...archivedJobIds] },
       }),
 
-      /* ============================
-         Completed jobs
-      ============================ */
       ReportModel.countDocuments({
         inspector,
         status: "completed",
