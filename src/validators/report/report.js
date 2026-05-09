@@ -70,7 +70,8 @@ const updateReportStatusSchema = z
 
 // Merge multer files into req.body.images before validation
 const handleGroupedImages = (req, res, next) => {
-
+  console.log("rew=========>", req.body.images);
+  console.log("file=========>", req.files);
   if (!req.files?.length) {
     return next();
   }
@@ -144,9 +145,42 @@ const handleGroupedImages = (req, res, next) => {
 
   next();
 };
+
+/**
+ * Validation schema for resubmitting a rejected report
+ *
+ * The schema expects:
+ * - imageEntries: an array of objects, each containing:
+ *    - imageLabel: a valid MongoDB ObjectId as a string
+ *    - fileName: optional string for the image file name
+ *    - mimeType: optional string for the image MIME type
+ *    - size: optional number for the image file size
+ *    - buffer: optional any type for the image file buffer
+ * - noteForAdmin: optional string with a maximum length of 250 characters
+ *
+ * Note: `job` is NOT required here — report ID comes from the route param (:id)
+ */
+const resubmitReportSchema = z
+  .object({
+    imageEntries: z
+      .array(
+        z.object({
+          imageLabel: mongoIdSchema.shape.id,
+          fileName: z.string().min(1).optional(),
+          mimeType: z.string().optional(),
+          size: z.number().optional(),
+          buffer: z.any().optional(),
+        }),
+      )
+      .min(1, "At least 1 image required"),
+    noteForAdmin: z.string().max(250).optional(),
+  })
+  .strict();
+
 module.exports = {
   createReportSchema,
   reportPaginationSchema,
   updateReportStatusSchema,
+  resubmitReportSchema,
   handleGroupedImages,
 };

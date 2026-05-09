@@ -15,6 +15,7 @@ const {
   deleteReportController,
   updateReportStatusController,
   getReportPdfController,
+  resubmitReportController,
 } = require("../controllers/ReportControllers");
 const { authenticate, authorizeRoles } = require("../middleware/auth");
 const { validate } = require("../utils/validator");
@@ -26,6 +27,7 @@ const {
 const {
   createReportSchema,
   updateReportStatusSchema,
+  resubmitReportSchema,
   reportPaginationSchema,
   handleGroupedImages,
 } = require("../validators/report/report");
@@ -104,6 +106,26 @@ router.patch(
   validate(updateReportStatusSchema, { target: "body" }),
   updateReportStatusController,
 );
+
+router.patch(
+  "/:id/resubmit",
+  authenticate,
+  authorizeRoles(2),
+  upload.array("images"),
+  handleGroupedImages,
+  validate(resubmitReportSchema, { target: "body" }),
+  resubmitReportController,
+);
+
+// router.post(
+//   "/",
+//   authenticate,
+//   authorizeRoles(2),
+//   upload.array("images"),
+//   handleGroupedImages,
+//   validate(createReportSchema, { target: "body" }),
+//   createReportController,
+// );
 
 /**
  * Delete a report

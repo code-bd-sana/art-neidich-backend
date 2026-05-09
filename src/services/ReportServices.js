@@ -694,7 +694,7 @@ async function reportSendToMail(report) {
     const pdfBuffer = await generateReportPDF(report);
     const isSend = await sendMail({
       to: toEmail,
-      subject: `Inspection Report - ${report.job.streetAddress || report.job?.orderId } }`,
+      subject: `Inspection Report - ${report.job.streetAddress || report.job?.orderId} }`,
       html: `<p>Dear ${report.job?.createdBy?.firstName || "Sir/Madam"},</p>
              <p>Please find the attached inspection report.</p>
              <p><strong>Order ID:</strong> ${report.job?.orderId || "N/A"}</p>
@@ -708,7 +708,6 @@ async function reportSendToMail(report) {
         },
       ],
     });
-
   } catch (err) {
     console.error("reportSendToMail error:", err.message);
   }
@@ -726,7 +725,9 @@ async function generateReportPDF(report) {
 
   // Header এর জন্য ডাটাগুলো এক্সট্রাক্ট করা হচ্ছে
   const job = report.job || {};
-  const inspectionDate = formatInspectionDate(report.createdAt || job.createdAt);
+  const inspectionDate = formatInspectionDate(
+    report.createdAt || job.createdAt,
+  );
   const caseNo = job.fhaCaseDetailsNo || "N/A";
   const formType = job.formType || "92051 - FHA Inspection";
   const streetAddress = job.streetAddress || "N/A";
@@ -735,7 +736,7 @@ async function generateReportPDF(report) {
   const headerTemplate = `
     <div style="font-family: Helvetica, Arial, sans-serif; font-size: 11px; width: 100%; color: #222325; padding: 0 30px; background: white; -webkit-print-color-adjust: exact;">
       <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 8px;">
-        ${LOGO_TOP ? `<img src="${LOGO_TOP}" style="width: 100px; height: 58px; object-fit: contain; margin-bottom: 4px;" />` : ''}
+        ${LOGO_TOP ? `<img src="${LOGO_TOP}" style="width: 100px; height: 58px; object-fit: contain; margin-bottom: 4px;" />` : ""}
         <div style="font-size: 8px; color: #474747;">www.FHAInspection.com / www.artneidich.com</div>
         <div style="font-size: 8px; color: #000;">A division of Lone Star Building Inspection, Inc.</div>
         <div style="font-size: 10px; font-weight: bold;">Attachment to FHA Form 92051</div>
@@ -795,9 +796,15 @@ function loadBase64(filePath, mime = "image/png") {
   }
 }
 
-const LOGO_TOP = loadBase64(path.join(__dirname, "../../public/images/logo.png"));
-const LOGO_FOOTER_LEFT = loadBase64(path.join(__dirname, "../../public/images/footer-logo-left.png"));
-const LOGO_FOOTER_RIGHT = loadBase64(path.join(__dirname, "../../public/images/footer-logo-right.png"));
+const LOGO_TOP = loadBase64(
+  path.join(__dirname, "../../public/images/logo.png"),
+);
+const LOGO_FOOTER_LEFT = loadBase64(
+  path.join(__dirname, "../../public/images/footer-logo-left.png"),
+);
+const LOGO_FOOTER_RIGHT = loadBase64(
+  path.join(__dirname, "../../public/images/footer-logo-right.png"),
+);
 
 /** Format any date-like value → M-D-YYYY */
 function formatInspectionDate(value) {
@@ -920,7 +927,6 @@ function buildReportHTML(report) {
                     justify-content: space-between;
                     gap: 14px;
                   }
-
                  
                   .img-cell { flex: 1; break-inside: avoid; page-break-inside: avoid; }
               
@@ -949,6 +955,188 @@ function buildReportHTML(report) {
               </body>
             </html>`;
 }
+/**
+ * Resubmit a rejected report
+ * - Only allowed if existing report status is "rejected"
+ * - Deletes old S3 images, uploads new ones
+ * - Updates the existing report document (same _id preserved)
+ * - Sets status back to "submitted"
+ *
+ * @param {string} reportId - Existing report ID
+ * @param {Object} payload - Updated report data
+ * @param {Array<Object>} payload.images - Processed image objects from handleGroupedImages middleware
+ * @param {string} payload.noteForAdmin - Updated note
+ * @param {string} payload.inspector - Inspector user ID
+ * @param {string} payload.inspectorName - Inspector display name (for notification)
+ * @returns {Promise<Object>} - Updated report
+ */
+async function resubmitReport(reportId, payload) {
+  // Find the existing report
+  const existingReport = await ReportModel.findById(reportId);
+
+  if (!existingReport) {
+    const err = new Error("Report not found");
+    err.code = 404;
+    throw err;
+  }
+
+  // Only rejected reports can be resubmitted
+  if (existingReport.status !== "rejected") {
+    const err = new Error("Only rejected reports can be resubmitted");
+    err.code = 400;
+    throw err;
+  }
+
+  // images is set by handleGroupedImages middleware
+  const imagesInput = Array.isArray(payload.images)
+    ? payload.images
+    : [];
+
+  // Resolve imageLabel ObjectId strings → label strings from DB
+  const labelIds = [
+    ...new Set(
+      imagesInput.map((img) => new mongoose.Types.ObjectId(img.imageLabel)),
+    ),
+  ];
+
+  const labels = await ImageLabelModel.find({ _id: { $in: labelIds } })
+    .select("label")
+    .lean();
+
+  const labelMap = new Map(labels.map((l) => [l._id.toString(), l.label]));
+
+  const finalImagesPlaceholder = imagesInput.map((img) => {
+    const labelStr = labelMap.get(img.imageLabel);
+    if (!labelStr) {
+      const err = new Error("Image label not found");
+      err.code = 400;
+      throw err;
+    }
+    return {
+      imageLabel: labelStr,
+      url: "",
+      key: "",
+      fileName: img.fileName || "image",
+      alt: img.alt || "",
+      uploadedBy: payload.inspector,
+      mimeType: img.mimeType || "application/octet-stream",
+      size: img.size || 0,
+      buffer: img.buffer, // temporary, only for upload
+    };
+  });
+
+  // Delete old S3 images before uploading new ones
+  const oldKeys = (existingReport.images || [])
+    .map((img) => img.key)
+    .filter((key) => key && key !== "pending");
+
+  if (oldKeys.length > 0) {
+    await deleteObjects(oldKeys).catch((e) =>
+      console.error("Failed to delete old S3 images during resubmit:", e),
+    );
+  }
+
+  // Use same report _id as folder prefix (keeps S3 structure consistent)
+  const folderPrefix = `reports/${existingReport._id.toString()}`;
+
+  let uploadedResults = [];
+
+  try {
+    // Upload new images to S3
+    const toUpload = finalImagesPlaceholder.filter((img) => img.buffer);
+    if (toUpload.length > 0) {
+      const uploadItems = toUpload.map((img) => ({
+        stream: Readable.from(img.buffer),
+        originalName: img.fileName,
+        contentType: img.mimeType,
+        folderPrefix,
+      }));
+
+      uploadedResults = await uploadStreams(uploadItems);
+      // Check for any failed uploads
+      const failed = uploadedResults.filter((r) => r.status === "rejected");
+      if (failed.length > 0) {
+        const keysToDelete = uploadedResults
+          .filter((r) => r.status === "fulfilled")
+          .map((r) => r.value.Key);
+
+        if (keysToDelete.length) await deleteObjects(keysToDelete);
+
+        const err = new Error("Image upload failed");
+        err.code = 500;
+        throw err;
+      }
+
+      uploadedResults = uploadedResults.map((r) => r.value);
+    }
+    // Map uploaded results back to final images
+    const finalImages = [];
+    let uploadIndex = 0;
+
+    for (const orig of finalImagesPlaceholder) {
+      if (orig.buffer) {
+        const uploaded = uploadedResults[uploadIndex++];
+        finalImages.push({
+          imageLabel: orig.imageLabel,
+          url: uploaded.Location,
+          key: uploaded.Key,
+          fileName: orig.fileName || path.basename(uploaded.Key),
+          alt: orig.alt || "",
+          uploadedBy: payload.inspector,
+          mimeType: orig.mimeType,
+          size: orig.size,
+        });
+      } else {
+        // Existing image passed without buffer (keep as-is)
+        finalImages.push({
+          ...orig,
+          buffer: undefined,
+        });
+      }
+    }
+
+    // Update the existing report document
+    existingReport.images = finalImages;
+    existingReport.noteForAdmin = payload.noteForAdmin || "";
+    existingReport.status = "re-submitted";
+    existingReport.updatedAt = new Date();
+
+    const updatedReport = await existingReport.save();
+    // Notify admins about resubmission
+    try {
+      const types = NotificationModel.notificationTypes || {};
+
+      await notifyAdmins({
+        type: types.REPORT_SUBMITTED || "report_submitted",
+        title: "Report Resubmitted",
+        body: `A report has been resubmitted by ${payload.inspectorName || "an inspector"}.`,
+        data: {
+          reportId: new mongoose.Types.ObjectId(existingReport._id),
+          jobId: new mongoose.Types.ObjectId(existingReport.job),
+          action: "view_report",
+        },
+        authorId: new mongoose.Types.ObjectId(payload.inspector),
+      });
+    } catch (e) {
+      console.error("Failed to send resubmit notification:", e);
+    }
+
+    // Return full populated report (same shape as createReport)
+    const updatedData = await getReportById(existingReport._id);
+    // Send mail to admin
+    reportSendToMail(updatedReport.data ?? updatedReport);
+
+    return updatedReport;
+  } catch (err) {
+    // Cleanup newly uploaded images if something went wrong
+    if (uploadedResults.length > 0) {
+      const keys = uploadedResults.map((u) => u?.Key).filter(Boolean);
+      if (keys.length) await deleteObjects(keys).catch(console.error);
+    }
+
+    throw err;
+  }
+}
 
 module.exports = {
   createReport,
@@ -956,5 +1144,6 @@ module.exports = {
   updateReportStatus,
   getReportById,
   deleteReport,
+  resubmitReport,
   generateReportPDF,
 };

@@ -32,7 +32,7 @@ const reportSchema = new mongoose.Schema(
     ],
     status: {
       type: String,
-      enum: ["submitted", "completed", "rejected", "archived"],
+      enum: ["re-submitted","submitted", "completed", "rejected", "archived"],
       default: "submitted",
       index: true,
     },

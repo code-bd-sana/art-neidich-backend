@@ -6,6 +6,7 @@ const {
   getAllReports,
   deleteReport,
   updateReportStatus,
+  resubmitReport,
 } = require("../services/ReportServices");
 
 /**
@@ -118,6 +119,35 @@ async function updateReportStatusController(req, res, next) {
   }
 }
 
+async function resubmitReportController(req, res, next) {
+  try {
+    // Get validated payload
+    const payload = req.validated;
+
+    // Follow same pattern as createReportController
+    // imageEntries is set by handleGroupedImages middleware — rename to images for service
+    payload.images = payload.imageEntries || [];
+    delete payload.imageEntries;
+
+    // Attach inspector from authenticated user
+    payload.inspector = new mongoose.Types.ObjectId(req.user._id);
+    payload.inspectorName =
+      `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim();
+
+    // Call service with report id from params
+    const updated = await resubmitReport(req.params.id, payload);
+
+    return res.status(200).json({
+      success: true,
+      message: "Report resubmitted successfully",
+      data: updated,
+      code: 200,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 /**
  * Delete a report by id
  *
@@ -146,4 +176,5 @@ module.exports = {
   getReportByIdController,
   deleteReportController,
   updateReportStatusController,
+  resubmitReportController,
 };
