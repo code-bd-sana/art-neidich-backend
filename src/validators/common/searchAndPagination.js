@@ -27,6 +27,9 @@ const searchAndPaginationSchema = z
       .enum(["all", "in_progress", "submitted", "completed", "rejected"])
       .optional(),
 
+
+    dueDate: z.coerce.date().optional(),
+
     /**
      * Date filter type
      * - this_month
