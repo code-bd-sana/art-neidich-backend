@@ -447,6 +447,7 @@ async function getMyJobs(query = {}, userId) {
   const statusFilter = query.status;
   const dateType = query.dateType;
   const customDate = query.customDate ? new Date(query.customDate) : null;
+  const dueDate = query.dueDate;
 
   // Build aggregation pipeline
   const pipeline = [
@@ -590,6 +591,20 @@ async function getMyJobs(query = {}, userId) {
     }
   }
 
+  // -------------------------
+  // dueDate Filter
+  // -------------------------
+  if (dueDate) {
+    const dDate = new Date(query.dueDate);
+    const dStart = new Date(dDate.setHours(0, 0, 0, 0));
+    const dEnd = new Date(dDate.setHours(23, 59, 59, 999));
+    pipeline.push({
+      $match: {
+        dueDate: { $gte: dStart, $lte: dEnd },
+      },
+    });
+  }
+  
   // -------------------------
   // Add reportStatus, role labels
   // -------------------------
