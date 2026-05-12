@@ -24,7 +24,7 @@ const searchAndPaginationSchema = z
       }),
 
     status: z
-      .enum(["all", "in_progress", "submitted", "completed", "rejected"])
+      .enum(["all", "in_progress", "submitted", "completed", "rejected", "re-submitted"])
       .optional(),
 
 
