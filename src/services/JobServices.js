@@ -323,6 +323,15 @@ async function getJobById(id) {
                 },
                 then: "Rejected",
               },
+              {
+                case: {
+                  $eq: [
+                    { $arrayElemAt: ["$reportCheck.status", 0] },
+                    "re-submitted",
+                  ],
+                },
+                then: "Resubmit",
+              },
             ],
             default: "In Progress",
           },
@@ -604,7 +613,7 @@ async function getMyJobs(query = {}, userId) {
       },
     });
   }
-  
+
   // -------------------------
   // Add reportStatus, role labels
   // -------------------------
@@ -639,6 +648,15 @@ async function getMyJobs(query = {}, userId) {
                 $eq: [{ $arrayElemAt: ["$reportCheck.status", 0] }, "rejected"],
               },
               then: "Rejected",
+            },
+            {
+              case: {
+                $eq: [
+                  { $arrayElemAt: ["$reportCheck.status", 0] },
+                  "re-submitted",
+                ],
+              },
+              then: "Resubmit",
             },
           ],
           default: "In Progress",
@@ -970,6 +988,10 @@ async function getJobs(query = {}) {
             },
             { case: { $eq: ["$reportStatus", "rejected"] }, then: "Rejected" },
             {
+              case: { $eq: ["$reportStatus", "re-submitted"] },
+              then: "Resubmit",
+            },
+            {
               case: { $eq: ["$reportStatus", "in_progress"] },
               then: "In Progress",
             },
@@ -1273,6 +1295,15 @@ async function getJobsByIds(ids = []) {
                   ],
                 },
                 then: "Rejected",
+              },
+              {
+                case: {
+                  $eq: [
+                    { $arrayElemAt: ["$reportCheck.status", 0] },
+                    "re-submitted",
+                  ],
+                },
+                then: "Resubmit",
               },
             ],
             default: "In Progress",
