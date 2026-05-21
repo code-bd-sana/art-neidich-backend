@@ -685,7 +685,7 @@ async function deleteReport(id) {
 
 async function reportSendToMail(report) {
   try {
-    const toEmail = "inspect@artneidich.com"; //report.job?.createdBy?.email;
+    const toEmail = "sahadatjhpi@gmail.com";//"inspect@artneidich.com"; //report.job?.createdBy?.email;
     if (!toEmail) {
       console.error("reportSendToMail: email not found in report!");
       return;
@@ -843,14 +843,12 @@ function renderSection(label, imgs) {
   const renderImg = (img) => {
     const src = cleanImageUrl(img?.url);
     const alt = img?.alt || img?.fileName || "";
-    const note = img?.noteForAdmin;
     return `
       <div class="img-cell">
         ${src
         ? `<img src="${src}" alt="${alt}" />`
         : `<p class="img-unavailable">Image not available</p>`
       }
-        ${note ? `<p class="img-note">Note: ${note}</p>` : ""}
       </div>`;
   };
 
@@ -949,6 +947,17 @@ function buildReportHTML(report) {
                 <!-- ═══ SCROLLABLE CONTENT ═══ -->
               
                 ${sectionsHtml}
+
+                <!-- ═══ INSPECTOR NOTES SECTION ═══ -->
+                ${report.noteForAdmin
+      ? `
+                  <div class="section-block" style="border-top: 1.5px solid #222325; margin-top: 25px; padding-top: 15px;">
+                    <p style="font-size: 13px; font-weight: bold; color: #222325; margin-bottom: 8px; text-transform: uppercase;">Inspector Notes</p>
+                    <p style="font-size: 11px; color: #333333; line-height: 1.6; white-space: pre-line;">${report.noteForAdmin}</p>
+                  </div>
+                `
+      : ""
+    }
               
               </body>
             </html>`;
