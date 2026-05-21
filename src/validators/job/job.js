@@ -13,7 +13,7 @@ const createJobSchema = z
     formType: z.enum([
       // "RCI Residential Building Code Inspection",
       // "92051 - FHA Inspection",
-      'HUD/FHA 92051 Compliance-FINAL'
+      "HUD/FHA 92051 Compliance-FINAL",
     ]),
     feeStatus: z.enum([
       "Standard",
