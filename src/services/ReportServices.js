@@ -723,16 +723,16 @@ async function generateReportPDF(report) {
   const html = buildReportHTML(report);
   await page.setContent(html, { waitUntil: "networkidle0" });
 
-  // Header এর জন্য ডাটাগুলো এক্সট্রাক্ট করা হচ্ছে
+  // Extract data for Header 
   const job = report.job || {};
   const inspectionDate = formatInspectionDate(
     report.createdAt || job.createdAt,
   );
   const caseNo = job.fhaCaseDetailsNo || "N/A";
-  const formType = job.formType || "92051 - FHA Inspection";
+  const formType = job.formType || "HUD/FHA 92051 Compliance-FINAL";
   const streetAddress = job.streetAddress || "N/A";
 
-  // Puppeteer-এর জন্য Header Template (অবশ্যই inline CSS ব্যবহার করতে হবে)
+  // Header Template - Puppeteer (must use inline CSS)
   const headerTemplate = `
     <div style="font-family: Helvetica, Arial, sans-serif; font-size: 11px; width: 100%; color: #222325; padding: 0 30px; background: white; -webkit-print-color-adjust: exact;">
       <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 8px;">
@@ -753,7 +753,7 @@ async function generateReportPDF(report) {
     </div>
   `;
 
-  // Puppeteer-এর জন্য Footer Template (এখানে pageNumber যুক্ত করা হয়েছে)
+  // Puppeteer-Footer Template (pageNumber added here)
   const footerTemplate = `
     <div style="font-family: Helvetica, Arial, sans-serif; font-size: 8px; width: 100%; color: #333; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #000; -webkit-print-color-adjust: exact; background: white;">
       ${LOGO_FOOTER_LEFT ? `<img src="${LOGO_FOOTER_LEFT}" style="width: 45px; height: 45px; object-fit: contain;" />` : `<div style="width: 45px;"></div>`}
