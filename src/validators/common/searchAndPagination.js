@@ -28,8 +28,13 @@ const searchAndPaginationSchema = z
       .optional(),
 
 
-    dueDate: z.coerce.date().optional(),
-
+    // Due date range filter (replaces single dueDate)
+    dueDate: z
+      .object({
+        from: z.string().date().optional(), // "YYYY-MM-DD" format
+        to: z.string().date().optional(),
+      })
+      .optional(),
     /**
      * Date filter type
      * - this_month

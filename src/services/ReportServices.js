@@ -685,7 +685,7 @@ async function deleteReport(id) {
 
 async function reportSendToMail(report) {
   try {
-    const toEmail = "inspect@artneidich.com"; //report.job?.createdBy?.email;
+    const toEmail = "sahadatjhpi@gmail.com";//"inspect@artneidich.com"; //report.job?.createdBy?.email;
     if (!toEmail) {
       console.error("reportSendToMail: email not found in report!");
       return;
@@ -694,7 +694,7 @@ async function reportSendToMail(report) {
     const pdfBuffer = await generateReportPDF(report);
     const isSend = await sendMail({
       to: toEmail,
-      subject: `Inspection Report - ${report.job.streetAddress || report.job?.orderId} }`,
+      subject: `Inspection Report - ${report.job.streetAddress || report.job?.orderId}`,
       html: `<p>Dear ${report.job?.createdBy?.firstName || "Sir/Madam"},</p>
              <p>Please find the attached inspection report.</p>
              <p><strong>Order ID:</strong> ${report.job?.orderId || "N/A"}</p>
@@ -723,28 +723,28 @@ async function generateReportPDF(report) {
   const html = buildReportHTML(report);
   await page.setContent(html, { waitUntil: "networkidle0" });
 
-  // Header এর জন্য ডাটাগুলো এক্সট্রাক্ট করা হচ্ছে
+  // Extract data for Header 
   const job = report.job || {};
   const inspectionDate = formatInspectionDate(
     report.createdAt || job.createdAt,
   );
   const caseNo = job.fhaCaseDetailsNo || "N/A";
-  const formType = job.formType || "92051 - FHA Inspection";
+  const formType = job.formType || "HUD/FHA 92051 Compliance-FINAL";
   const streetAddress = job.streetAddress || "N/A";
 
-  // Puppeteer-এর জন্য Header Template (অবশ্যই inline CSS ব্যবহার করতে হবে)
+  // Header Template - Puppeteer (must use inline CSS)
   const headerTemplate = `
     <div style="font-family: Helvetica, Arial, sans-serif; font-size: 11px; width: 100%; color: #222325; padding: 0 30px; background: white; -webkit-print-color-adjust: exact;">
       <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 8px;">
         ${LOGO_TOP ? `<img src="${LOGO_TOP}" style="width: 100px; height: 58px; object-fit: contain; margin-bottom: 4px;" />` : ""}
-        <div style="font-size: 8px; color: #474747;">www.FHAInspection.com / www.artneidich.com</div>
-        <div style="font-size: 8px; color: #000;">A division of Lone Star Building Inspection, Inc.</div>
-        <div style="font-size: 10px; font-weight: bold;">Attachment to FHA Form 92051</div>
+        <div style="font-size: 8px; color: #474747;">www.FHAInspect.com | www.ArtNeidich.com</div>
+        <div style="font-size: 8px; color: #000;">A div. of Lone Star Building Inspection, Inc.</div>
+        <div style="font-size: 10px; font-weight: bold;">Attachment to HUD/FHA form 92051</div>
       </div>
       <div style="border-top: 1px solid #EFEFF1; margin: 6px 0 8px;"></div>
       <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px;">
         <div><strong>Date of Inspection:</strong> ${inspectionDate}</div>
-        <div><strong>FHA Case #</strong> ${caseNo}</div>
+        <div><strong>CASE #:</strong> ${caseNo}</div>
       </div>
       <div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px;">
         <div><strong>Type of Inspection:</strong> ${formType}</div>
@@ -753,15 +753,14 @@ async function generateReportPDF(report) {
     </div>
   `;
 
-  // Puppeteer-এর জন্য Footer Template (এখানে pageNumber যুক্ত করা হয়েছে)
+  // Puppeteer-Footer Template (pageNumber added here)
   const footerTemplate = `
     <div style="font-family: Helvetica, Arial, sans-serif; font-size: 8px; width: 100%; color: #333; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #000; -webkit-print-color-adjust: exact; background: white;">
       ${LOGO_FOOTER_LEFT ? `<img src="${LOGO_FOOTER_LEFT}" style="width: 45px; height: 45px; object-fit: contain;" />` : `<div style="width: 45px;"></div>`}
       <div style="text-align: center; flex: 1; margin: 0 10px; font-weight: bold; line-height: 1.4;">
-        All utilities are on and tested unless otherwise noted<br />
-        Properties without working utilities do not qualify for compliance<br />
-        TREC Lic. # 10546 | TSBPE Lic. # 3836 | Code Enforcement Lic. # 7055 | HUD-FHA Fee Reg.# D683 & 203K – D0931<br />
-        ICC Certified Residential Combination Inspector<br/>
+        All Utilities On At Time of Inspection, Unless Otherwise Noted<br />
+        T.R.E.C Lic. # 10546 | TSBPE Lic. # I-3836 | Texas Code Enforcement Officer Lic. # 7055<br />
+        Certified ICC Professionals | Residential Combination Inspector<br/>
         <span style="color: #666; font-size: 9px; margin-top: 4px; display: block;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
       </div>
       ${LOGO_FOOTER_RIGHT ? `<img src="${LOGO_FOOTER_RIGHT}" style="width: 45px; height: 45px; object-fit: contain;" />` : `<div style="width: 45px;"></div>`}
@@ -771,12 +770,12 @@ async function generateReportPDF(report) {
   const pdfBuffer = await page.pdf({
     format: "A4",
     printBackground: true,
-    displayHeaderFooter: true, // এটি চালু করতে হবে
+    displayHeaderFooter: true,
     headerTemplate: headerTemplate,
     footerTemplate: footerTemplate,
     margin: {
-      top: "160px", // Header-এর জন্য উপরের জায়গা (প্রয়োজনে বাড়াতে/কমাতে পারেন)
-      bottom: "85px", // Footer-এর জন্য নিচের জায়গা
+      top: "160px",
+      bottom: "85px",
       left: "12mm",
       right: "12mm",
     },
@@ -844,15 +843,12 @@ function renderSection(label, imgs) {
   const renderImg = (img) => {
     const src = cleanImageUrl(img?.url);
     const alt = img?.alt || img?.fileName || "";
-    const note = img?.noteForAdmin;
     return `
       <div class="img-cell">
-        ${
-          src
-            ? `<img src="${src}" alt="${alt}" />`
-            : `<p class="img-unavailable">Image not available</p>`
-        }
-        ${note ? `<p class="img-note">Note: ${note}</p>` : ""}
+        ${src
+        ? `<img src="${src}" alt="${alt}" />`
+        : `<p class="img-unavailable">Image not available</p>`
+      }
       </div>`;
   };
 
@@ -951,6 +947,17 @@ function buildReportHTML(report) {
                 <!-- ═══ SCROLLABLE CONTENT ═══ -->
               
                 ${sectionsHtml}
+
+                <!-- ═══ INSPECTOR NOTES SECTION ═══ -->
+                ${report.noteForAdmin
+      ? `
+                  <div class="section-block" style="border-top: 1.5px solid #222325; margin-top: 25px; padding-top: 15px;">
+                    <p style="font-size: 13px; font-weight: bold; color: #222325; margin-bottom: 8px; text-transform: uppercase;">Inspector Notes</p>
+                    <p style="font-size: 11px; color: #333333; line-height: 1.6; white-space: pre-line;">${report.noteForAdmin}</p>
+                  </div>
+                `
+      : ""
+    }
               
               </body>
             </html>`;
