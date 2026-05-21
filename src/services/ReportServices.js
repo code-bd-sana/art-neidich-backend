@@ -694,7 +694,7 @@ async function reportSendToMail(report) {
     const pdfBuffer = await generateReportPDF(report);
     const isSend = await sendMail({
       to: toEmail,
-      subject: `Inspection Report - ${report.job.streetAddress || report.job?.orderId} }`,
+      subject: `Inspection Report - ${report.job.streetAddress || report.job?.orderId}`,
       html: `<p>Dear ${report.job?.createdBy?.firstName || "Sir/Madam"},</p>
              <p>Please find the attached inspection report.</p>
              <p><strong>Order ID:</strong> ${report.job?.orderId || "N/A"}</p>
