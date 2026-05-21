@@ -21,6 +21,7 @@ const errorHandler = require("./middleware/error-handler");
 const app = express();
 // Trust first proxy hop (e.g., load balancer) so X-Forwarded-For is honored
 app.set("trust proxy", 1);
+app.set("query parser", "extended"); // qs parser enable
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
