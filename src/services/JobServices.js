@@ -8,6 +8,7 @@ const JobModel = require("../models/JobModel");
 const NotificationModel = require("../models/NotificationModel");
 const ReportModel = require("../models/ReportModel");
 const UserModel = require("../models/UserModel");
+const { deleteObjects } = require("../utils/s3");
 
 /**
  * Create a new job
@@ -1154,19 +1155,25 @@ async function updateJob(id, payload) {
  * @returns {Promise<void>}
  */
 async function deleteJob(id) {
-  // Check if job exists
   const existing = await JobModel.findById(id);
-
-  // If not found, throw error
   if (!existing) {
     const err = new Error("Job not found");
     err.code = 404;
     throw err;
   }
-
-  // Delete the job
+  const associatedReport = await ReportModel.findOne({ job: id });
+  if (associatedReport) {
+    const keys = (associatedReport.images || [])
+      .map((img) => img.key)
+      .filter((key) => key && key !== "pending");
+    if (keys.length > 0) {
+      await deleteObjects(keys).catch((err) =>
+        console.error("S3 deletion failed during job delete:", err.message)
+      );
+    }
+    await ReportModel.findByIdAndDelete(associatedReport._id);
+  }
   await JobModel.findByIdAndDelete(id);
-
   return;
 }
 
