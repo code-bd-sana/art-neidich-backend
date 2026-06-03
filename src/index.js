@@ -44,6 +44,8 @@ const server = app.listen(process.env.PORT, async () => {
   console.log("Api versioning: version v1");
 });
 
+server.timeout = 300000;
+
 process.on("uncaughtException", (err) => {
   try {
     logError(err, { type: "uncaughtException" });
